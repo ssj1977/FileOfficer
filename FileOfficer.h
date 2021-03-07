@@ -21,7 +21,10 @@ public:
 	CFileOfficerApp();
 
 	int m_nIconType;
-// 재정의입니다.
+	HIMAGELIST* m_pSysImgList;
+
+	void LoadImageList(int nIconType);
+
 public:
 	virtual BOOL InitInstance();
 

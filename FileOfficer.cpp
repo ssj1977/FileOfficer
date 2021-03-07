@@ -6,6 +6,7 @@
 #include "framework.h"
 #include "FileOfficer.h"
 #include "FileOfficerDlg.h"
+#include <CommonControls.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -24,6 +25,7 @@ END_MESSAGE_MAP()
 CFileOfficerApp::CFileOfficerApp()
 {
 	m_nIconType = SHIL_EXTRALARGE;
+	m_pSysImgList = NULL;
 }
 
 
@@ -63,7 +65,8 @@ BOOL CFileOfficerApp::InitInstance()
 	// 해당 설정이 저장된 레지스트리 키를 변경하십시오.
 	// TODO: 이 문자열을 회사 또는 조직의 이름과 같은
 	// 적절한 내용으로 수정해야 합니다.
-	SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
+	//SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
+	LoadImageList(m_nIconType);
 
 	CFileOfficerDlg dlg;
 	m_pMainWnd = &dlg;
@@ -99,3 +102,8 @@ BOOL CFileOfficerApp::InitInstance()
 	return FALSE;
 }
 
+void CFileOfficerApp::LoadImageList(int nIconType)
+{
+	m_nIconType = nIconType;
+	HRESULT hr = SHGetImageList(m_nIconType, IID_IImageList, (void**)&m_pSysImgList);
+}

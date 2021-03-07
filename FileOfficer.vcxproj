@@ -183,6 +183,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CDlgTabView.h" />
     <ClInclude Include="CFileListContextMenu.h" />
     <ClInclude Include="CFileListCtrl.h" />
     <ClInclude Include="FileOfficer.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CDlgTabView.cpp" />
     <ClCompile Include="CFileListContextMenu.cpp" />
     <ClCompile Include="CFileListCtrl.cpp" />
     <ClCompile Include="FileOfficer.cpp" />
