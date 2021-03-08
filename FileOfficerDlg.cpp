@@ -68,7 +68,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	}
 	ArrangeCtrl();
 	m_tv2.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
-	m_tv1.CurrentList()->SetFocus();
+	m_tv1.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_ON, 0);
+	//m_tv1.CurrentList()->SetFocus(); return FALSE;
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
