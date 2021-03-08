@@ -44,7 +44,7 @@ public:
 
 	void ArrangeCtrl();
 	void SetCurrentTab(int nTab);
-	CWnd* GetCurrentFileListCtrl();
+	CWnd* CurrentList();
 	void UpdateTabByWnd(CWnd* pWnd);
 	void SetTabTitle(int nTab, CString strTitle);
 	void UpdateIconType();

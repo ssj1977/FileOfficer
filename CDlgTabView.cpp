@@ -56,6 +56,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
+	case IDM_OPEN_PARENT: ((CFileListCtrl*)CurrentList())->OpenParentFolder(); break;
 	case IDM_UPDATE_TAB: UpdateTabByWnd((CWnd*)lParam); break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
@@ -129,14 +130,14 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->DisplayFolder(pti.strPath);
 		//SetTabTitle(nTab, nItem, GetPathName(pti.strPath));
 	}
-	CFileListCtrl* pListOld = (CFileListCtrl*)GetCurrentFileListCtrl();
+	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
 	pList->ShowWindow(SW_SHOW);
 	m_nCurrentTab = nTab;
 	ArrangeCtrl();
 }
 
-CWnd* CDlgTabView::GetCurrentFileListCtrl()
+CWnd* CDlgTabView::CurrentList()
 {
 	if (m_aTabInfo.GetSize() > m_nCurrentTab && m_nCurrentTab >= 0) return m_aTabInfo[m_nCurrentTab].pWnd;
 	return NULL;
@@ -184,7 +185,7 @@ void CDlgTabView::ArrangeCtrl()
 	rc.top += 20;
 	m_tabPath.MoveWindow(rc.left, rc.top, TW, 20);
 	rc.top += 20;
-	CWnd* pWnd = GetCurrentFileListCtrl();
+	CWnd* pWnd = CurrentList();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
 		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height());

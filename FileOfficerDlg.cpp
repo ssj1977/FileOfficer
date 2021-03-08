@@ -45,6 +45,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	//
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
+	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
+	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_tv1.ShowWindow(SW_SHOW);
 	m_tv2.ShowWindow(SW_SHOW);
 	// Init ToolBar
@@ -75,11 +77,12 @@ void CFileOfficerDlg::ArrangeCtrl()
 	int TOOLMAIN_WIDTH = rcBtnMain.Width();
 	CRect rc; 
 	GetClientRect(rc);
+	int BW = 0;
 	m_toolMain.MoveWindow(rc.right - TOOLMAIN_WIDTH, rc.top, TOOLMAIN_WIDTH, rc.Height());
 	rc.DeflateRect(0, 0, TOOLMAIN_WIDTH, 0);
 	int TABWIDTH = rc.Width() / 2;
-	m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH-5, rc.Height());
-	m_tv2.MoveWindow(rc.right-TABWIDTH + 5, rc.top, TABWIDTH-5, rc.Height());
+	m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH-BW, rc.Height());
+	m_tv2.MoveWindow(rc.right-TABWIDTH + BW, rc.top, TABWIDTH-BW, rc.Height());
 }
 
 // 대화 상자에 최소화 단추를 추가할 경우 아이콘을 그리려면
@@ -124,6 +127,16 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
+	case IDM_OPEN_PARENT:
+		if (GetFocus() != NULL)
+		{
+			CWnd* pWnd = GetFocus();
+			if (pWnd->GetParent()!=NULL && ::IsWindow(pWnd->GetParent()->GetSafeHwnd()))
+				pWnd->GetParent()->PostMessageW(WM_COMMAND, IDM_OPEN_PARENT, 0);
+			//if (pWnd->IsKindOf(RUNTIME_CLASS(CFileListCtrl)) && ::IsWindow(pWnd->GetSafeHwnd()))
+			//	((CFileListCtrl*)pWnd)->OpenParentFolder();
+		}
+		break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
