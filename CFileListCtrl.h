@@ -1,5 +1,9 @@
 #pragma once
 #include <afxlistctrl.h>
+
+#define IDM_SET_FOCUS_ON 50010
+#define IDM_SET_FOCUS_OFF 50011
+
 class CFileListCtrl : public CMFCListCtrl
 {
 	DECLARE_DYNAMIC(CFileListCtrl)
@@ -34,5 +38,7 @@ public:
 	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMReturn(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnSetFocus(CWnd* pOldWnd);
+	afx_msg void OnKillFocus(CWnd* pNewWnd);
 };
 

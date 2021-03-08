@@ -58,6 +58,12 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	{
 	case IDM_OPEN_PARENT: ((CFileListCtrl*)CurrentList())->OpenParentFolder(); break;
 	case IDM_UPDATE_TAB: UpdateTabByWnd((CWnd*)lParam); break;
+	case IDM_SET_FOCUS_ON: 
+		m_editPath.EnableWindow(TRUE);
+		break;
+	case IDM_SET_FOCUS_OFF:
+		m_editPath.EnableWindow(FALSE);
+		break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}

@@ -67,6 +67,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		MoveWindow(m_rcMain, TRUE);
 	}
 	ArrangeCtrl();
+	m_tv2.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
+	m_tv1.CurrentList()->SetFocus();
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -132,7 +134,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 		{
 			CWnd* pWnd = GetFocus();
 			if (pWnd->GetParent()!=NULL && ::IsWindow(pWnd->GetParent()->GetSafeHwnd()))
-				pWnd->GetParent()->PostMessageW(WM_COMMAND, IDM_OPEN_PARENT, 0);
+				pWnd->GetParent()->PostMessage(WM_COMMAND, IDM_OPEN_PARENT, 0);
 			//if (pWnd->IsKindOf(RUNTIME_CLASS(CFileListCtrl)) && ::IsWindow(pWnd->GetSafeHwnd()))
 			//	((CFileListCtrl*)pWnd)->OpenParentFolder();
 		}

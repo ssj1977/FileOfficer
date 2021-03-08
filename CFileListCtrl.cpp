@@ -161,6 +161,8 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_NOTIFY_REFLECT(NM_DBLCLK, &CFileListCtrl::OnNMDblclk)
 	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
 	ON_NOTIFY_REFLECT(NM_RETURN, &CFileListCtrl::OnNMReturn)
+	ON_WM_SETFOCUS()
+	ON_WM_KILLFOCUS()
 END_MESSAGE_MAP()
 
 CString CFileListCtrl::GetCurrentFolder()
@@ -622,4 +624,18 @@ void CFileListCtrl::ShowContextMenu(CPoint pt)
 	context_menu.SetPathArray(aSelectedPath);
 	UINT idCommand = context_menu.ShowContextMenu(this, pt);
 	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
+}
+
+
+void CFileListCtrl::OnSetFocus(CWnd* pOldWnd)
+{
+	CMFCListCtrl::OnSetFocus(pOldWnd);
+	GetParent()->PostMessage(WM_COMMAND, IDM_SET_FOCUS_ON, 0);
+}
+
+
+void CFileListCtrl::OnKillFocus(CWnd* pNewWnd)
+{
+	CMFCListCtrl::OnKillFocus(pNewWnd);
+	GetParent()->PostMessage(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
 }
