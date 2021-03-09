@@ -37,7 +37,6 @@ public:
 	afx_msg void OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnNMReturn(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
 };

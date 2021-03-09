@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CFileListCtrl.h"
 #include <shlwapi.h>
+#include <shellapi.h>
 #include <lm.h>
 #include <atlpath.h>
 #include "CFileListContextMenu.h"
@@ -160,7 +161,6 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CFileListCtrl::OnLvnBegindrag)
 	ON_NOTIFY_REFLECT(NM_DBLCLK, &CFileListCtrl::OnNMDblclk)
 	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
-	ON_NOTIFY_REFLECT(NM_RETURN, &CFileListCtrl::OnNMReturn)
 	ON_WM_SETFOCUS()
 	ON_WM_KILLFOCUS()
 END_MESSAGE_MAP()
@@ -211,7 +211,8 @@ void CFileListCtrl::OpenSelectedItem()
 	int nType = GetItemData(nIndex);
 	if (nType == ITEM_TYPE_FILE)
 	{
-		return;
+		HINSTANCE hr = ShellExecute(NULL, NULL, GetItemFullPath(nIndex), NULL, NULL, SW_SHOW);
+		if ((int)hr <= 32) AfxMessageBox(L"Error");
 	}
 	else
 	{
@@ -467,6 +468,14 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 		}
 	}
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_RETURN)
+		{
+			OpenSelectedItem();
+			return TRUE;
+		}
+	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
@@ -581,16 +590,9 @@ void CFileListCtrl::Sort(int iColumn, BOOL bAscending, BOOL bAdd)
 	SortItemsEx(CompareProc, (LPARAM)this);
 }
 
-
 void CFileListCtrl::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-	OpenSelectedItem();
-	*pResult = 0;
-}
-
-void CFileListCtrl::OnNMReturn(NMHDR* pNMHDR, LRESULT* pResult)
-{
 	OpenSelectedItem();
 	*pResult = 0;
 }
