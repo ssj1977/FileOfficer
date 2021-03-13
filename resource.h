@@ -15,6 +15,7 @@
 #define IDM_CLOSE_LIST                  32775
 #define IDM_CONFIG                      32776
 #define IDM_SET_PATH_1                  32777
+#define IDM_SET_PATH                    32777
 
 // Next default values for new objects
 // 

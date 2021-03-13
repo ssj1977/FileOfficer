@@ -146,6 +146,8 @@ CFileListCtrl::CFileListCtrl()
 	m_nType = LIST_TYPE_DRIVE;
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateTabCtrl = 0;
+	m_bAsc = TRUE;
+	m_nSortCol = 0 ;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -216,7 +218,7 @@ void CFileListCtrl::OpenSelectedItem()
 	}
 	else
 	{
-		DisplayFolder(GetItemFullPath(nIndex));
+		DisplayFolder_Start(GetItemFullPath(nIndex));
 	}
 }
 
@@ -230,7 +232,7 @@ void CFileListCtrl::OpenParentFolder()
 	}
 	else if (path.IsRoot())
 	{
-		DisplayFolder(_T(""));
+		DisplayFolder_Start(_T(""));
 	}
 	else
 	{
@@ -243,7 +245,7 @@ void CFileListCtrl::OpenParentFolder()
 		}
 		if (nPos <= 0) return;
 		strParent = strParent.Left(nPos);
-		DisplayFolder(strParent);
+		DisplayFolder_Start(strParent);
 	}
 }
 
@@ -325,6 +327,21 @@ ULONGLONG Str2Size(CString str)
 	return size;
 }
 
+void CFileListCtrl::DisplayFolder_Start(CString strFolder)
+{
+	m_strFolder = strFolder;
+	AfxBeginThread(DisplayFolder_Thread, this);
+}
+UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
+{
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
+	CFileListCtrl* pList = (CFileListCtrl*)lParam;
+	pList->DisplayFolder(pList->m_strFolder);
+	//st_bIsThreadWorking = TRUE;
+	return 0;
+	//APP()->UpdateThreadLocale();
+}
+
 void CFileListCtrl::DisplayFolder(CString strFolder)
 {
 	CPath path = CPath(strFolder);
@@ -397,43 +414,59 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 	{
 		InitColumns(LIST_TYPE_FOLDER);
 		path.AddBackslash();
-		CFileFind find;
-		BOOL b = find.FindFile(path + _T("*.*"));
-		CString strName, strSize, strDate, strType;
+		CString strFind = path + _T("*");
+		WIN32_FIND_DATA fd;
+		HANDLE hFind;
+		hFind = FindFirstFileExW(strFind, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+		if (hFind == INVALID_HANDLE_VALUE) return;
+		CString strSize, strDate, strType, strFullPath;
 		DWORD itemData = 0;
-		int nItem;
+		int nItem = 0 , nLen = 0 ;
+		ULARGE_INTEGER filesize;
+		CTime tTemp;
+		BOOL b = TRUE, bIsDir = FALSE;
+		TCHAR fullpath[MAX_PATH];
+		LPCTSTR pDir = (LPCTSTR)path;
+		clock_t startTime, endTime;
+		startTime = clock();
 		while (b)
 		{
-			b = find.FindNextFileW();
-			strName = find.GetFileName();
-			CTime tTemp;
-			find.GetLastWriteTime(tTemp);
-			strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
-			if (find.IsDots())
-			{
-				itemData = ITEM_TYPE_DOTS; //Dots
-				strSize.Empty();
-			}
-			else if (find.IsDirectory())
-			{
-				itemData = ITEM_TYPE_DIRECTORY;  //Directory
-				strSize.Empty();
-			}
-			else
-			{
-				itemData = ITEM_TYPE_FILE;  //File
-				//strSize.Format(_T("%I64u"), find.GetLength());
-				strSize = GetFileSizeString(find.GetLength());
-			}
+			itemData = ITEM_TYPE_FILE;
+			nLen = _tcsclen(fd.cFileName);
+			if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
+			else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
 			if (itemData != ITEM_TYPE_DOTS)
 			{
-				nItem = InsertItem(GetItemCount(), strName, GetFileImageIndexFromMap(find.GetFilePath(), find.IsDirectory()));
+				tTemp = CTime(fd.ftLastWriteTime);
+				strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+				if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+				{
+					itemData = ITEM_TYPE_DIRECTORY;  //Directory
+					bIsDir = TRUE;
+					strSize.Empty();
+				}
+				else
+				{
+					bIsDir = FALSE;
+					filesize.HighPart = fd.nFileSizeHigh;
+					filesize.LowPart = fd.nFileSizeLow;
+					strSize = GetFileSizeString(filesize.QuadPart);
+				}
+				PathCombineW(fullpath, pDir, fd.cFileName);
+				strFullPath = path + fd.cFileName;
+				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
 				SetItemData(nItem, itemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				if (!strSize.IsEmpty()) SetItemText(nItem, COL_SIZE, strSize);
 			}
+			b = FindNextFileW(hFind, &fd);
 		}
-		Sort(GetHeaderCtrl().GetSortColumn(), GetHeaderCtrl().IsAscending());
+		FindClose(hFind);
+		Sort(m_nSortCol, m_bAsc);
+		endTime = clock();
+		CString strTemp;
+		strTemp.Format(_T("%d"), endTime - startTime);
+		AfxMessageBox(strTemp);
 	}
 	m_strFolder = (CString)path;
 	GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
@@ -452,6 +485,9 @@ void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	//CDFilesDlg* pParent = (CDFilesDlg*)GetParent();
 	//pParent->UpdateSortColumn(GetHeaderCtrl().GetSortColumn(), GetHeaderCtrl().IsAscending());
+	GetHeaderCtrl().SetSortColumn(m_iSortedColumn, m_bAscending);
+	m_bAsc = m_bAscending;
+	m_nSortCol = m_iSortedColumn;
 	GetParent()->PostMessageW(WM_COMMAND, CMD_UpdateSortInfo, (DWORD_PTR)this);
 	*pResult = 0;
 }
@@ -584,7 +620,9 @@ void CFileListCtrl::Sort(int iColumn, BOOL bAscending, BOOL bAdd)
 		return;
 	}*/
 	CWaitCursor wait;
-	GetHeaderCtrl().SetSortColumn(iColumn, bAscending, bAdd);
+	//SetSortColumn(iColumn, bAscending, bAdd);
+	m_nSortCol = iColumn;
+	m_bAsc = bAscending;
 	m_iSortedColumn = iColumn;
 	m_bAscending = bAscending;
 	SortItemsEx(CompareProc, (LPARAM)this);

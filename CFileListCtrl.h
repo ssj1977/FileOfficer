@@ -15,11 +15,15 @@ public:
 	void OpenParentFolder();
 	void ResizeColumns();
 	void DisplayFolder(CString strFolder);
+	void DisplayFolder_Start(CString strFolder);
+	static UINT DisplayFolder_Thread(void* lParam);
 	void InitColumns(int nType);
 	void ShowContextMenu(CPoint pt);
 	CString GetItemFullPath(int nIndex);
 	CString GetCurrentFolder();
 	CString m_strFolder;
+	BOOL m_bAsc;
+	int m_nSortCol;
 	int m_nType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;

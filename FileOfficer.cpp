@@ -66,7 +66,7 @@ BOOL CFileOfficerApp::InitInstance()
 	// TODO: 이 문자열을 회사 또는 조직의 이름과 같은
 	// 적절한 내용으로 수정해야 합니다.
 	//SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
-	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
 	LoadImageList(m_nIconType);
 
 	CFileOfficerDlg dlg;
@@ -107,4 +107,12 @@ void CFileOfficerApp::LoadImageList(int nIconType)
 {
 	m_nIconType = nIconType;
 	HRESULT hr = SHGetImageList(m_nIconType, IID_IImageList, (void**)&m_pSysImgList);
+}
+
+
+int CFileOfficerApp::ExitInstance()
+{
+	//if (CMFCVisualManager::GetInstance() != NULL) delete CMFCVisualManager::GetInstance();
+
+	return CWinApp::ExitInstance();
 }

@@ -8,7 +8,8 @@
 #include "CFileListCtrl.h"
 
 #define IDC_LIST_FILE 50000
-#define IDM_UPDATE_TAB 5500
+#define IDM_UPDATE_TAB 55000
+#define IDM_UPDATE_SORTINFO 55001
 
 CString GetPathName(CString strPath);
 // CDlgTabView 대화 상자
@@ -58,11 +59,13 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	{
 	case IDM_OPEN_PARENT: ((CFileListCtrl*)CurrentList())->OpenParentFolder(); break;
 	case IDM_UPDATE_TAB: UpdateTabByWnd((CWnd*)lParam); break;
+	case IDM_UPDATE_SORTINFO: UpdateSortInfo((CWnd*)lParam); break;
+	case IDM_SET_PATH: UpdateTabByPathEdit(); break;
 	case IDM_SET_FOCUS_ON: 
-		m_editPath.EnableWindow(TRUE);
+		//m_editPath.EnableWindow(TRUE);
 		break;
 	case IDM_SET_FOCUS_OFF:
-		m_editPath.EnableWindow(FALSE);
+		//m_editPath.EnableWindow(FALSE);
 		break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
@@ -129,12 +132,15 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		}
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT | WS_EX_CLIENTEDGE);
 		//pList->SetFont(&m_font);
-		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
+		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
+		pList->m_nSortCol = pti.iSortColumn;
+		pList->m_bAsc = pti.bSortAscend;
+		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		if (APP()->m_pSysImgList) ListView_SetImageList(pList->GetSafeHwnd(), APP()->m_pSysImgList, LVSIL_SMALL);
 		pti.pWnd = (CWnd*)pList;
-		pList->DisplayFolder(pti.strPath);
-		//SetTabTitle(nTab, nItem, GetPathName(pti.strPath));
+		//pList->DisplayFolder(pti.strPath);
+		pList->DisplayFolder_Start(pti.strPath);
 	}
 	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
@@ -169,6 +175,37 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 	m_editPath.SetWindowTextW(pti.strPath);
 }
 
+void CDlgTabView::UpdateSortInfo(CWnd* pWnd)
+{
+	if (pWnd == NULL || ::IsWindow(pWnd->GetSafeHwnd()) == FALSE) return;
+	int nTab = -1;
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd == pWnd)
+		{
+			nTab = i;
+			break;
+		}
+	}
+	if (nTab == -1) return;
+	PathTabInfo& pti = m_aTabInfo[nTab];
+	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
+	pti.bSortAscend = pList->GetHeaderCtrl().IsAscending();
+	pti.iSortColumn = pList->GetHeaderCtrl().GetSortColumn();
+}
+
+void CDlgTabView::UpdateTabByPathEdit()
+{
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	//pList->SetRedraw(FALSE);
+	CString strPath, strName;
+	GetDlgItemText(IDC_EDIT_PATH, strPath);
+	pList->DisplayFolder_Start(strPath);
+	strName = GetPathName(strPath);
+	SetTabTitle(m_nCurrentTab, strName);
+	//pList->SetRedraw(TRUE);
+}
+
 void CDlgTabView::SetTabTitle(int nTab, CString strTitle)
 {
 	if (!strTitle.IsEmpty() && nTab < m_tabPath.GetItemCount())
@@ -196,4 +233,19 @@ void CDlgTabView::ArrangeCtrl()
 	{
 		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height());
 	}
+}
+
+
+
+BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_RETURN && GetFocus() == &m_editPath)
+		{
+			UpdateTabByPathEdit();
+			return TRUE;
+		}
+	}
+	return CDialogEx::PreTranslateMessage(pMsg);
 }

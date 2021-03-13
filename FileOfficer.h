@@ -31,6 +31,7 @@ public:
 // 구현입니다.
 
 	DECLARE_MESSAGE_MAP()
+	virtual int ExitInstance();
 };
 inline CFileOfficerApp* APP() { return (CFileOfficerApp*)AfxGetApp(); };
 extern CFileOfficerApp theApp;

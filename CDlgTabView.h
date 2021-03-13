@@ -46,6 +46,8 @@ public:
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
 	void UpdateTabByWnd(CWnd* pWnd);
+	void UpdateSortInfo(CWnd* pWnd);
+	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);
 	void UpdateIconType();
 
@@ -64,4 +66,5 @@ public:
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };
