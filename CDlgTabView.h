@@ -51,6 +51,7 @@ public:
 	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);
 	void UpdateIconType();
+	void Clear();
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };
@@ -61,11 +62,11 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
-	virtual BOOL DestroyWindow();
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 	virtual void OnCancel();
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };

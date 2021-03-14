@@ -22,6 +22,8 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_FILEOFFICER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	m_pWndFocus = NULL;
+	m_bShow2 = TRUE;
 }
 
 void CFileOfficerDlg::DoDataExchange(CDataExchange* pDX)
@@ -147,11 +149,30 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-
 BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 {
-	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
-
+	CWnd* pWnd = GetFocus();
+	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
+	{
+		if (pWnd == &m_tv1 || pWnd->GetParent() == &m_tv1)
+		{
+			if (m_pWndFocus != &m_tv1)
+			{
+				m_pWndFocus = &m_tv1;
+				m_tv1.RedrawWindow();
+				m_tv2.RedrawWindow();
+			}
+		}
+		else if (pWnd == &m_tv2 || pWnd->GetParent() == &m_tv2)
+		{
+			if (m_pWndFocus != &m_tv2)
+			{
+				m_pWndFocus = &m_tv2;
+				m_tv1.RedrawWindow();
+				m_tv2.RedrawWindow();
+			}
+		}
+	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
@@ -179,8 +200,8 @@ void CFileOfficerDlg::OnSelchangeTabPath2(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CFileOfficerDlg::OnCancel()
 {
-	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
-
+	m_tv1.Clear();
+	m_tv2.Clear();
 	CDialogEx::OnCancel();
 }
 

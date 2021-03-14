@@ -37,20 +37,20 @@ void CDlgTabView::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_WM_SIZE()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 
 // CDlgTabView 메시지 처리기
 
 
-BOOL CDlgTabView::DestroyWindow()
+void CDlgTabView::Clear()
 {
 	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		if (m_aTabInfo[i].pWnd != NULL) delete m_aTabInfo[i].pWnd;
 	}
-	return CDialogEx::DestroyWindow();
 }
 
 
@@ -267,4 +267,23 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 		}
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
+
+BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
+{
+	CRect rc;
+	GetClientRect(rc);
+	CWnd* pWnd = GetFocus();
+	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
+	{
+		if (pWnd == this || pWnd->GetParent() == this)
+		{
+			COLORREF clrBk = RGB(255, 0, 0);
+			pDC->SetBkColor(clrBk);
+			pDC->FillSolidRect(rc, clrBk);
+			return TRUE;
+		}
+	}
+	return CDialogEx::OnEraseBkgnd(pDC);
 }
