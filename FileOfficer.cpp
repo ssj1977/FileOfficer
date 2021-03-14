@@ -26,6 +26,9 @@ CFileOfficerApp::CFileOfficerApp()
 {
 	m_nIconType = SHIL_EXTRALARGE;
 	m_pSysImgList = NULL;
+	m_nDefault_FontSize = -1;
+	m_clrDefault_Bk = RGB(255,255,2555);
+	m_clrDefault_Text = RGB(0, 0, 0);
 }
 
 

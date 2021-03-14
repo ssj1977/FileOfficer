@@ -146,8 +146,10 @@ CFileListCtrl::CFileListCtrl()
 	m_nType = LIST_TYPE_DRIVE;
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateTabCtrl = 0;
+	CMD_UpdateBar = 0;
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
+	m_bIsThreadWorking = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -329,21 +331,28 @@ ULONGLONG Str2Size(CString str)
 
 void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 {
+	if (m_bIsThreadWorking == TRUE) return;
 	m_strFolder = strFolder;
+	GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 	AfxBeginThread(DisplayFolder_Thread, this);
 }
 UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 {
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
-	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	pList->DisplayFolder(pList->m_strFolder);
-	//st_bIsThreadWorking = TRUE;
-	return 0;
 	//APP()->UpdateThreadLocale();
+	CFileListCtrl* pList = (CFileListCtrl*)lParam;
+	pList->m_bIsThreadWorking = TRUE;
+	pList->SetBarMsg(_T("Thread Working..."));
+	pList->DisplayFolder(pList->m_strFolder);
+	pList->m_bIsThreadWorking = FALSE;
+	return 0;
 }
 
 void CFileListCtrl::DisplayFolder(CString strFolder)
 {
+	clock_t startTime, endTime;
+	startTime = clock();
+
 	CPath path = CPath(strFolder);
 	DeleteAllItems();
 	if (strFolder.IsEmpty())
@@ -427,8 +436,6 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 		BOOL b = TRUE, bIsDir = FALSE;
 		TCHAR fullpath[MAX_PATH];
 		LPCTSTR pDir = (LPCTSTR)path;
-		clock_t startTime, endTime;
-		startTime = clock();
 		while (b)
 		{
 			itemData = ITEM_TYPE_FILE;
@@ -463,13 +470,13 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 		}
 		FindClose(hFind);
 		Sort(m_nSortCol, m_bAsc);
-		endTime = clock();
-		CString strTemp;
-		strTemp.Format(_T("%d"), endTime - startTime);
-		AfxMessageBox(strTemp);
 	}
 	m_strFolder = (CString)path;
-	GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+
+	endTime = clock();
+	CString strTemp;
+	strTemp.Format(_T("Loading Time : %d"), endTime - startTime);
+	SetBarMsg(strTemp);
 }
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
@@ -678,4 +685,10 @@ void CFileListCtrl::OnKillFocus(CWnd* pNewWnd)
 {
 	CMFCListCtrl::OnKillFocus(pNewWnd);
 	GetParent()->PostMessage(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
+}
+
+void CFileListCtrl::SetBarMsg(CString strMsg)
+{
+	m_strBarMsg = strMsg;
+	if (CMD_UpdateBar!=0) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateBar, (DWORD_PTR)this);
 }

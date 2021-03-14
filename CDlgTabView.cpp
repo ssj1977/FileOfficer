@@ -10,6 +10,7 @@
 #define IDC_LIST_FILE 50000
 #define IDM_UPDATE_TAB 55000
 #define IDM_UPDATE_SORTINFO 55001
+#define IDM_UPDATE_BAR 55002
 
 CString GetPathName(CString strPath);
 // CDlgTabView 대화 상자
@@ -60,6 +61,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_PARENT: ((CFileListCtrl*)CurrentList())->OpenParentFolder(); break;
 	case IDM_UPDATE_TAB: UpdateTabByWnd((CWnd*)lParam); break;
 	case IDM_UPDATE_SORTINFO: UpdateSortInfo((CWnd*)lParam); break;
+	case IDM_UPDATE_BAR: SetDlgItemText(IDC_ST_BAR, ((CFileListCtrl*)lParam)->m_strBarMsg); break;
 	case IDM_SET_PATH: UpdateTabByPathEdit(); break;
 	case IDM_SET_FOCUS_ON: 
 		//m_editPath.EnableWindow(TRUE);
@@ -100,6 +102,19 @@ BOOL CDlgTabView::OnInitDialog()
 		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath));
 	}
 	SetCurrentTab(m_nCurrentTab);
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	if (pList != NULL && ::IsWindow(pList->GetSafeHwnd()))
+	{
+		LOGFONT lf;
+		pList->GetFont()->GetLogFont(&lf);
+		if (APP()->m_nDefault_FontSize == -1)
+		{
+			APP()->m_nDefault_FontSize = MulDiv(-1 * lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
+			APP()->m_clrDefault_Bk = pList->GetBkColor();
+			APP()->m_clrDefault_Text = pList->GetTextColor();
+		}
+		m_lfHeight = abs(lf.lfHeight);
+	}
 	ArrangeCtrl();
 	return TRUE;
 }
@@ -134,6 +149,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		//pList->SetFont(&m_font);
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
 		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
+		pList->CMD_UpdateBar = IDM_UPDATE_BAR;
 		pList->m_nSortCol = pti.iSortColumn;
 		pList->m_bAsc = pti.bSortAscend;
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
@@ -220,19 +236,22 @@ void CDlgTabView::SetTabTitle(int nTab, CString strTitle)
 
 void CDlgTabView::ArrangeCtrl()
 {
+	int BH = m_lfHeight * 2;
 	CRect rc;
 	GetClientRect(rc);
 	int TW = rc.Width();
-	m_editPath.MoveWindow(rc.left, rc.top, TW - 25, 20);
-	m_tool.MoveWindow(TW - 25, rc.top, 20, 20);
-	rc.top += 20;
-	m_tabPath.MoveWindow(rc.left, rc.top, TW, 20);
-	rc.top += 20;
+	m_editPath.MoveWindow(rc.left, rc.top, TW - BH, BH);
+	m_tool.MoveWindow(TW - BH, rc.top, BH, BH);
+	rc.top += BH;
+	m_tabPath.MoveWindow(rc.left, rc.top, TW, BH);
+	rc.top += BH;
 	CWnd* pWnd = CurrentList();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
-		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height());
+		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height()- BH);
 	}
+	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH+1, TW, BH);
+	GetDlgItem(IDC_ST_BAR)->RedrawWindow();
 }
 
 

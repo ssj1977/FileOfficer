@@ -14,6 +14,7 @@ public:
 	void OpenSelectedItem();
 	void OpenParentFolder();
 	void ResizeColumns();
+	void SetBarMsg(CString strMsg);
 	void DisplayFolder(CString strFolder);
 	void DisplayFolder_Start(CString strFolder);
 	static UINT DisplayFolder_Thread(void* lParam);
@@ -22,13 +23,15 @@ public:
 	CString GetItemFullPath(int nIndex);
 	CString GetCurrentFolder();
 	CString m_strFolder;
+	CString m_strBarMsg;
 	BOOL m_bAsc;
+	BOOL m_bIsThreadWorking;
 	int m_nSortCol;
 	int m_nType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateTabCtrl;
-
+	int CMD_UpdateBar;
 protected:
 	DECLARE_MESSAGE_MAP()
 public:

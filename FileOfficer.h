@@ -19,10 +19,11 @@ class CFileOfficerApp : public CWinApp
 {
 public:
 	CFileOfficerApp();
-
+	int m_nDefault_FontSize;
+	COLORREF m_clrDefault_Bk;
+	COLORREF m_clrDefault_Text;
 	int m_nIconType;
 	HIMAGELIST* m_pSysImgList;
-
 	void LoadImageList(int nIconType);
 
 public:

@@ -41,6 +41,7 @@ public:
 	PathTabInfoArray m_aTabInfo;
 	int m_nCurrentTab;
 	CToolBar m_tool;
+	int m_lfHeight;
 
 	void ArrangeCtrl();
 	void SetCurrentTab(int nTab);
