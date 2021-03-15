@@ -62,6 +62,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_UPDATE_TAB: UpdateTabByWnd((CWnd*)lParam); break;
 	case IDM_UPDATE_SORTINFO: UpdateSortInfo((CWnd*)lParam); break;
 	case IDM_UPDATE_BAR: SetDlgItemText(IDC_ST_BAR, ((CFileListCtrl*)lParam)->m_strBarMsg); break;
+	case IDM_REFRESH_LIST: UpdateTabByPathEdit(); break;
 	case IDM_SET_PATH: UpdateTabByPathEdit(); break;
 	case IDM_SET_FOCUS_ON: 
 		//m_editPath.EnableWindow(TRUE);
@@ -153,6 +154,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->m_nSortCol = pti.iSortColumn;
 		pList->m_bAsc = pti.bSortAscend;
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
+//		SetWindowLong(pList->GetSafeHwnd(), GWL_STYLE, GetWindowLong(pList->GetSafeHwnd(), GWL_STYLE) & (pti.bSortAscend ? LVS_SORTASCENDING : LVS_SORTDESCENDING));
 		if (APP()->m_pSysImgList) ListView_SetImageList(pList->GetSafeHwnd(), APP()->m_pSysImgList, LVSIL_SMALL);
 		pti.pWnd = (CWnd*)pList;
 		//pList->DisplayFolder(pti.strPath);

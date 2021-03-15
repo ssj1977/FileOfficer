@@ -333,7 +333,8 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 {
 	if (m_bIsThreadWorking == TRUE) return;
 	m_strFolder = strFolder;
-	GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
+		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 	AfxBeginThread(DisplayFolder_Thread, this);
 }
 UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
@@ -469,7 +470,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 			b = FindNextFileW(hFind, &fd);
 		}
 		FindClose(hFind);
-		Sort(m_nSortCol, m_bAsc);
+		//Sort(m_nSortCol, m_bAsc);
 	}
 	m_strFolder = (CString)path;
 
@@ -492,7 +493,7 @@ void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	//CDFilesDlg* pParent = (CDFilesDlg*)GetParent();
 	//pParent->UpdateSortColumn(GetHeaderCtrl().GetSortColumn(), GetHeaderCtrl().IsAscending());
-	GetHeaderCtrl().SetSortColumn(m_iSortedColumn, m_bAscending);
+	SetSortColumn(m_iSortedColumn, m_bAscending);
 	m_bAsc = m_bAscending;
 	m_nSortCol = m_iSortedColumn;
 	GetParent()->PostMessageW(WM_COMMAND, CMD_UpdateSortInfo, (DWORD_PTR)this);

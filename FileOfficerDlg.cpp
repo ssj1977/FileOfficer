@@ -133,13 +133,10 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 	switch (wParam)
 	{
 	case IDM_OPEN_PARENT:
-		if (GetFocus() != NULL)
+	case IDM_REFRESH_LIST:
+		if (m_pWndFocus != NULL && ::IsWindow(m_pWndFocus->GetSafeHwnd()))
 		{
-			CWnd* pWnd = GetFocus();
-			if (pWnd->GetParent()!=NULL && ::IsWindow(pWnd->GetParent()->GetSafeHwnd()))
-				pWnd->GetParent()->PostMessage(WM_COMMAND, IDM_OPEN_PARENT, 0);
-			//if (pWnd->IsKindOf(RUNTIME_CLASS(CFileListCtrl)) && ::IsWindow(pWnd->GetSafeHwnd()))
-			//	((CFileListCtrl*)pWnd)->OpenParentFolder();
+			m_pWndFocus->PostMessage(WM_COMMAND, wParam, lParam);
 		}
 		break;
 	default:
