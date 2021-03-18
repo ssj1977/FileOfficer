@@ -470,7 +470,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 			b = FindNextFileW(hFind, &fd);
 		}
 		FindClose(hFind);
-		//Sort(m_nSortCol, m_bAsc);
+		Sort(m_nSortCol, m_bAsc);
 	}
 	m_strFolder = (CString)path;
 

@@ -154,10 +154,8 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->m_nSortCol = pti.iSortColumn;
 		pList->m_bAsc = pti.bSortAscend;
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
-//		SetWindowLong(pList->GetSafeHwnd(), GWL_STYLE, GetWindowLong(pList->GetSafeHwnd(), GWL_STYLE) & (pti.bSortAscend ? LVS_SORTASCENDING : LVS_SORTDESCENDING));
 		if (APP()->m_pSysImgList) ListView_SetImageList(pList->GetSafeHwnd(), APP()->m_pSysImgList, LVSIL_SMALL);
 		pti.pWnd = (CWnd*)pList;
-		//pList->DisplayFolder(pti.strPath);
 		pList->DisplayFolder_Start(pti.strPath);
 	}
 	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
