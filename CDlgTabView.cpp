@@ -147,6 +147,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			return;
 		}
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT | WS_EX_CLIENTEDGE);
+		pList->DragAcceptFiles(TRUE);
 		//pList->SetFont(&m_font);
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
 		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;

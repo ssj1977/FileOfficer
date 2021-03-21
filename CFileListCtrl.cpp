@@ -1,4 +1,4 @@
-#include "pch.h"
+Ôªø#include "pch.h"
 #include "CFileListCtrl.h"
 #include <shlwapi.h>
 #include <shellapi.h>
@@ -9,12 +9,12 @@
 #pragma comment(lib, "Netapi32.lib")
 
 /////////////////////////////////////////////////
-//∆ƒ¿œ æ∆¿Ãƒ‹ √≥∏Æ
+//ÌååÏùº ÏïÑÏù¥ÏΩò Ï≤òÎ¶¨
 #include <map>
-typedef std::map<CString, int> CExtMap; //»Æ¿Â¿⁄ø° «ÿ¥Á«œ¥¬ ¿ÃπÃ¡ˆ∏ ¿« π¯»£∏¶ ±‚æÔ
+typedef std::map<CString, int> CExtMap; //ÌôïÏû•ÏûêÏóê Ìï¥ÎãπÌïòÎäî Ïù¥ÎØ∏ÏßÄÎßµÏùò Î≤àÌò∏Î•º Í∏∞Ïñµ
 static CExtMap mapExt;
 
-//±‚∫ª ¿ÃπÃ¡ˆ∏  π¯»£
+//Í∏∞Î≥∏ Ïù¥ÎØ∏ÏßÄÎßµ Î≤àÌò∏
 #define SI_UNKNOWN 0 //Unknown File Type
 #define SI_DEF_DOCUMENT	1 //Default document
 #define SI_DEF_APPLICATION 2//Default application
@@ -65,8 +65,7 @@ static CExtMap mapExt;
 #define SI_LOCK 47	//Lock
 #define SI_HIBERNATE 48	//Hibernate
 
-
-//«ÿ¥Á ∆ƒ¿œ¿« æ∆¿Ãƒ‹ ¡§∫∏∏¶ ∞°¡Æø¬¥Ÿ
+//Ìï¥Îãπ ÌååÏùºÏùò ÏïÑÏù¥ÏΩò Ï†ïÎ≥¥Î•º Í∞ÄÏ†∏Ïò®Îã§
 int GetFileImageIndex(CString strPath)
 {
 	SHFILEINFO sfi;
@@ -115,6 +114,7 @@ CString GetPathName(CString strPath)
 }
 
 
+
 // CFileListCtrl
 
 IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
@@ -159,7 +159,7 @@ CFileListCtrl::~CFileListCtrl()
 
 BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_WM_SIZE()
-	ON_NOTIFY(HDN_ITEMCLICKA, 0, &CFileListCtrl::OnHdnItemclick)
+	//ON_NOTIFY(HDN_ITEMCLICKA, 0, &CFileListCtrl::OnHdnItemclick)
 	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CFileListCtrl::OnHdnItemclick)
 	ON_WM_DROPFILES()
 	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CFileListCtrl::OnLvnBegindrag)
@@ -212,11 +212,11 @@ void CFileListCtrl::OpenSelectedItem()
 	int nIndex = GetNextItem(-1, LVNI_SELECTED);
 	if (nIndex == -1) return;
 
-	int nType = GetItemData(nIndex);
+	INT_PTR nType = GetItemData(nIndex);
 	if (nType == ITEM_TYPE_FILE)
 	{
 		HINSTANCE hr = ShellExecute(NULL, NULL, GetItemFullPath(nIndex), NULL, NULL, SW_SHOW);
-		if ((int)hr <= 32) AfxMessageBox(L"Error");
+		if ((INT_PTR)hr <= 32) AfxMessageBox(L"Error");
 	}
 	else
 	{
@@ -425,51 +425,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 		InitColumns(LIST_TYPE_FOLDER);
 		path.AddBackslash();
 		CString strFind = path + _T("*");
-		WIN32_FIND_DATA fd;
-		HANDLE hFind;
-		hFind = FindFirstFileExW(strFind, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
-		if (hFind == INVALID_HANDLE_VALUE) return;
-		CString strSize, strDate, strType, strFullPath;
-		DWORD itemData = 0;
-		int nItem = 0 , nLen = 0 ;
-		ULARGE_INTEGER filesize;
-		CTime tTemp;
-		BOOL b = TRUE, bIsDir = FALSE;
-		TCHAR fullpath[MAX_PATH];
-		LPCTSTR pDir = (LPCTSTR)path;
-		while (b)
-		{
-			itemData = ITEM_TYPE_FILE;
-			nLen = _tcsclen(fd.cFileName);
-			if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
-			else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
-			if (itemData != ITEM_TYPE_DOTS)
-			{
-				tTemp = CTime(fd.ftLastWriteTime);
-				strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
-				if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-				{
-					itemData = ITEM_TYPE_DIRECTORY;  //Directory
-					bIsDir = TRUE;
-					strSize.Empty();
-				}
-				else
-				{
-					bIsDir = FALSE;
-					filesize.HighPart = fd.nFileSizeHigh;
-					filesize.LowPart = fd.nFileSizeLow;
-					strSize = GetFileSizeString(filesize.QuadPart);
-				}
-				PathCombineW(fullpath, pDir, fd.cFileName);
-				strFullPath = path + fd.cFileName;
-				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
-				SetItemData(nItem, itemData);
-				SetItemText(nItem, COL_DATE, strDate);
-				if (!strSize.IsEmpty()) SetItemText(nItem, COL_SIZE, strSize);
-			}
-			b = FindNextFileW(hFind, &fd);
-		}
-		FindClose(hFind);
+		AddItemByPath(strFind);
 		Sort(m_nSortCol, m_bAsc);
 	}
 	m_strFolder = (CString)path;
@@ -490,7 +446,7 @@ void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMHEADER phdr = reinterpret_cast<LPNMHEADER>(pNMHDR);
 	Default();
-	// TODO: ø©±‚ø° ƒ¡∆Æ∑— æÀ∏≤ √≥∏Æ±‚ ƒ⁄µÂ∏¶ √ﬂ∞°«’¥œ¥Ÿ.
+	// TODO: Ïó¨Í∏∞Ïóê Ïª®Ìä∏Î°§ ÏïåÎ¶º Ï≤òÎ¶¨Í∏∞ ÏΩîÎìúÎ•º Ï∂îÍ∞ÄÌï©ÎãàÎã§.
 	//CDFilesDlg* pParent = (CDFilesDlg*)GetParent();
 	//pParent->UpdateSortColumn(GetHeaderCtrl().GetSortColumn(), GetHeaderCtrl().IsAscending());
 	SetSortColumn(m_iSortedColumn, m_bAscending);
@@ -503,7 +459,7 @@ void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 
 BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 {
-	// TODO: ø©±‚ø° ∆Øºˆ»≠µ» ƒ⁄µÂ∏¶ √ﬂ∞° π◊/∂«¥¬ ±‚∫ª ≈¨∑°Ω∫∏¶ »£√‚«’¥œ¥Ÿ.
+	// TODO: Ïó¨Í∏∞Ïóê ÌäπÏàòÌôîÎêú ÏΩîÎìúÎ•º Ï∂îÍ∞Ä Î∞è/ÎòêÎäî Í∏∞Î≥∏ ÌÅ¥ÎûòÏä§Î•º Ìò∏Ï∂úÌï©ÎãàÎã§.
 	if (pMsg->message == WM_LBUTTONDBLCLK)
 	{
 		if (GetNextItem(-1, LVNI_SELECTED) == -1)
@@ -524,26 +480,100 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 }
 
 
-void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
+CString Get_Folder(CString strFile)
 {
-	// TODO: ø©±‚ø° ∏ﬁΩ√¡ˆ √≥∏Æ±‚ ƒ⁄µÂ∏¶ √ﬂ∞° π◊/∂«¥¬ ±‚∫ª∞™¿ª »£√‚«’¥œ¥Ÿ.
-
-	CMFCListCtrl::OnDropFiles(hDropInfo);
+	CString strReturn;
+	int n = strFile.ReverseFind(_T('\\'));
+	strReturn = strFile.Left(n);
+	return strReturn;
 }
 
+CString Get_Name(CString strFile, BOOL bKeepExt = TRUE)
+{
+	CString strReturn;
+	int n1 = strFile.ReverseFind(_T('\\'));
+	int n2 = -1;
+	if (bKeepExt == FALSE)	n2 = strFile.ReverseFind(_T('.'));
+	else					n2 = strFile.GetLength();
+	if (n1 == -1) n1 = -1;
+	if (n2 == -1) n2 = strFile.GetLength();
+	strReturn = strFile.Mid(n1 + 1, n2 - n1 - 1);
+	return strReturn;
+}
+
+void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
+{
+	if (m_nType != LIST_TYPE_FOLDER) return;
+	TCHAR szFilePath[_MAX_PATH];
+	int bufsize = sizeof(TCHAR) * MAX_PATH;
+	memset(szFilePath, 0, bufsize);
+	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
+	for (int i = 0; i < cFiles; i++)
+	{
+		DragQueryFile(hDropInfo, i, szFilePath, bufsize);
+		AddItemByPath(szFilePath);
+	}
+	DragFinish(hDropInfo);
+	//CMFCListCtrl::OnDropFiles(hDropInfo);
+}
+
+void CFileListCtrl::AddItemByPath(CString strPath)
+{
+	WIN32_FIND_DATA fd;
+	HANDLE hFind;
+	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+	if (hFind == INVALID_HANDLE_VALUE) return;
+	CString strSize, strDate, strType;
+	DWORD itemData = 0;
+	int nItem = 0;
+	size_t nLen = 0;
+	ULARGE_INTEGER filesize;
+	CTime tTemp;
+	BOOL b = TRUE, bIsDir = FALSE;
+	TCHAR fullpath[MAX_PATH];
+	CString strDir = Get_Folder(strPath);
+	while (b)
+	{
+		itemData = ITEM_TYPE_FILE;
+		nLen = _tcsclen(fd.cFileName);
+		if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
+		else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
+		if (itemData != ITEM_TYPE_DOTS)
+		{
+			tTemp = CTime(fd.ftLastWriteTime);
+			strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			{
+				itemData = ITEM_TYPE_DIRECTORY;  //Directory
+				bIsDir = TRUE;
+				strSize.Empty();
+			}
+			else
+			{
+				bIsDir = FALSE;
+				filesize.HighPart = fd.nFileSizeHigh;
+				filesize.LowPart = fd.nFileSizeLow;
+				strSize = GetFileSizeString(filesize.QuadPart);
+			}
+			PathCombineW(fullpath, strDir, fd.cFileName);
+			nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+			SetItemData(nItem, itemData);
+			SetItemText(nItem, COL_DATE, strDate);
+			if (!strSize.IsEmpty()) SetItemText(nItem, COL_SIZE, strSize);
+		}
+		b = FindNextFileW(hFind, &fd);
+	}
+	FindClose(hFind);
+}
 
 void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
-	// TODO: ø©±‚ø° ƒ¡∆Æ∑— æÀ∏≤ √≥∏Æ±‚ ƒ⁄µÂ∏¶ √ﬂ∞°«’¥œ¥Ÿ.
-
+	// TODO: Ïó¨Í∏∞Ïóê Ïª®Ìä∏Î°§ ÏïåÎ¶º Ï≤òÎ¶¨Í∏∞ ÏΩîÎìúÎ•º Ï∂îÍ∞ÄÌï©ÎãàÎã§.
 	NM_LISTVIEW* pNMListView = pNMLV;
-
-	CRect rectSrc;
-	int   nItem = pNMListView->iItem;
+/*	CRect rectSrc;
 	// Get the bounding rectangle of the entire item.
 	GetItemRect(nItem, rectSrc, LVIR_BOUNDS);
-
 	CRectTracker tr(&rectSrc, CRectTracker::dottedLine);
 	if (tr.Track(this, pNMListView->ptAction)) {
 		// Get the mouse position and convert it to the target list
@@ -556,27 +586,83 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			AfxMessageBox(GetItemText(nItem, 0));
 		}
+	}*/
+	* pResult = 0;
+	CStringList aFiles;
+	CString strPath;
+	size_t uBuffSize = 0;
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	while (nItem != -1)
+	{
+		strPath = GetItemFullPath(nItem);
+		aFiles.AddTail(strPath);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+		uBuffSize += strPath.GetLength() + 1;
 	}
-	*pResult = 0;
+	uBuffSize = sizeof(DROPFILES) + sizeof(TCHAR) * (uBuffSize + 1);
+	HGLOBAL hgDrop = ::GlobalAlloc(GHND | GMEM_SHARE, uBuffSize);
+	if (hgDrop != NULL)
+	{
+		DROPFILES* pDrop = (DROPFILES*)GlobalLock(hgDrop);;
+		if (NULL == pDrop)
+		{
+			GlobalFree(hgDrop);
+			return;
+		}
+		pDrop->pFiles = sizeof(DROPFILES);
+		pDrop->fWide = TRUE;
+		TCHAR* pszBuff;
+		POSITION pos = aFiles.GetHeadPosition();
+		pszBuff = (TCHAR*)(LPBYTE(pDrop) + sizeof(DROPFILES));
+		while (NULL != pos)
+		{
+			lstrcpy(pszBuff, (LPCTSTR)aFiles.GetNext(pos));
+			pszBuff = 1 + _tcschr(pszBuff, _T('\0'));
+		}
+		GlobalUnlock(hgDrop);
+		COleDataSource datasrc;
+		FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+		datasrc.CacheGlobalData(CF_HDROP, hgDrop, &etc);
+		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE);
+		if (dwEffect == DROPEFFECT_COPY)
+		{
+			AfxMessageBox(_T(" Copied"));
+		}
+		else if (dwEffect == DROPEFFECT_MOVE)
+		{
+			int nItem = GetNextItem(-1, LVNI_SELECTED);
+			while (nItem != -1)
+			{
+				DeleteItem(nItem);
+				nItem = GetNextItem(-1, LVNI_SELECTED);
+			}
+
+			AfxMessageBox(_T(" Moved"));
+		}
+		else if (dwEffect == DROPEFFECT_NONE)
+		{
+			GlobalFree(hgDrop);
+		}
+	}
 }
 
 int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
 {
 	int nRet = 0;
-	CString str1 = GetItemText(item1, nCol);
-	CString str2 = GetItemText(item2, nCol);
+	CString str1 = GetItemText((int)item1, nCol);
+	CString str2 = GetItemText((int)item2, nCol);
 	if (nType == COL_COMP_STR)
 	{
 		nRet = StrCmp(str1, str2);
 	}
 	else if (nType == COL_COMP_PATH)
 	{
-		DWORD type1, type2;
-		type1 = GetItemData(item1);
-		type2 = GetItemData(item2);
+		DWORD_PTR type1, type2;
+		type1 = GetItemData((int)item1);
+		type2 = GetItemData((int)item2);
 		if (type1 != type2)
 		{
-			nRet = type1 - type2;
+			nRet = int(type1 - type2);
 		}
 		else
 		{

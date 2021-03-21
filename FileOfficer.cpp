@@ -70,6 +70,11 @@ BOOL CFileOfficerApp::InitInstance()
 	// 적절한 내용으로 수정해야 합니다.
 	//SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
+	if (!AfxOleInit())
+	{
+		AfxMessageBox(L"AfxOleInit Error!");
+		return FALSE;
+	}
 	LoadImageList(m_nIconType);
 
 	CFileOfficerDlg dlg;

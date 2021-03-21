@@ -58,7 +58,7 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
 {
 	*ppContextMenu = NULL;
 	LPCONTEXTMENU pMenu = NULL;
-	HRESULT hr = m_psfFolder->GetUIObjectOf(NULL, m_paPath->GetSize(), (LPCITEMIDLIST*)m_aPIDL, IID_IContextMenu, NULL, (void**)ppContextMenu);
+	HRESULT hr = m_psfFolder->GetUIObjectOf(NULL, (UINT)m_paPath->GetSize(), (LPCITEMIDLIST*)m_aPIDL, IID_IContextMenu, NULL, (void**)ppContextMenu);
 	if (FAILED(hr)) return FALSE;
 	return TRUE; // success
 }
@@ -94,7 +94,7 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 	UINT idCommand = m_pMenu->TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN, pt.x, pt.y, pWnd);
 
 	if (OldWndProc) // unsubclass
-		SetWindowLong(pWnd->m_hWnd, GWLP_WNDPROC, (DWORD)OldWndProc);
+		SetWindowLong(pWnd->m_hWnd, GWLP_WNDPROC, (LONG)OldWndProc);
 
 	if (idCommand >= MIN_ID && idCommand <= MAX_ID)	// see if returned idCommand belongs to shell menu entries
 	{
@@ -200,7 +200,7 @@ void CFileListContextMenu::SetPathArray(CStringArray& aPath)
 	IShellFolder* psfFolder = NULL;
 	LPITEMIDLIST pidl_temp = NULL;	// relative pidl
 	FreePIDLArray(m_aPIDL);
-	int nCount = aPath.GetSize();
+	INT_PTR nCount = aPath.GetSize();
 	m_aPIDL = (LPITEMIDLIST*)CoTaskMemAlloc(nCount * sizeof(LPITEMIDLIST));
 	if (m_aPIDL)
 	{
