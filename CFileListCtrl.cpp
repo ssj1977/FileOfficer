@@ -504,9 +504,9 @@ CString Get_Name(CString strFile, BOOL bKeepExt = TRUE)
 void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
-	TCHAR szFilePath[_MAX_PATH];
+	TCHAR szFilePath[MAX_PATH];
 	int bufsize = sizeof(TCHAR) * MAX_PATH;
-	memset(szFilePath, 0, bufsize);
+	memset(szFilePath, 0, MAX_PATH);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	for (int i = 0; i < cFiles; i++)
 	{
