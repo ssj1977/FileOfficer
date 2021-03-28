@@ -1,5 +1,6 @@
 #pragma once
 #include <afxlistctrl.h>
+#include "CMyDropTarget.h"
 
 #define IDM_SET_FOCUS_ON 50010
 #define IDM_SET_FOCUS_OFF 50011
@@ -21,8 +22,10 @@ public:
 	static UINT DisplayFolder_Thread(void* lParam);
 	void InitColumns(int nType);
 	void ShowContextMenu(CPoint pt);
-	CString GetItemFullPath(int nIndex);
+	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
+	void DeleteInvaildItem(int nItem);
+	void PasteFile(CString strPath);
 	CString m_strFolder;
 	CString m_strBarMsg;
 	BOOL m_bAsc;
@@ -33,6 +36,7 @@ public:
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateTabCtrl;
 	int CMD_UpdateBar;
+	CMyDropTarget m_DropTarget;
 protected:
 	DECLARE_MESSAGE_MAP()
 public:
@@ -47,5 +51,6 @@ public:
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
+	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 };
 

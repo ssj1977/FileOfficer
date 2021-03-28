@@ -32,8 +32,6 @@ protected:
 public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnSelchangeTabPath1(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnSelchangeTabPath2(NMHDR* pNMHDR, LRESULT* pResult);
 	virtual void OnCancel();
 	virtual void OnOK();
 };

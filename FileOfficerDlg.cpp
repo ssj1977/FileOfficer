@@ -45,6 +45,10 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
 	//
+	m_tv1.m_aTabInfo.Copy(APP()->m_aTab1);
+	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
+	m_tv1.m_nCurrentTab = APP()->m_nCurrentTab1;
+	m_tv2.m_nCurrentTab = APP()->m_nCurrentTab2;
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
@@ -68,10 +72,25 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		}
 		MoveWindow(m_rcMain, TRUE);
 	}
+
+	if (APP()->m_rcMain.IsRectEmpty() == FALSE)
+	{
+		CRect rcScreen;
+		::GetWindowRect(::GetDesktopWindow(), &rcScreen);
+		APP()->m_rcMain.NormalizeRect();
+		CRect rcVisible;
+		rcVisible.IntersectRect(APP()->m_rcMain, rcScreen);
+		if (rcVisible.Width() > 200 && rcVisible.Height() > 100)
+		{
+			MoveWindow(APP()->m_rcMain, TRUE);
+		}
+	}
+
 	ArrangeCtrl();
 	m_tv2.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
 	m_tv1.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_ON, 0);
-	//m_tv1.CurrentList()->SetFocus(); return FALSE;
+	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }
+	else if (APP()->m_nFocus == 2) { m_tv2.CurrentList()->SetFocus(); return FALSE; }
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
 }
 
@@ -134,6 +153,8 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 	{
 	case IDM_OPEN_PARENT:
 	case IDM_REFRESH_LIST:
+	case IDM_ADD_LIST:
+	case IDM_CLOSE_LIST:
 		if (m_pWndFocus != NULL && ::IsWindow(m_pWndFocus->GetSafeHwnd()))
 		{
 			m_pWndFocus->PostMessage(WM_COMMAND, wParam, lParam);
@@ -181,22 +202,19 @@ void CFileOfficerDlg::OnSize(UINT nType, int cx, int cy)
 }
 
 
-void CFileOfficerDlg::OnSelchangeTabPath1(NMHDR* pNMHDR, LRESULT* pResult)
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	*pResult = 0;
-}
-
-
-void CFileOfficerDlg::OnSelchangeTabPath2(NMHDR* pNMHDR, LRESULT* pResult)
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	*pResult = 0;
-}
-
-
 void CFileOfficerDlg::OnCancel()
 {
+	CWnd* pWnd = GetFocus();
+	if (pWnd == m_tv1.CurrentList() || pWnd == &m_tv1) APP()->m_nFocus = 1;
+	else if (pWnd == m_tv2.CurrentList() || pWnd == &m_tv2) APP()->m_nFocus = 2;
+	else APP()->m_nFocus = 1;
+
+	ShowWindow(SW_SHOWNORMAL);
+	GetWindowRect(APP()->m_rcMain);
+	APP()->m_nCurrentTab1 = m_tv1.m_nCurrentTab;
+	APP()->m_nCurrentTab2 = m_tv2.m_nCurrentTab;
+	APP()->m_aTab1.Copy(m_tv1.m_aTabInfo);
+	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
 	m_tv1.Clear();
 	m_tv2.Clear();
 	CDialogEx::OnCancel();

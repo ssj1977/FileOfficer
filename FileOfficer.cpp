@@ -7,6 +7,7 @@
 #include "FileOfficer.h"
 #include "FileOfficerDlg.h"
 #include <CommonControls.h>
+#include "EtcFunctions.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -29,6 +30,13 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nDefault_FontSize = -1;
 	m_clrDefault_Bk = RGB(255,255,2555);
 	m_clrDefault_Text = RGB(0, 0, 0);
+	m_nSortCol_Default = 0;
+	m_bSortAscend_Default = TRUE;
+	m_strPath_Default.Empty();
+	m_rcMain = CRect(0, 0, 0, 0);
+	m_nCurrentTab1 = 0;
+	m_nCurrentTab2 = 0;
+	m_nFocus = 1;
 }
 
 
@@ -41,34 +49,21 @@ CFileOfficerApp theApp;
 
 BOOL CFileOfficerApp::InitInstance()
 {
-	// 애플리케이션 매니페스트가 ComCtl32.dll 버전 6 이상을 사용하여 비주얼 스타일을
-	// 사용하도록 지정하는 경우, Windows XP 상에서 반드시 InitCommonControlsEx()가 필요합니다.
-	// InitCommonControlsEx()를 사용하지 않으면 창을 만들 수 없습니다.
+	TCHAR szBuff[MAX_PATH];
+	GetModuleFileName(m_hInstance, szBuff, MAX_PATH);
+	CString strExePath = szBuff;
+	m_strINIPath = Get_Folder(strExePath) + L"\\" + Get_Name(strExePath, FALSE) + L".ini";
+	INILoad(m_strINIPath);
+	m_hIcon = LoadIcon(IDR_MAINFRAME);
+	//if (m_bEnglishUI == TRUE) SetLocale(LANG_ENGLISH);
+
 	INITCOMMONCONTROLSEX InitCtrls;
 	InitCtrls.dwSize = sizeof(InitCtrls);
-	// 응용 프로그램에서 사용할 모든 공용 컨트롤 클래스를 포함하도록
-	// 이 항목을 설정하십시오.
 	InitCtrls.dwICC = ICC_WIN95_CLASSES;
 	InitCommonControlsEx(&InitCtrls);
-
 	CWinApp::InitInstance();
-
-
-	// 대화 상자에 셸 트리 뷰 또는
-	// 셸 목록 뷰 컨트롤이 포함되어 있는 경우 셸 관리자를 만듭니다.
 	CShellManager *pShellManager = new CShellManager;
-
-	// MFC 컨트롤의 테마를 사용하기 위해 "Windows 원형" 비주얼 관리자 활성화
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
-
-	// 표준 초기화
-	// 이들 기능을 사용하지 않고 최종 실행 파일의 크기를 줄이려면
-	// 아래에서 필요 없는 특정 초기화
-	// 루틴을 제거해야 합니다.
-	// 해당 설정이 저장된 레지스트리 키를 변경하십시오.
-	// TODO: 이 문자열을 회사 또는 조직의 이름과 같은
-	// 적절한 내용으로 수정해야 합니다.
-	//SetRegistryKey(_T("로컬 애플리케이션 마법사에서 생성된 애플리케이션"));
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
 	if (!AfxOleInit())
 	{
@@ -95,7 +90,6 @@ BOOL CFileOfficerApp::InitInstance()
 		TRACE(traceAppMsg, 0, "경고: 대화 상자를 만들지 못했으므로 애플리케이션이 예기치 않게 종료됩니다.\n");
 		TRACE(traceAppMsg, 0, "경고: 대화 상자에서 MFC 컨트롤을 사용하는 경우 #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS를 수행할 수 없습니다.\n");
 	}
-
 	// 위에서 만든 셸 관리자를 삭제합니다.
 	if (pShellManager != nullptr)
 	{
@@ -121,6 +115,65 @@ void CFileOfficerApp::LoadImageList(int nIconType)
 int CFileOfficerApp::ExitInstance()
 {
 	//if (CMFCVisualManager::GetInstance() != NULL) delete CMFCVisualManager::GetInstance();
-
+	INISave(m_strINIPath);
 	return CWinApp::ExitInstance();
+}
+
+
+void CFileOfficerApp::INISave(CString strFile)
+{
+	CString strData, strLine, str1, str2;
+	strLine.Format(_T("MainRectLeft=%d\r\n"), m_rcMain.left);		strData += strLine;
+	strLine.Format(_T("MainRectTop=%d\r\n"), m_rcMain.top);		strData += strLine;
+	strLine.Format(_T("MainRectRight=%d\r\n"), m_rcMain.right);	strData += strLine;
+	strLine.Format(_T("MainRectBottom=%d\r\n"), m_rcMain.bottom);	strData += strLine;
+	//strLine.Format(_T("FontSize=%d\r\n"), m_fontsize);	strData += strLine;
+	//strLine.Format(_T("IconSize=%d\r\n"), m_iconsize);	strData += strLine;
+	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
+	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
+	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
+
+	for (int i = 0; i < m_aTab1.GetSize(); i++)
+	{
+		strLine.Format(_T("Tab1_Path=%s\r\n"), m_aTab1[i].strPath);	strData += strLine;
+		strLine.Format(_T("Tab1_SortCol=%d\r\n"), m_aTab1[i].iSortColumn);	strData += strLine;
+		strLine.Format(_T("Tab1_SortAscend=%d\r\n"), m_aTab1[i].bSortAscend);	strData += strLine;
+	}
+	for (int i = 0; i < m_aTab2.GetSize(); i++)
+	{
+		strLine.Format(_T("Tab2_Path=%s\r\n"), m_aTab2[i].strPath);	strData += strLine;
+		strLine.Format(_T("Tab2_SortCol=%d\r\n"), m_aTab2[i].iSortColumn);	strData += strLine;
+		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
+	}
+	WriteCStringToFile(strFile, strData);
+}
+
+
+void CFileOfficerApp::INILoad(CString strFile)
+{
+	CString strData, strLine, str1, str2, strTemp;
+	//m_aTabInfo.RemoveAll();
+	ReadFileToCString(strFile, strData);
+	int nPos = 0;
+	int nTabCount = -1;
+	while (nPos != -1)
+	{
+		nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
+		GetToken(strLine, str1, str2, _T('='), FALSE);
+		if (str1.CompareNoCase(_T("MainRectLeft")) == 0) m_rcMain.left = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("MainRectTop")) == 0) m_rcMain.top = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("MainRectRight")) == 0) m_rcMain.right = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("MainRectBottom")) == 0) m_rcMain.bottom = _ttoi(str2);
+		//		else if (str1.CompareNoCase(_T("FontSize")) == 0) m_fontsize = _ttoi(str2);
+		//		else if (str1.CompareNoCase(_T("IconSize")) == 0) m_iconsize = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0) nTabCount = (int)m_aTab1.Add(PathTabInfo(str2, 0, TRUE));
+		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount != -1) m_aTab1[nTabCount].iSortColumn = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount != -1) m_aTab1[nTabCount].bSortAscend = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
+		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount != -1) m_aTab2[nTabCount].iSortColumn = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount != -1) m_aTab2[nTabCount].bSortAscend = _ttoi(str2);
+	}
 }

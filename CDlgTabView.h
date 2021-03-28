@@ -1,32 +1,5 @@
 ﻿#pragma once
 
-#ifndef PathTabInfo
-struct PathTabInfo
-{
-	CWnd* pWnd;
-	CString strPath;
-	int iSortColumn;
-	BOOL bSortAscend;
-	PathTabInfo()
-	{
-		pWnd = NULL;
-		iSortColumn = 0;
-		bSortAscend = TRUE;
-	};
-	PathTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
-	{
-		SetTabInfo(strPath, iSortColumn, bSortAscend);
-		pWnd = NULL;
-	};
-	void SetTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
-	{
-		this->strPath = strPath;
-		this->iSortColumn = iSortColumn;
-		this->bSortAscend = bSortAscend;
-	};
-};
-typedef CArray<PathTabInfo> PathTabInfoArray;
-#endif 
 // CDlgTabView 대화 상자
 
 class CDlgTabView : public CDialogEx
@@ -51,6 +24,8 @@ public:
 	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);
 	void UpdateIconType();
+	void AddFileListTab(CString strFolder);
+	void CloseFileListTab(int nTab);
 	void Clear();
 
 #ifdef AFX_DESIGN_TIME
@@ -69,4 +44,5 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult);
 };

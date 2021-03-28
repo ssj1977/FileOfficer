@@ -5,6 +5,7 @@
 #include <lm.h>
 #include <atlpath.h>
 #include "CFileListContextMenu.h"
+#include "EtcFunctions.h"
 
 #pragma comment(lib, "Netapi32.lib")
 
@@ -199,11 +200,11 @@ void CFileListCtrl::InitColumns(int nType)
 	m_nType = nType;
 }
 
-CString CFileListCtrl::GetItemFullPath(int nIndex)
+CString CFileListCtrl::GetItemFullPath(int nItem)
 {
 	CPath path = CPath(m_strFolder);
 	path.AddBackslash();
-	path.Append(GetItemText(nIndex, COL_NAME));
+	path.Append(GetItemText(nItem, COL_NAME));
 	return CString(path);
 }
 
@@ -286,7 +287,7 @@ CString GetFileSizeString(ULONGLONG nSize)
 			nPos += 1;
 		}
 	}
-	return pBuf;
+	return (LPCTSTR)pBuf;
 }
 
 CString GetDriveSizeString(ULARGE_INTEGER size)
@@ -479,28 +480,6 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
-
-CString Get_Folder(CString strFile)
-{
-	CString strReturn;
-	int n = strFile.ReverseFind(_T('\\'));
-	strReturn = strFile.Left(n);
-	return strReturn;
-}
-
-CString Get_Name(CString strFile, BOOL bKeepExt = TRUE)
-{
-	CString strReturn;
-	int n1 = strFile.ReverseFind(_T('\\'));
-	int n2 = -1;
-	if (bKeepExt == FALSE)	n2 = strFile.ReverseFind(_T('.'));
-	else					n2 = strFile.GetLength();
-	if (n1 == -1) n1 = -1;
-	if (n2 == -1) n2 = strFile.GetLength();
-	strReturn = strFile.Mid(n1 + 1, n2 - n1 - 1);
-	return strReturn;
-}
-
 void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
@@ -510,11 +489,33 @@ void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	for (int i = 0; i < cFiles; i++)
 	{
-		DragQueryFile(hDropInfo, i, szFilePath, bufsize);
-		AddItemByPath(szFilePath);
+		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
+		PasteFile(szFilePath);
 	}
 	DragFinish(hDropInfo);
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
+}
+
+void CFileListCtrl::PasteFile(CString strPath)
+{
+	TCHAR szNewPath[MAX_PATH];
+	PathCombineW(szNewPath, m_strFolder, Get_Name(strPath));
+	if (strPath.CompareNoCase(szNewPath) == 0) return;
+	if (MoveFileExW(strPath, szNewPath, MOVEFILE_COPY_ALLOWED) == FALSE)
+	{
+		LPVOID lpMsgBuf;
+		DWORD err = GetLastError();
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
+			FORMAT_MESSAGE_FROM_SYSTEM |
+			FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			(LPTSTR)&lpMsgBuf, 0, NULL);
+		CString strErr = (LPCTSTR)lpMsgBuf;
+		LocalFree(lpMsgBuf);
+		if (strErr.IsEmpty() == FALSE) AfxMessageBox(strErr);
+		return;
+	}
+	AddItemByPath(szNewPath);
 }
 
 void CFileListCtrl::AddItemByPath(CString strPath)
@@ -572,21 +573,9 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	NM_LISTVIEW* pNMListView = pNMLV;
 /*	CRect rectSrc;
-	// Get the bounding rectangle of the entire item.
-	GetItemRect(nItem, rectSrc, LVIR_BOUNDS);
+	GetItemRect(nItem, rectSrc, LVIR_BOUNDS); 	// Get the bounding rectangle of the entire item.
 	CRectTracker tr(&rectSrc, CRectTracker::dottedLine);
-	if (tr.Track(this, pNMListView->ptAction)) {
-		// Get the mouse position and convert it to the target list
-		// coordinates.
-		CPoint pt;
-		GetCursorPos(&pt);
-		CWnd* pWnd = WindowFromPoint(pt);
-
-		if (pWnd != this)
-		{
-			AfxMessageBox(GetItemText(nItem, 0));
-		}
-	}*/
+	if (tr.Track(this, pNMListView->ptAction)) {CPoint pt;GetCursorPos(&pt); CWnd* pWnd = WindowFromPoint(pt);}*/
 	* pResult = 0;
 	CStringList aFiles;
 	CString strPath;
@@ -623,27 +612,31 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		COleDataSource datasrc;
 		FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 		datasrc.CacheGlobalData(CF_HDROP, hgDrop, &etc);
-		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_COPY | DROPEFFECT_MOVE);
-		if (dwEffect == DROPEFFECT_COPY)
-		{
-			AfxMessageBox(_T(" Copied"));
-		}
-		else if (dwEffect == DROPEFFECT_MOVE)
+		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY);
+		
+		if ( (dwEffect & DROPEFFECT_COPY) != 0 || (dwEffect & DROPEFFECT_MOVE) !=0)
 		{
 			int nItem = GetNextItem(-1, LVNI_SELECTED);
 			while (nItem != -1)
 			{
+				//DeleteInvaildItem(nItem);
 				DeleteItem(nItem);
-				nItem = GetNextItem(-1, LVNI_SELECTED);
+				nItem = GetNextItem(nItem, LVNI_SELECTED);
 			}
-
-			AfxMessageBox(_T(" Moved"));
 		}
 		else if (dwEffect == DROPEFFECT_NONE)
 		{
 			GlobalFree(hgDrop);
 		}
 	}
+}
+
+void CFileListCtrl::DeleteInvaildItem(int nItem)
+{
+	CString strPath = GetItemFullPath(nItem);
+	CFileFind find;
+	if (find.FindFile(strPath) == FALSE) DeleteItem(nItem);
+	find.Close();
 }
 
 int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
@@ -778,4 +771,14 @@ void CFileListCtrl::SetBarMsg(CString strMsg)
 {
 	m_strBarMsg = strMsg;
 	if (CMD_UpdateBar!=0) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateBar, (DWORD_PTR)this);
+}
+
+BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID)
+{
+	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
+	if (b)
+	{
+		// BOOL bd = m_DropTarget.Register(this);
+	}
+	return b;
 }

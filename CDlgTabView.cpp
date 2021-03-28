@@ -38,6 +38,7 @@ void CDlgTabView::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_WM_SIZE()
 	ON_WM_ERASEBKGND()
+	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_PATH, &CDlgTabView::OnTcnSelchangeTabPath)
 END_MESSAGE_MAP()
 
 
@@ -64,6 +65,8 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_UPDATE_BAR: SetDlgItemText(IDC_ST_BAR, ((CFileListCtrl*)lParam)->m_strBarMsg); break;
 	case IDM_REFRESH_LIST: UpdateTabByPathEdit(); break;
 	case IDM_SET_PATH: UpdateTabByPathEdit(); break;
+	case IDM_ADD_LIST: AddFileListTab(APP()->m_strPath_Default); break;
+	case IDM_CLOSE_LIST: CloseFileListTab(m_nCurrentTab); break;
 	case IDM_SET_FOCUS_ON: 
 		//m_editPath.EnableWindow(TRUE);
 		break;
@@ -89,7 +92,7 @@ void CDlgTabView::OnOK()
 BOOL CDlgTabView::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
-	m_tool.CreateEx(this, TBSTYLE_TRANSPARENT, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY);
+	m_tool.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	m_tool.LoadToolBar(IDR_TB_TAB);
 	m_editPath.EnableFolderBrowseButton();
 	// Init Tabs
@@ -120,6 +123,28 @@ BOOL CDlgTabView::OnInitDialog()
 	return TRUE;
 }
 
+void CDlgTabView::AddFileListTab(CString strPath)
+{
+	PathTabInfo tabInfo(strPath, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
+	m_aTabInfo.Add(tabInfo);
+	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), GetPathName(strPath));
+	SetCurrentTab(nTab);
+}
+
+void CDlgTabView::CloseFileListTab(int nTab)
+{
+	if (m_aTabInfo.GetCount() == 1) return;
+	PathTabInfo& pti = m_aTabInfo[nTab];
+	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
+	pList->DestroyWindow();
+	delete pList;
+	m_aTabInfo.RemoveAt(nTab);
+	m_tabPath.DeleteItem(nTab);
+	nTab--;
+	if (nTab < 0) nTab = 0;
+	SetCurrentTab(nTab);
+}
+
 
 void CDlgTabView::OnSize(UINT nType, int cx, int cy)
 {
@@ -146,7 +171,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			delete pList;
 			return;
 		}
-		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT | WS_EX_CLIENTEDGE);
+		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
 		pList->DragAcceptFiles(TRUE);
 		//pList->SetFont(&m_font);
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
@@ -163,6 +188,8 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
 	pList->ShowWindow(SW_SHOW);
 	m_nCurrentTab = nTab;
+	m_tabPath.SetCurSel(nTab);
+	pList->SetFocus();
 	ArrangeCtrl();
 }
 
@@ -237,9 +264,10 @@ void CDlgTabView::SetTabTitle(int nTab, CString strTitle)
 
 void CDlgTabView::ArrangeCtrl()
 {
-	int BH = m_lfHeight * 2;
 	CRect rc;
 	GetClientRect(rc);
+	rc.DeflateRect(3,3,3,3);
+	int BH = m_lfHeight * 2;
 	int TW = rc.Width();
 	m_editPath.MoveWindow(rc.left, rc.top, TW - BH, BH);
 	m_tool.MoveWindow(TW - BH, rc.top, BH, BH);
@@ -280,11 +308,18 @@ BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
 	{
 		if (pWnd == this || pWnd->GetParent() == this)
 		{
-			COLORREF clrBk = RGB(255, 0, 0);
+			COLORREF clrBk = RGB(0, 0, 0);
 			pDC->SetBkColor(clrBk);
 			pDC->FillSolidRect(rc, clrBk);
 			return TRUE;
 		}
 	}
 	return CDialogEx::OnEraseBkgnd(pDC);
+}
+
+
+void CDlgTabView::OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	SetCurrentTab(m_tabPath.GetCurSel());
+	*pResult = 0;
 }
