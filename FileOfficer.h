@@ -54,6 +54,11 @@ public:
 	COLORREF m_clrDefault_Bk;
 	COLORREF m_clrDefault_Text;
 	int m_nIconType;
+	COLORREF m_clrText;
+	COLORREF m_clrBk;
+	BOOL m_bUseDefaultColor;
+	int m_nFontSize;
+	BOOL m_bUseDefaultFont;
 	HIMAGELIST* m_pSysImgList;
 	HICON m_hIcon;
 	CRect m_rcMain;

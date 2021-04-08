@@ -8,6 +8,7 @@
 #include "FileOfficerDlg.h"
 #include "afxdialogex.h"
 #include "CFileListCtrl.h"
+#include "CDlgCFG_View.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -187,6 +188,8 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 		if (APP()->m_nViewMode == 3) APP()->m_nViewMode = 0;
 		ArrangeCtrl();
 		break;
+	case IDM_CONFIG: ConfigViewOption(); break;
+
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
@@ -253,5 +256,76 @@ void CFileOfficerDlg::OnOK()
 	//CDialogEx::OnOK();
 }
 
+void CFileOfficerDlg::ConfigViewOption()
+{
+	CDlgCFG_View dlg;
+	dlg.m_clrText = APP()->m_clrText;
+	dlg.m_clrBk = APP()->m_clrBk;
+	dlg.m_bUseDefaultColor = APP()->m_bUseDefaultColor;
+	dlg.m_nFontSize = APP()->m_nFontSize;
+	dlg.m_bUseDefaultFont = APP()->m_bUseDefaultFont;
+	dlg.m_nIconType = APP()->m_nIconType;
+	if (dlg.DoModal() == IDOK)
+	{
+		if (APP()->m_bUseDefaultColor != dlg.m_bUseDefaultColor)
+		{
+			APP()->m_bUseDefaultColor = dlg.m_bUseDefaultColor;
+			if (APP()->m_bUseDefaultColor == TRUE)
+			{
+				m_tv1.SetListColor(APP()->m_clrDefault_Bk, APP()->m_clrDefault_Text, TRUE, TRUE);
+				m_tv2.SetListColor(APP()->m_clrDefault_Bk, APP()->m_clrDefault_Text, TRUE, TRUE);
+			}
+			else
+			{
+				APP()->m_clrText = dlg.m_clrText;
+				APP()->m_clrBk = dlg.m_clrBk;
+				m_tv1.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, TRUE);
+				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, TRUE);
+			}
+		}
+		if (APP()->m_clrText != dlg.m_clrText)
+		{
+			APP()->m_clrText = dlg.m_clrText;
+			if (APP()->m_bUseDefaultColor == FALSE)
+			{
+				m_tv1.SetListColor(APP()->m_clrBk, APP()->m_clrText, FALSE, TRUE);
+				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, FALSE, TRUE);
+			}
+		}
+		if (APP()->m_clrBk != dlg.m_clrBk)
+		{
+			APP()->m_clrBk = dlg.m_clrBk;
+			if (APP()->m_bUseDefaultColor == FALSE)
+			{
+				m_tv1.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, FALSE);
+				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, FALSE);
+			}
+		}
+		if (APP()->m_nFontSize != dlg.m_nFontSize)
+		{
+			APP()->m_nFontSize = dlg.m_nFontSize;
+			if (APP()->m_bUseDefaultFont == FALSE)
+			{
+				m_tv1.UpdateFontSize();
+				m_tv2.UpdateFontSize();
+			}
+		}
+		if (APP()->m_bUseDefaultFont != dlg.m_bUseDefaultFont)
+		{
+			APP()->m_bUseDefaultFont = dlg.m_bUseDefaultFont;
+			{
+				m_tv1.UpdateFontSize();
+				m_tv2.UpdateFontSize();
+			}
+		}
+		if (APP()->m_nIconType != dlg.m_nIconType)
+		{
+			APP()->m_nIconType = dlg.m_nIconType;
+			m_tv1.UpdateImageList();
+			m_tv2.UpdateImageList();
+		}
+		RedrawWindow();
+	}
+}
 
 

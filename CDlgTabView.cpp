@@ -309,7 +309,7 @@ BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
 	{
 		if (pWnd == this || pWnd->GetParent() == this)
 		{
-			COLORREF clrBk = RGB(0, 0, 0);
+			COLORREF clrBk = RGB(130, 180, 255);
 			pDC->SetBkColor(clrBk);
 			pDC->FillSolidRect(rc, clrBk);
 			return TRUE;
