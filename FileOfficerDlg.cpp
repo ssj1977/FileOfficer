@@ -104,9 +104,31 @@ void CFileOfficerDlg::ArrangeCtrl()
 	int BW = 0;
 	m_toolMain.MoveWindow(rc.right - TOOLMAIN_WIDTH, rc.top, TOOLMAIN_WIDTH, rc.Height());
 	rc.DeflateRect(0, 0, TOOLMAIN_WIDTH, 0);
-	int TABWIDTH = rc.Width() / 2;
-	m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH-BW, rc.Height());
-	m_tv2.MoveWindow(rc.right-TABWIDTH + BW, rc.top, TABWIDTH-BW, rc.Height());
+
+	if (APP()->m_nViewMode == 0)
+	{
+		m_tv1.ShowWindow(SW_SHOW);
+		m_tv2.ShowWindow(SW_SHOW);
+		int TABWIDTH = rc.Width() / 2;
+		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH-BW, rc.Height());
+		m_tv2.MoveWindow(rc.right-TABWIDTH + BW, rc.top, TABWIDTH-BW, rc.Height());
+	}
+	else if (APP()->m_nViewMode == 1)
+	{
+		m_tv1.ShowWindow(SW_SHOW);
+		m_tv2.ShowWindow(SW_HIDE);
+		int TABWIDTH = rc.Width();
+		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH - BW, rc.Height());
+		m_tv2.MoveWindow(0,0,0,0);
+	}
+	else if (APP()->m_nViewMode == 2)
+	{
+		m_tv1.ShowWindow(SW_HIDE);
+		m_tv2.ShowWindow(SW_SHOW);
+		int TABWIDTH = rc.Width();
+		m_tv1.MoveWindow(0, 0, 0, 0);
+		m_tv2.MoveWindow(rc.left, rc.top, TABWIDTH - BW, rc.Height());
+	}
 }
 
 // 대화 상자에 최소화 단추를 추가할 경우 아이콘을 그리려면
@@ -159,6 +181,11 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 		{
 			m_pWndFocus->PostMessage(WM_COMMAND, wParam, lParam);
 		}
+		break;
+	case IDM_TOGGLE_VIEW:
+		APP()->m_nViewMode += 1;
+		if (APP()->m_nViewMode == 3) APP()->m_nViewMode = 0;
+		ArrangeCtrl();
 		break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);

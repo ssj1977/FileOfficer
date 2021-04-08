@@ -37,6 +37,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nCurrentTab1 = 0;
 	m_nCurrentTab2 = 0;
 	m_nFocus = 1;
+	m_nViewMode = 0;
 }
 
 
@@ -132,6 +133,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
+	strLine.Format(_T("ViewMode=%d\r\n"), m_nViewMode); strData += strLine;
 
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
 	{
@@ -169,6 +171,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ViewMode")) == 0) m_nViewMode = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0) nTabCount = (int)m_aTab1.Add(PathTabInfo(str2, 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount != -1) m_aTab1[nTabCount].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount != -1) m_aTab1[nTabCount].bSortAscend = _ttoi(str2);

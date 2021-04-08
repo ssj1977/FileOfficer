@@ -190,6 +190,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	m_nCurrentTab = nTab;
 	m_tabPath.SetCurSel(nTab);
 	pList->SetFocus();
+	m_editPath.SetWindowText(pti.strPath);
 	ArrangeCtrl();
 }
 
@@ -216,7 +217,7 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	pti.strPath = pList->m_strFolder;
 	SetTabTitle(nTab, GetPathName(pti.strPath));
-	m_editPath.SetWindowTextW(pti.strPath);
+	m_editPath.SetWindowText(pti.strPath);
 }
 
 void CDlgTabView::UpdateSortInfo(CWnd* pWnd)

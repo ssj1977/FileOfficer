@@ -62,6 +62,7 @@ public:
 	PathTabInfoArray m_aTab1;
 	PathTabInfoArray m_aTab2;
 	int m_nCurrentTab1, m_nCurrentTab2, m_nFocus;
+	int m_nViewMode; 
 public:
 	void INISave(CString strFile);
 	void INILoad(CString strFile);
