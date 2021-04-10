@@ -14,8 +14,7 @@ public:
 	PathTabInfoArray m_aTabInfo;
 	int m_nCurrentTab;
 	CToolBar m_tool;
-	int m_lfHeight;
-
+	CFont* m_pFont;
 	void ArrangeCtrl();
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
@@ -27,6 +26,9 @@ public:
 	void AddFileListTab(CString strFolder);
 	void CloseFileListTab(int nTab);
 	void Clear();
+	void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
+	void UpdateImageList();
+	void UpdateFont(CFont* pFont);
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };

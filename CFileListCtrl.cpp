@@ -151,6 +151,7 @@ CFileListCtrl::CFileListCtrl()
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
 	m_bIsThreadWorking = FALSE;
+	m_nIconType = SHIL_SMALL;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -178,24 +179,31 @@ CString CFileListCtrl::GetCurrentFolder()
 void CFileListCtrl::InitColumns(int nType)
 {
 	int nCount = GetHeaderCtrl().GetItemCount();
-	for (int i = nCount - 1; i >= 0; i--)
-		DeleteColumn(i);
+	for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
+	int nIconWidth = 0;
+	switch (m_nIconType)
+	{
+		case SHIL_SMALL: nIconWidth = 16; break;
+		case SHIL_LARGE: nIconWidth = 32; break;
+		case SHIL_EXTRALARGE: nIconWidth = 48; break;
+		case SHIL_JUMBO: nIconWidth = 256; break;
+	}
 	if (nType == LIST_TYPE_DRIVE)
 	{
-		InsertColumn(COL_NAME, _T("Drive"), LVCFMT_LEFT, 150);
+		InsertColumn(COL_NAME, _T("Drive"), LVCFMT_LEFT, nIconWidth + 150);
 		InsertColumn(COL_ALIAS, _T("Description"), LVCFMT_LEFT, 300);
 		InsertColumn(COL_FREESPACE, _T("Free"), LVCFMT_LEFT, 150);
 		InsertColumn(COL_TOTALSPACE, _T("Total"), LVCFMT_LEFT, 150);
 	}
 	else if (nType == LIST_TYPE_FOLDER)
 	{
-		InsertColumn(COL_NAME, _T("Name"), LVCFMT_LEFT, 300);
+		InsertColumn(COL_NAME, _T("Name"), LVCFMT_LEFT, nIconWidth + 300);
 		InsertColumn(COL_DATE, _T("Date"), LVCFMT_RIGHT, 200);
 		InsertColumn(COL_SIZE, _T("Size"), LVCFMT_RIGHT, 150);
 	}
 	else if (nType == LIST_TYPE_UNCSERVER)
 	{
-		InsertColumn(COL_NAME, _T("Folder"), LVCFMT_LEFT, 300);
+		InsertColumn(COL_NAME, _T("Folder"), LVCFMT_LEFT, nIconWidth + 300);
 	}
 	m_nType = nType;
 }
@@ -476,7 +484,18 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			OpenSelectedItem();
 			return TRUE;
 		}
+		if (pMsg->wParam == VK_RETURN)
+		{
+			OpenSelectedItem();
+			return TRUE;
+		}
 	}
+	if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+	{
+		if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
+		if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
+	}
+
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
@@ -484,8 +503,8 @@ void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
 	TCHAR szFilePath[MAX_PATH];
-	int bufsize = sizeof(TCHAR) * MAX_PATH;
-	memset(szFilePath, 0, MAX_PATH);
+	size_t bufsize = sizeof(TCHAR) * MAX_PATH;
+	memset(szFilePath, 0, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	for (int i = 0; i < cFiles; i++)
 	{
@@ -570,13 +589,9 @@ void CFileListCtrl::AddItemByPath(CString strPath)
 void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	NM_LISTVIEW* pNMListView = pNMLV;
-/*	CRect rectSrc;
-	GetItemRect(nItem, rectSrc, LVIR_BOUNDS); 	// Get the bounding rectangle of the entire item.
-	CRectTracker tr(&rectSrc, CRectTracker::dottedLine);
-	if (tr.Track(this, pNMListView->ptAction)) {CPoint pt;GetCursorPos(&pt); CWnd* pWnd = WindowFromPoint(pt);}*/
 	* pResult = 0;
+
 	CStringList aFiles;
 	CString strPath;
 	size_t uBuffSize = 0;
@@ -612,6 +627,7 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		COleDataSource datasrc;
 		FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 		datasrc.CacheGlobalData(CF_HDROP, hgDrop, &etc);
+		DragAcceptFiles(FALSE);
 		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY);
 		
 		if ( (dwEffect & DROPEFFECT_COPY) != 0 || (dwEffect & DROPEFFECT_MOVE) !=0)
@@ -628,6 +644,7 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			GlobalFree(hgDrop);
 		}
+		DragAcceptFiles(TRUE);
 	}
 }
 
@@ -782,3 +799,74 @@ BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UI
 	}
 	return b;
 }
+
+void CFileListCtrl::ClipBoardExport(BOOL bMove)
+{
+	CStringList aFiles;
+	CString strPath;
+	size_t uBuffSize = 0;
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	while (nItem != -1)
+	{
+		strPath = GetItemFullPath(nItem);
+		aFiles.AddTail(strPath);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+		uBuffSize += strPath.GetLength() + 1;
+	}
+	uBuffSize = sizeof(DROPFILES) + sizeof(TCHAR) * (uBuffSize + 1);
+	HGLOBAL hgDrop = ::GlobalAlloc(GHND | GMEM_SHARE, uBuffSize);
+	if (hgDrop != NULL)
+	{
+		DROPFILES* pDrop = (DROPFILES*)GlobalLock(hgDrop);;
+		if (NULL == pDrop)
+		{
+			GlobalFree(hgDrop);
+			return;
+		}
+		pDrop->pFiles = sizeof(DROPFILES);
+		pDrop->fWide = TRUE;
+		TCHAR* pszBuff;
+		POSITION pos = aFiles.GetHeadPosition();
+		pszBuff = (TCHAR*)(LPBYTE(pDrop) + sizeof(DROPFILES));
+		while (NULL != pos)
+		{
+			lstrcpy(pszBuff, (LPCTSTR)aFiles.GetNext(pos));
+			pszBuff = 1 + _tcschr(pszBuff, _T('\0'));
+		}
+		GlobalUnlock(hgDrop);
+		if (OpenClipboard())
+		{
+			EmptyClipboard();
+			SetClipboardData(CF_HDROP, hgDrop);
+			CloseClipboard();
+		}
+		//GlobalFree(hgDrop);
+	}
+}
+
+void CFileListCtrl::ClipBoardImport()
+{
+	COleDataObject odj;
+	if (OpenClipboard())
+	{
+		HDROP hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
+		OnDropFiles(hDropInfo);
+		CloseClipboard();
+	}
+/*	if (odj.AttachClipboard())
+	{
+		if (odj.IsDataAvailable(CF_HDROP))
+		{
+			STGMEDIUM StgMed;
+			FORMATETC fmte = { CF_HDROP, (DVTARGETDEVICE FAR*)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+			if (odj.GetData(CF_HDROP, &StgMed, &fmte))
+			{
+				HDROP hDropInfo = (HDROP)StgMed.hGlobal;
+				OnDropFiles(hDropInfo);
+			}
+			if (StgMed.pUnkForRelease) StgMed.pUnkForRelease->Release();
+			else GlobalFree(StgMed.hGlobal);
+		}
+	}*/
+}
+

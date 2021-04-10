@@ -26,12 +26,15 @@ public:
 	CString GetCurrentFolder();
 	void DeleteInvaildItem(int nItem);
 	void PasteFile(CString strPath);
+	void ClipBoardExport(BOOL bMove);
+	void ClipBoardImport();
 	CString m_strFolder;
 	CString m_strBarMsg;
 	BOOL m_bAsc;
 	BOOL m_bIsThreadWorking;
 	int m_nSortCol;
 	int m_nType;
+	int m_nIconType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateTabCtrl;

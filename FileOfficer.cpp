@@ -27,7 +27,6 @@ CFileOfficerApp::CFileOfficerApp()
 {
 	m_nIconType = SHIL_EXTRALARGE;
 	m_pSysImgList = NULL;
-	m_nDefault_FontSize = -1;
 	m_clrDefault_Bk = RGB(255,255,2555);
 	m_clrDefault_Text = RGB(0, 0, 0);
 	m_nSortCol_Default = 0;
@@ -134,12 +133,16 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("MainRectTop=%d\r\n"), m_rcMain.top);		strData += strLine;
 	strLine.Format(_T("MainRectRight=%d\r\n"), m_rcMain.right);	strData += strLine;
 	strLine.Format(_T("MainRectBottom=%d\r\n"), m_rcMain.bottom);	strData += strLine;
-	//strLine.Format(_T("FontSize=%d\r\n"), m_fontsize);	strData += strLine;
-	//strLine.Format(_T("IconSize=%d\r\n"), m_iconsize);	strData += strLine;
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
 	strLine.Format(_T("ViewMode=%d\r\n"), m_nViewMode); strData += strLine;
+	strLine.Format(_T("UseDefaultColor=%d\r\n"), m_bUseDefaultColor);	strData += strLine;
+	strLine.Format(_T("ColorBk=%d\r\n"), m_clrBk);	strData += strLine;
+	strLine.Format(_T("ColorText=%d\r\n"), m_clrText);	strData += strLine;
+	strLine.Format(_T("UseDefaultFont=%d\r\n"), m_bUseDefaultFont);	strData += strLine;
+	strLine.Format(_T("FontSize=%d\r\n"), m_nFontSize);	strData += strLine;
+	strLine.Format(_T("IconType=%d\r\n"), m_nIconType);	strData += strLine;
 
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
 	{
@@ -172,8 +175,6 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("MainRectTop")) == 0) m_rcMain.top = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("MainRectRight")) == 0) m_rcMain.right = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("MainRectBottom")) == 0) m_rcMain.bottom = _ttoi(str2);
-		//		else if (str1.CompareNoCase(_T("FontSize")) == 0) m_fontsize = _ttoi(str2);
-		//		else if (str1.CompareNoCase(_T("IconSize")) == 0) m_iconsize = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);
@@ -184,5 +185,11 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount != -1) m_aTab2[nTabCount].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount != -1) m_aTab2[nTabCount].bSortAscend = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("UseDefaultColor")) == 0) m_bUseDefaultColor = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ColorBk")) == 0) m_clrBk = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ColorText")) == 0) m_clrText = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("UseDefaultFont")) == 0) m_bUseDefaultFont = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("FontSize")) == 0) m_nFontSize = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("IconType")) == 0) m_nIconType = _ttoi(str2);
 	}
 }

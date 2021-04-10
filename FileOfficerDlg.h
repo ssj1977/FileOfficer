@@ -15,8 +15,11 @@ public:
 	CRect m_rcMain;
 	CToolBar m_toolMain;
 	CFont m_font;
-	int m_lfHeight;
+	int m_nDefault_FontSize;
 	void ArrangeCtrl();
+	void ConfigViewOption();
+	void InitDefaultListOption(CWnd* pWnd);
+	void UpdateFontSize();
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_FILEOFFICER_DIALOG };
 #endif
@@ -34,5 +37,4 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	virtual void OnCancel();
 	virtual void OnOK();
-	void ConfigViewOption();
 };

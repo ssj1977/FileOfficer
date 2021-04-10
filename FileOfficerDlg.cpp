@@ -25,6 +25,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
+	m_nDefault_FontSize = -1;
 }
 
 void CFileOfficerDlg::DoDataExchange(CDataExchange* pDX)
@@ -45,6 +46,13 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	CDialogEx::OnInitDialog();
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
+	//Create Temporary List for Default Option Values
+	CFileListCtrl list;
+	if (list.Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, CRect(0, 0, 0, 0), this, 0) == TRUE)
+	{
+		InitDefaultListOption(&list);
+		list.DestroyWindow();
+	}
 	//
 	m_tv1.m_aTabInfo.Copy(APP()->m_aTab1);
 	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
@@ -86,7 +94,7 @@ BOOL CFileOfficerDlg::OnInitDialog()
 			MoveWindow(APP()->m_rcMain, TRUE);
 		}
 	}
-
+	UpdateFontSize();
 	ArrangeCtrl();
 	m_tv2.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
 	m_tv1.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_ON, 0);
@@ -111,8 +119,8 @@ void CFileOfficerDlg::ArrangeCtrl()
 		m_tv1.ShowWindow(SW_SHOW);
 		m_tv2.ShowWindow(SW_SHOW);
 		int TABWIDTH = rc.Width() / 2;
-		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH-BW, rc.Height());
-		m_tv2.MoveWindow(rc.right-TABWIDTH + BW, rc.top, TABWIDTH-BW, rc.Height());
+		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH - BW, rc.Height());
+		m_tv2.MoveWindow(rc.right - TABWIDTH + BW, rc.top, TABWIDTH - BW, rc.Height());
 	}
 	else if (APP()->m_nViewMode == 1)
 	{
@@ -256,6 +264,7 @@ void CFileOfficerDlg::OnOK()
 	//CDialogEx::OnOK();
 }
 
+
 void CFileOfficerDlg::ConfigViewOption()
 {
 	CDlgCFG_View dlg;
@@ -306,21 +315,19 @@ void CFileOfficerDlg::ConfigViewOption()
 			APP()->m_nFontSize = dlg.m_nFontSize;
 			if (APP()->m_bUseDefaultFont == FALSE)
 			{
-				m_tv1.UpdateFontSize();
-				m_tv2.UpdateFontSize();
+				UpdateFontSize();
 			}
 		}
 		if (APP()->m_bUseDefaultFont != dlg.m_bUseDefaultFont)
 		{
 			APP()->m_bUseDefaultFont = dlg.m_bUseDefaultFont;
 			{
-				m_tv1.UpdateFontSize();
-				m_tv2.UpdateFontSize();
+				UpdateFontSize();
 			}
 		}
 		if (APP()->m_nIconType != dlg.m_nIconType)
 		{
-			APP()->m_nIconType = dlg.m_nIconType;
+			APP()->LoadImageList(dlg.m_nIconType);
 			m_tv1.UpdateImageList();
 			m_tv2.UpdateImageList();
 		}
@@ -328,4 +335,30 @@ void CFileOfficerDlg::ConfigViewOption()
 	}
 }
 
+void CFileOfficerDlg::InitDefaultListOption(CWnd* pWnd)
+{
+	CFileListCtrl* pList = (CFileListCtrl*)pWnd;
+	LOGFONT lf;
+	pList->GetFont()->GetLogFont(&lf);
+	m_font.DeleteObject();
+	m_font.CreateFontIndirect(&lf);
+	m_nDefault_FontSize = MulDiv(-1 * lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
+	APP()->m_clrDefault_Bk = pList->GetBkColor();
+	APP()->m_clrDefault_Text = pList->GetTextColor();
+	APP()->m_lfHeight = abs(lf.lfHeight);
+}
+
+void CFileOfficerDlg::UpdateFontSize()
+{
+	int nFontSize = APP()->m_nFontSize;
+	if (APP()->m_bUseDefaultFont == TRUE) nFontSize = m_nDefault_FontSize;
+	LOGFONT lf;
+	m_font.GetLogFont(&lf);
+	lf.lfHeight = -1 * MulDiv(nFontSize, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY), 72);
+	APP()->m_lfHeight = abs(lf.lfHeight);
+	m_font.DeleteObject();
+	m_font.CreateFontIndirect(&lf); //자동 소멸되지 않도록 멤버 변수 사용
+	m_tv1.UpdateFont(&m_font);
+	m_tv2.UpdateFont(&m_font);
+}
 

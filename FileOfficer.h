@@ -50,7 +50,7 @@ public:
 	int m_nSortCol_Default;
 	int m_bSortAscend_Default;
 	CString m_strPath_Default;
-	int m_nDefault_FontSize;
+	int m_lfHeight;
 	COLORREF m_clrDefault_Bk;
 	COLORREF m_clrDefault_Text;
 	int m_nIconType;

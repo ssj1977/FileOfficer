@@ -21,6 +21,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_TAB_VIEW, pParent)
 {
 	m_nCurrentTab = 0;
+	m_pFont = NULL;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -106,19 +107,6 @@ BOOL CDlgTabView::OnInitDialog()
 		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath));
 	}
 	SetCurrentTab(m_nCurrentTab);
-	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-	if (pList != NULL && ::IsWindow(pList->GetSafeHwnd()))
-	{
-		LOGFONT lf;
-		pList->GetFont()->GetLogFont(&lf);
-		if (APP()->m_nDefault_FontSize == -1)
-		{
-			APP()->m_nDefault_FontSize = MulDiv(-1 * lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
-			APP()->m_clrDefault_Bk = pList->GetBkColor();
-			APP()->m_clrDefault_Text = pList->GetTextColor();
-		}
-		m_lfHeight = abs(lf.lfHeight);
-	}
 	ArrangeCtrl();
 	return TRUE;
 }
@@ -166,14 +154,25 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	if (pList == NULL)
 	{
 		pList = new CFileListCtrl;
+		pList->m_nIconType = APP()->m_nIconType;
 		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
 		{
 			delete pList;
 			return;
 		}
+		if (m_pFont) pList->SetFont(m_pFont);
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
 		pList->DragAcceptFiles(TRUE);
-		//pList->SetFont(&m_font);
+		if (APP()->m_bUseDefaultColor == FALSE)
+		{
+			pList->SetBkColor(APP()->m_clrBk);
+			pList->SetTextColor(APP()->m_clrText);
+		}
+		else
+		{
+			pList->SetBkColor(APP()->m_clrDefault_Bk);
+			pList->SetTextColor(APP()->m_clrDefault_Text);
+		}
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
 		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
 		pList->CMD_UpdateBar = IDM_UPDATE_BAR;
@@ -268,11 +267,13 @@ void CDlgTabView::ArrangeCtrl()
 	CRect rc;
 	GetClientRect(rc);
 	rc.DeflateRect(3,3,3,3);
-	int BH = m_lfHeight * 2;
+	int BH = APP()->m_lfHeight * 2;
 	int TW = rc.Width();
 	m_editPath.MoveWindow(rc.left, rc.top, TW - BH, BH);
-	m_tool.MoveWindow(TW - BH, rc.top, BH, BH);
+	m_tool.GetToolBarCtrl().SetButtonSize(CSize(BH-6, BH));
+	m_tool.MoveWindow(TW - BH + 6, rc.top, BH - 3, BH);
 	rc.top += BH;
+	rc.top += 3;
 	m_tabPath.MoveWindow(rc.left, rc.top, TW, BH);
 	rc.top += BH;
 	CWnd* pWnd = CurrentList();
@@ -280,7 +281,7 @@ void CDlgTabView::ArrangeCtrl()
 	{
 		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height()- BH);
 	}
-	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH+1, TW, BH);
+	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH+2, TW, BH-2);
 	GetDlgItem(IDC_ST_BAR)->RedrawWindow();
 }
 
@@ -323,4 +324,47 @@ void CDlgTabView::OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	SetCurrentTab(m_tabPath.GetCurSel());
 	*pResult = 0;
+}
+
+void CDlgTabView::SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText)
+{
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl * )m_aTabInfo[i].pWnd;
+			if (bSetBk)	pList->SetBkColor(crBk);
+			if (bSetText) pList->SetTextColor(crText);
+		}
+	}
+
+}
+
+void CDlgTabView::UpdateImageList()
+{
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
+			ListView_SetImageList(pList->GetSafeHwnd(), APP()->m_pSysImgList, LVSIL_SMALL);
+		}
+	}
+}
+
+void CDlgTabView::UpdateFont(CFont* pFont)
+{
+	m_pFont = pFont;
+	m_tabPath.SetFont(pFont);
+	m_editPath.SetFont(pFont);
+	GetDlgItem(IDC_ST_BAR)->SetFont(pFont);
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
+			pList->SetFont(pFont);
+		}
+	}
+	ArrangeCtrl();
 }
