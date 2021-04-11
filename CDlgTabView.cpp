@@ -162,7 +162,6 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		}
 		if (m_pFont) pList->SetFont(m_pFont);
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
-		pList->DragAcceptFiles(TRUE);
 		if (APP()->m_bUseDefaultColor == FALSE)
 		{
 			pList->SetBkColor(APP()->m_clrBk);

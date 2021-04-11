@@ -499,7 +499,8 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
-void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
+
+void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
 	TCHAR szFilePath[MAX_PATH];
@@ -509,18 +510,22 @@ void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
 	for (int i = 0; i < cFiles; i++)
 	{
 		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
-		PasteFile(szFilePath);
+		PasteFile(szFilePath, bMove);
 	}
 	DragFinish(hDropInfo);
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
 }
 
-void CFileListCtrl::PasteFile(CString strPath)
+void CFileListCtrl::PasteFile(CString strPath, BOOL bMove)
 {
 	TCHAR szNewPath[MAX_PATH];
 	PathCombineW(szNewPath, m_strFolder, Get_Name(strPath));
 	if (strPath.CompareNoCase(szNewPath) == 0) return;
-	if (MoveFileExW(strPath, szNewPath, MOVEFILE_COPY_ALLOWED) == FALSE)
+	BOOL bRet = FALSE;
+	BOOL bCancel = FALSE;
+	if (bMove == TRUE) bRet = MoveFileExW(strPath, szNewPath, MOVEFILE_COPY_ALLOWED);
+	else bRet= CopyFileExW(strPath, szNewPath, NULL,NULL, &bCancel, COPY_FILE_FAIL_IF_EXISTS | COPY_FILE_RESTARTABLE);
+	if (bRet == FALSE)
 	{
 		LPVOID lpMsgBuf;
 		DWORD err = GetLastError();
@@ -592,59 +597,27 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	NM_LISTVIEW* pNMListView = pNMLV;
 	* pResult = 0;
 
-	CStringList aFiles;
-	CString strPath;
-	size_t uBuffSize = 0;
-	int nItem = GetNextItem(-1, LVNI_SELECTED);
-	while (nItem != -1)
-	{
-		strPath = GetItemFullPath(nItem);
-		aFiles.AddTail(strPath);
-		nItem = GetNextItem(nItem, LVNI_SELECTED);
-		uBuffSize += strPath.GetLength() + 1;
-	}
-	uBuffSize = sizeof(DROPFILES) + sizeof(TCHAR) * (uBuffSize + 1);
-	HGLOBAL hgDrop = ::GlobalAlloc(GHND | GMEM_SHARE, uBuffSize);
+	HGLOBAL hgDrop = GetOleDataForClipboard();
 	if (hgDrop != NULL)
 	{
-		DROPFILES* pDrop = (DROPFILES*)GlobalLock(hgDrop);;
-		if (NULL == pDrop)
-		{
-			GlobalFree(hgDrop);
-			return;
-		}
-		pDrop->pFiles = sizeof(DROPFILES);
-		pDrop->fWide = TRUE;
-		TCHAR* pszBuff;
-		POSITION pos = aFiles.GetHeadPosition();
-		pszBuff = (TCHAR*)(LPBYTE(pDrop) + sizeof(DROPFILES));
-		while (NULL != pos)
-		{
-			lstrcpy(pszBuff, (LPCTSTR)aFiles.GetNext(pos));
-			pszBuff = 1 + _tcschr(pszBuff, _T('\0'));
-		}
-		GlobalUnlock(hgDrop);
 		COleDataSource datasrc;
 		FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 		datasrc.CacheGlobalData(CF_HDROP, hgDrop, &etc);
-		DragAcceptFiles(FALSE);
-		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY);
-		
-		if ( (dwEffect & DROPEFFECT_COPY) != 0 || (dwEffect & DROPEFFECT_MOVE) !=0)
+		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK);
+		if ((dwEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
 		{
 			int nItem = GetNextItem(-1, LVNI_SELECTED);
 			while (nItem != -1)
 			{
 				//DeleteInvaildItem(nItem);
 				DeleteItem(nItem);
-				nItem = GetNextItem(nItem, LVNI_SELECTED);
+				nItem = GetNextItem(-1, LVNI_SELECTED);
 			}
 		}
 		else if (dwEffect == DROPEFFECT_NONE)
 		{
 			GlobalFree(hgDrop);
 		}
-		DragAcceptFiles(TRUE);
 	}
 }
 
@@ -795,17 +768,18 @@ BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UI
 	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
 	if (b)
 	{
-		// BOOL bd = m_DropTarget.Register(this);
+		BOOL bd = m_DropTarget.Register(this);
 	}
 	return b;
 }
 
-void CFileListCtrl::ClipBoardExport(BOOL bMove)
+HGLOBAL CFileListCtrl::GetOleDataForClipboard()
 {
 	CStringList aFiles;
 	CString strPath;
 	size_t uBuffSize = 0;
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return NULL;
 	while (nItem != -1)
 	{
 		strPath = GetItemFullPath(nItem);
@@ -821,7 +795,7 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 		if (NULL == pDrop)
 		{
 			GlobalFree(hgDrop);
-			return;
+			return NULL;
 		}
 		pDrop->pFiles = sizeof(DROPFILES);
 		pDrop->fWide = TRUE;
@@ -834,13 +808,19 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 			pszBuff = 1 + _tcschr(pszBuff, _T('\0'));
 		}
 		GlobalUnlock(hgDrop);
-		if (OpenClipboard())
-		{
-			EmptyClipboard();
-			SetClipboardData(CF_HDROP, hgDrop);
-			CloseClipboard();
-		}
-		//GlobalFree(hgDrop);
+	}
+	return hgDrop;
+}
+
+void CFileListCtrl::ClipBoardExport(BOOL bMove)
+{
+	HGLOBAL hgDrop = GetOleDataForClipboard();
+	if (hgDrop == NULL) return;
+	if (OpenClipboard())
+	{
+		EmptyClipboard();
+		SetClipboardData(CF_HDROP, hgDrop);
+		CloseClipboard();
 	}
 }
 
@@ -850,8 +830,9 @@ void CFileListCtrl::ClipBoardImport()
 	if (OpenClipboard())
 	{
 		HDROP hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
-		OnDropFiles(hDropInfo);
+		MyDropFiles(hDropInfo, FALSE);
 		CloseClipboard();
+		GlobalFree((HGLOBAL)hDropInfo);
 	}
 /*	if (odj.AttachClipboard())
 	{

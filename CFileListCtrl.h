@@ -25,9 +25,10 @@ public:
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
 	void DeleteInvaildItem(int nItem);
-	void PasteFile(CString strPath);
+	void PasteFile(CString strPath, BOOL bMove);
 	void ClipBoardExport(BOOL bMove);
 	void ClipBoardImport();
+	HGLOBAL GetOleDataForClipboard();
 	CString m_strFolder;
 	CString m_strBarMsg;
 	BOOL m_bAsc;
@@ -40,6 +41,7 @@ public:
 	int CMD_UpdateTabCtrl;
 	int CMD_UpdateBar;
 	CMyDropTarget m_DropTarget;
+	void MyDropFiles(HDROP hDropInfo, BOOL bMove = TRUE);
 protected:
 	DECLARE_MESSAGE_MAP()
 public:
@@ -48,7 +50,6 @@ public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual int OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn);
 	virtual void Sort(int iColumn, BOOL bAscending = TRUE, BOOL bAdd = FALSE);
-	afx_msg void OnDropFiles(HDROP hDropInfo);
 	afx_msg void OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
