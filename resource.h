@@ -2,6 +2,9 @@
 // Microsoft Visual C++에서 생성한 포함 파일입니다.
 // FileOfficer.rc에서 사용되고 있습니다.
 //
+#define IDS_CONFIRM_EXIT                10
+#define IDS_CONFIRM_TRASH               11
+#define IDS_CONFIRM_DELETE              12
 #define IDS_MSG_INVALIDFONTSIZE         56
 #define IDS_ICON_LARGE                  57
 #define IDS_ICON_SMALL                  58

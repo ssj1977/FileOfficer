@@ -24,7 +24,7 @@ public:
 	void ShowContextMenu(CPoint pt);
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
-	void DeleteInvaildItem(int nItem);
+	BOOL DeleteInvaildItem(int nItem);
 	void PasteFile(CString strPath, BOOL bMove);
 	void ClipBoardExport(BOOL bMove);
 	void ClipBoardImport();
@@ -42,6 +42,7 @@ public:
 	int CMD_UpdateBar;
 	CMyDropTarget m_DropTarget;
 	void MyDropFiles(HDROP hDropInfo, BOOL bMove = TRUE);
+	void DeleteSelected(BOOL bRecycle);
 protected:
 	DECLARE_MESSAGE_MAP()
 public:

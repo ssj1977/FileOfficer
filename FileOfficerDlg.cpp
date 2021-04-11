@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 #include "CFileListCtrl.h"
 #include "CDlgCFG_View.h"
+#include "EtcFunctions.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -242,6 +243,8 @@ void CFileOfficerDlg::OnSize(UINT nType, int cx, int cy)
 
 void CFileOfficerDlg::OnCancel()
 {
+	if (AfxMessageBox(IDSTR(IDS_CONFIRM_EXIT), MB_OKCANCEL) == IDCANCEL) return;
+
 	CWnd* pWnd = GetFocus();
 	if (pWnd == m_tv1.CurrentList() || pWnd == &m_tv1) APP()->m_nFocus = 1;
 	else if (pWnd == m_tv2.CurrentList() || pWnd == &m_tv2) APP()->m_nFocus = 2;
@@ -361,4 +364,5 @@ void CFileOfficerDlg::UpdateFontSize()
 	m_tv1.UpdateFont(&m_font);
 	m_tv2.UpdateFont(&m_font);
 }
+
 

@@ -479,23 +479,33 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	}
 	if (pMsg->message == WM_KEYDOWN)
 	{
-		if (pMsg->wParam == VK_RETURN)
+		if (pMsg->wParam == VK_F5)
 		{
-			OpenSelectedItem();
+			DisplayFolder_Start(m_strFolder);
 			return TRUE;
 		}
 		if (pMsg->wParam == VK_RETURN)
 		{
 			OpenSelectedItem();
+			return TRUE;
+		}
+		if (pMsg->wParam == VK_BACK)
+		{
+			OpenParentFolder();
 			return TRUE;
 		}
 	}
 	if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 	{
 		if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
+		if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE); return TRUE; }
 		if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
 	}
-
+	if (pMsg->message == WM_KEYUP && pMsg->wParam == VK_DELETE)
+	{
+		if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) DeleteSelected(FALSE);
+		else DeleteSelected(TRUE);
+	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
@@ -621,12 +631,17 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-void CFileListCtrl::DeleteInvaildItem(int nItem)
+BOOL CFileListCtrl::DeleteInvaildItem(int nItem)
 {
+	BOOL bDeleted = FALSE;
 	CString strPath = GetItemFullPath(nItem);
 	CFileFind find;
-	if (find.FindFile(strPath) == FALSE) DeleteItem(nItem);
+	if (find.FindFile(strPath) == FALSE)
+	{
+		bDeleted = DeleteItem(nItem);
+	}
 	find.Close();
+	return bDeleted;
 }
 
 int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
@@ -851,3 +866,48 @@ void CFileListCtrl::ClipBoardImport()
 	}*/
 }
 
+
+void CFileListCtrl::DeleteSelected(BOOL bRecycle)
+{
+	CStringList aFiles;
+	CString strPath;
+	size_t uBufSize = 0;
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	while (nItem != -1)
+	{
+		strPath = GetItemFullPath(nItem);
+		aFiles.AddTail(strPath);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+		uBufSize += strPath.GetLength() + 1;
+	}
+	uBufSize += 1; //For an additional NULL character
+	TCHAR* pszzBuff = new TCHAR[uBufSize];
+	memset(pszzBuff, 0, uBufSize * sizeof(TCHAR));
+	POSITION pos = aFiles.GetHeadPosition();
+	TCHAR* pBufPos = pszzBuff;
+	while (NULL != pos)
+	{
+		lstrcpy(pBufPos, (LPCTSTR)aFiles.GetNext(pos));
+		pBufPos = 1 + _tcschr(pBufPos, _T('\0'));
+	}
+	SHFILEOPSTRUCT FileOp = { 0 };
+	FileOp.hwnd = NULL;
+	FileOp.wFunc = FO_DELETE;
+	FileOp.pFrom = pszzBuff;
+	FileOp.pTo = NULL;
+	FileOp.fFlags = bRecycle ? FOF_ALLOWUNDO : 0;
+	FileOp.fAnyOperationsAborted = false;
+	FileOp.hNameMappings = NULL;
+	FileOp.lpszProgressTitle = NULL;
+	int nRet = SHFileOperation(&FileOp);
+	delete[] pszzBuff;
+	nItem = GetNextItem(-1, LVNI_SELECTED);
+	BOOL bDeleted = FALSE;
+	while (nItem != -1)
+	{
+		bDeleted = DeleteInvaildItem(nItem);
+		if (bDeleted == TRUE) nItem -= 1;
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+	}
+}
