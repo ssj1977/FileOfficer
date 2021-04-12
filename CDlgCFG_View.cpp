@@ -16,8 +16,8 @@ IMPLEMENT_DYNAMIC(CDlgCFG_View, CDialogEx)
 CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_CFG_VIEW, pParent)
 {
-	m_clrText = RGB(0, 0, 0);
-	m_clrBk = RGB(255, 255, 255);
+	m_clrText = RGB(130, 180, 255);;
+	m_clrBk = RGB(0, 0, 0);
 	m_bUseDefaultColor = TRUE;
 	m_nFontSize = 12;
 	m_bUseDefaultFont = TRUE;

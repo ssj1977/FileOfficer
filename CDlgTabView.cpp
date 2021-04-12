@@ -22,6 +22,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 {
 	m_nCurrentTab = 0;
 	m_pFont = NULL;
+	m_bSelected = FALSE;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -96,6 +97,7 @@ BOOL CDlgTabView::OnInitDialog()
 	m_tool.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	m_tool.LoadToolBar(IDR_TB_TAB);
 	m_editPath.EnableFolderBrowseButton();
+	//m_tabPath.SetImageList();
 	// Init Tabs
 	if (m_aTabInfo.GetSize() == 0)
 	{
@@ -140,11 +142,6 @@ void CDlgTabView::OnSize(UINT nType, int cx, int cy)
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) ArrangeCtrl();
 }
 
-
-void CDlgTabView::UpdateIconType()
-{
-	
-}
 
 void CDlgTabView::SetCurrentTab(int nTab)
 {
@@ -300,20 +297,40 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 }
 
 
+void CDlgTabView::SetSelected(BOOL bSelected)
+{
+	m_bSelected = bSelected;
+	if (bSelected)
+	{
+		m_editPath.SetBkColor(APP()->m_clrBk);
+		m_editPath.SetTextColor(APP()->m_clrText);
+	}
+	else
+	{
+		m_editPath.SetBkColor(APP()->m_clrDefault_Bk);
+		m_editPath.SetTextColor(APP()->m_clrDefault_Text);
+	}
+	m_editPath.RedrawWindow();
+}
+
+
 BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
 {
 	CRect rc;
 	GetClientRect(rc);
-	CWnd* pWnd = GetFocus();
+/*	CWnd* pWnd = GetFocus();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
 		if (pWnd == this || pWnd->GetParent() == this)
 		{
-			COLORREF clrBk = RGB(130, 180, 255);
-			pDC->SetBkColor(clrBk);
-			pDC->FillSolidRect(rc, clrBk);
-			return TRUE;
 		}
+	}*/
+	if (m_bSelected == TRUE)
+	{
+		COLORREF clrBk = APP()->m_clrText; // RGB(130, 180, 255);
+		pDC->SetBkColor(clrBk);
+		pDC->FillSolidRect(rc, clrBk);
+		return TRUE;
 	}
 	return CDialogEx::OnEraseBkgnd(pDC);
 }

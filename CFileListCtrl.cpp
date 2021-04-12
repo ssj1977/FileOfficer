@@ -78,8 +78,8 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 {
 	if (bIsDirectory)
 	{
-		return GetFileImageIndex(_T(""));
-		//return SI_FOLDER_OPEN;
+		//return GetFileImageIndex(_T(""));
+		return 3;		// SI_FOLDER_CLOSE
 	}
 	CPath path = CPath(strPath);
 	CString strExt = path.GetExtension();
@@ -517,11 +517,18 @@ void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
 	size_t bufsize = sizeof(TCHAR) * MAX_PATH;
 	memset(szFilePath, 0, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
+	int nStart = GetItemCount();
 	for (int i = 0; i < cFiles; i++)
 	{
 		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
 		PasteFile(szFilePath, bMove);
 	}
+	int nEnd = GetItemCount();
+	for (int i = nStart; i < nEnd; i++)
+	{
+		SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	}
+	if (nStart<nEnd && nEnd>1) EnsureVisible(nEnd-1, FALSE);
 	DragFinish(hDropInfo);
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
 }
@@ -614,19 +621,22 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 		datasrc.CacheGlobalData(CF_HDROP, hgDrop, &etc);
 		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK);
-		if ((dwEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
+		//if ((dwEffect & DROPEFFECT_LINK) == DROPEFFECT_LINK || (dwEffect & DROPEFFECT_COPY) == DROPEFFECT_COPY) ;
+		//else if ((dwEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
+		if (dwEffect == DROPEFFECT_NONE)
 		{
+			GlobalFree(hgDrop);
+		}
+		else
+		{
+			BOOL bDeleted = FALSE;
 			int nItem = GetNextItem(-1, LVNI_SELECTED);
 			while (nItem != -1)
 			{
-				//DeleteInvaildItem(nItem);
-				DeleteItem(nItem);
-				nItem = GetNextItem(-1, LVNI_SELECTED);
+				bDeleted = DeleteInvaildItem(nItem);
+				if (bDeleted == TRUE) nItem -= 1;
+				nItem = GetNextItem(nItem, LVNI_SELECTED);
 			}
-		}
-		else if (dwEffect == DROPEFFECT_NONE)
-		{
-			GlobalFree(hgDrop);
 		}
 	}
 }

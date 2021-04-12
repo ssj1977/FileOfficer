@@ -216,6 +216,8 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 			if (m_pWndFocus != &m_tv1)
 			{
 				m_pWndFocus = &m_tv1;
+				m_tv1.SetSelected(TRUE);
+				m_tv2.SetSelected(FALSE);
 				m_tv1.RedrawWindow();
 				m_tv2.RedrawWindow();
 			}
@@ -225,6 +227,8 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 			if (m_pWndFocus != &m_tv2)
 			{
 				m_pWndFocus = &m_tv2;
+				m_tv1.SetSelected(FALSE);
+				m_tv2.SetSelected(TRUE);
 				m_tv1.RedrawWindow();
 				m_tv2.RedrawWindow();
 			}
@@ -334,7 +338,10 @@ void CFileOfficerDlg::ConfigViewOption()
 			m_tv1.UpdateImageList();
 			m_tv2.UpdateImageList();
 		}
-		RedrawWindow();
+		RedrawWindow(NULL,NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+//		m_tv1.RedrawWindow();
+	//	m_tv2.RedrawWindow();
+		//m_toolMain.RedrawWindow();
 	}
 }
 

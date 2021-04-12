@@ -38,8 +38,8 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nFocus = 1;
 	m_nViewMode = 0;
 
-	m_clrText = RGB(0, 0, 0);
-	m_clrBk = RGB(255, 255, 255);
+	m_clrText = RGB(130, 180, 255);;
+	m_clrBk = RGB(0, 0, 0);
 	m_bUseDefaultColor = TRUE;
 	m_nFontSize = 12;
 	m_bUseDefaultFont = TRUE;
