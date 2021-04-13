@@ -16,6 +16,8 @@
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135
 #define IDD_CFG_VIEW                    138
+#define IDB_TABICON                     142
+#define IDD_INPUT                       143
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -26,6 +28,7 @@
 #define IDC_EDIT_FONTSIZE               1009
 #define IDC_CB_ICONSIZE                 1010
 #define IDC_ST_COLOR_BK                 1011
+#define IDC_EDIT_INPUT                  1011
 #define IDC_ST_COLOR_TEXT               1012
 #define IDC_ST_FONTSIZE                 1013
 #define IDM_PLAY_ITEM                   32772
@@ -42,9 +45,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        142
+#define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         32781
-#define _APS_NEXT_CONTROL_VALUE         1011
+#define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

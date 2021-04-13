@@ -184,6 +184,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CDlgCFG_View.h" />
+    <ClInclude Include="CDlgInput.h" />
     <ClInclude Include="CDlgTabView.h" />
     <ClInclude Include="CFileListContextMenu.h" />
     <ClInclude Include="CFileListCtrl.h" />
@@ -199,6 +200,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CDlgCFG_View.cpp" />
+    <ClCompile Include="CDlgInput.cpp" />
     <ClCompile Include="CDlgTabView.cpp" />
     <ClCompile Include="CFileListContextMenu.cpp" />
     <ClCompile Include="CFileListCtrl.cpp" />
@@ -222,6 +224,7 @@
     <None Include="res\FileOfficer.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\bitmap1.bmp" />
     <Image Include="res\FileOfficer.ico" />
     <Image Include="res\tb_tab2.bmp" />
     <Image Include="res\toolbar_Main.bmp" />

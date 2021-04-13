@@ -5,6 +5,7 @@
 #include <lm.h>
 #include <atlpath.h>
 #include "CFileListContextMenu.h"
+#include "CDlgInput.h"
 #include "EtcFunctions.h"
 
 #pragma comment(lib, "Netapi32.lib")
@@ -494,6 +495,11 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			OpenParentFolder();
 			return TRUE;
 		}
+		if (pMsg->wParam == VK_F2)
+		{
+			ChangeSelectedItemName();
+			return TRUE;
+		}
 	}
 	if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 	{
@@ -920,4 +926,19 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
+}
+
+BOOL CFileListCtrl::ChangeSelectedItemName()
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return FALSE;
+	CDlgInput dlg;
+	dlg.m_strTitle = _T("이름 바꾸기"); // 리소스 처리
+	dlg.m_strInput = GetItemText(nItem, 0);
+	if (dlg.DoModal() == IDOK)
+	{
+		// Not Finished
+		SetItemText(nItem, 0, dlg.m_strInput);
+	}
+	return TRUE;
 }

@@ -54,6 +54,9 @@
     <ClInclude Include="CMyEditBrowseCtrl.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="CDlgInput.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FileOfficer.cpp">
@@ -86,6 +89,9 @@
     <ClCompile Include="CMyEditBrowseCtrl.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="CDlgInput.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="FileOfficer.rc">
@@ -109,6 +115,9 @@
       <Filter>리소스 파일</Filter>
     </Image>
     <Image Include="res\tb_tab2.bmp">
+      <Filter>리소스 파일</Filter>
+    </Image>
+    <Image Include="res\bitmap1.bmp">
       <Filter>리소스 파일</Filter>
     </Image>
   </ItemGroup>

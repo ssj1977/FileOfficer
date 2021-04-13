@@ -11,6 +11,7 @@ public:
 	virtual ~CDlgTabView();
 	CMyEditBrowseCtrl m_editPath;
 	CTabCtrl m_tabPath;
+	CImageList m_tabImgList;
 	PathTabInfoArray m_aTabInfo;
 	int m_nCurrentTab;
 	CToolBar m_tool;

@@ -43,6 +43,7 @@ public:
 	CMyDropTarget m_DropTarget;
 	void MyDropFiles(HDROP hDropInfo, BOOL bMove = TRUE);
 	void DeleteSelected(BOOL bRecycle);
+	BOOL ChangeSelectedItemName();
 protected:
 	DECLARE_MESSAGE_MAP()
 public:

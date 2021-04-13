@@ -97,7 +97,8 @@ BOOL CDlgTabView::OnInitDialog()
 	m_tool.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	m_tool.LoadToolBar(IDR_TB_TAB);
 	m_editPath.EnableFolderBrowseButton();
-	//m_tabPath.SetImageList();
+	m_tabImgList.Create(IDB_TABICON, 16, 2, RGB(255, 0, 255));
+	m_tabPath.SetImageList(&m_tabImgList);
 	// Init Tabs
 	if (m_aTabInfo.GetSize() == 0)
 	{
@@ -106,7 +107,7 @@ BOOL CDlgTabView::OnInitDialog()
 	}
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
-		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath));
+		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath), 1);
 	}
 	SetCurrentTab(m_nCurrentTab);
 	ArrangeCtrl();
@@ -117,7 +118,7 @@ void CDlgTabView::AddFileListTab(CString strPath)
 {
 	PathTabInfo tabInfo(strPath, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
 	m_aTabInfo.Add(tabInfo);
-	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), GetPathName(strPath));
+	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), GetPathName(strPath), 1);
 	SetCurrentTab(nTab);
 }
 
@@ -145,6 +146,16 @@ void CDlgTabView::OnSize(UINT nType, int cx, int cy)
 
 void CDlgTabView::SetCurrentTab(int nTab)
 {
+	TCITEM ti;
+	ti.mask = TCIF_IMAGE;
+	if (m_nCurrentTab != nTab)
+	{
+		ti.iImage = 1;
+		m_tabPath.SetItem(m_nCurrentTab, &ti);
+	}
+	ti.iImage = 0;
+	m_tabPath.SetItem(nTab, &ti);
+
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	CRect rc = CRect(0, 0, 40, 30);
