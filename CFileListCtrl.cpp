@@ -539,33 +539,50 @@ void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
 }
 
+struct HANDLETOMAPPINGS
+{
+	UINT              uNumberOfMappings;  // Number of mappings in the array.
+	LPSHNAMEMAPPING   lpSHNameMapping;    // Pointer to the array of mappings.
+};
+
 void CFileListCtrl::PasteFile(CString strPath, BOOL bMove)
 {
+	TCHAR szOldPath[MAX_PATH];
 	TCHAR szNewPath[MAX_PATH];
-	PathCombineW(szNewPath, m_strFolder, Get_Name(strPath));
-	if (strPath.CompareNoCase(szNewPath) == 0) return;
-	BOOL bRet = FALSE;
-	BOOL bCancel = FALSE;
-	if (bMove == TRUE) bRet = MoveFileExW(strPath, szNewPath, MOVEFILE_COPY_ALLOWED);
-	else bRet= CopyFileExW(strPath, szNewPath, NULL,NULL, &bCancel, COPY_FILE_FAIL_IF_EXISTS | COPY_FILE_RESTARTABLE);
-	if (bRet == FALSE)
+	memset(szOldPath, 0, MAX_PATH * sizeof(TCHAR));
+	memset(szNewPath, 0, MAX_PATH * sizeof(TCHAR));
+	lstrcpy(szOldPath, (LPCTSTR)strPath);
+	CString strName = Get_Name(strPath);
+	PathCombineW(szNewPath, m_strFolder, strName);
+
+	BOOL bIsSamePath = FALSE;
+	if (strPath.CompareNoCase(szNewPath) == 0) bIsSamePath = TRUE;
+
+	SHFILEOPSTRUCT FileOp = { 0 };
+	FileOp.hwnd = NULL;
+	FileOp.wFunc = bMove ? FO_MOVE : FO_COPY;
+	FileOp.pFrom = szOldPath;
+	FileOp.pTo = szNewPath;
+	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_WANTMAPPINGHANDLE | FOF_ALLOWUNDO;
+	if (bIsSamePath == TRUE) FileOp.fFlags = FileOp.fFlags | FOF_RENAMEONCOLLISION;
+	FileOp.fAnyOperationsAborted = false;
+	FileOp.hNameMappings = NULL;
+	FileOp.lpszProgressTitle = NULL;
+	int nRet = SHFileOperation(&FileOp);
+	if (FileOp.hNameMappings)
 	{
-		LPVOID lpMsgBuf;
-		DWORD err = GetLastError();
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER |
-			FORMAT_MESSAGE_FROM_SYSTEM |
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			(LPTSTR)&lpMsgBuf, 0, NULL);
-		CString strErr = (LPCTSTR)lpMsgBuf;
-		LocalFree(lpMsgBuf);
-		if (strErr.IsEmpty() == FALSE) AfxMessageBox(strErr);
-		return;
+		HANDLETOMAPPINGS* phtm = (HANDLETOMAPPINGS*)FileOp.hNameMappings;
+		if (phtm->uNumberOfMappings > 0)
+		{
+			SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
+			lstrcpy(szNewPath, pnm->pszNewPath);
+		}
+		SHFreeNameMappings(FileOp.hNameMappings);
 	}
-	AddItemByPath(szNewPath);
+	AddItemByPath(szNewPath, TRUE);
 }
 
-void CFileListCtrl::AddItemByPath(CString strPath)
+void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
 {
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
@@ -573,7 +590,7 @@ void CFileListCtrl::AddItemByPath(CString strPath)
 	if (hFind == INVALID_HANDLE_VALUE) return;
 	CString strSize, strDate, strType;
 	DWORD itemData = 0;
-	int nItem = 0;
+	int nItem = -1;
 	size_t nLen = 0;
 	ULARGE_INTEGER filesize;
 	CTime tTemp;
@@ -604,10 +621,26 @@ void CFileListCtrl::AddItemByPath(CString strPath)
 				strSize = GetFileSizeString(filesize.QuadPart);
 			}
 			PathCombineW(fullpath, strDir, fd.cFileName);
-			nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
-			SetItemData(nItem, itemData);
-			SetItemText(nItem, COL_DATE, strDate);
-			if (!strSize.IsEmpty()) SetItemText(nItem, COL_SIZE, strSize);
+			BOOL bExist = FALSE;
+			if (bCheckExist == TRUE)
+			{
+				for (int i = 0; i < GetItemCount(); i++)
+				{
+					if (GetItemText(i, 0).CompareNoCase(fd.cFileName) == 0)
+					{
+						bExist = TRUE; 
+						nItem = i;
+						break;
+					}
+				}
+			}
+			if (bExist == FALSE) nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+			if (nItem != -1)
+			{
+				SetItemData(nItem, itemData);
+				SetItemText(nItem, COL_DATE, strDate);
+				if (!strSize.IsEmpty()) SetItemText(nItem, COL_SIZE, strSize);
+			}
 		}
 		b = FindNextFileW(hFind, &fd);
 	}

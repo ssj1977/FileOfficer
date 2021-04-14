@@ -16,7 +16,7 @@ public:
 	void OpenParentFolder();
 	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
-	void AddItemByPath(CString strPath);
+	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE);
 	void DisplayFolder(CString strFolder);
 	void DisplayFolder_Start(CString strFolder);
 	static UINT DisplayFolder_Thread(void* lParam);
