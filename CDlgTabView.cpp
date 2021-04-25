@@ -11,6 +11,7 @@
 #define IDM_UPDATE_TAB 55000
 #define IDM_UPDATE_SORTINFO 55001
 #define IDM_UPDATE_BAR 55002
+#define IDM_OPEN_NEWTAB 55003
 
 CString GetPathName(CString strPath);
 // CDlgTabView 대화 상자
@@ -62,6 +63,19 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	switch (wParam)
 	{
 	case IDM_OPEN_PARENT: ((CFileListCtrl*)CurrentList())->OpenParentFolder(); break;
+	case IDM_OPEN_NEWTAB: 
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)lParam;
+			CString strPath;
+			int nItem = pList->GetNextItem(-1, LVNI_SELECTED);
+			while (nItem != -1)
+			{
+				strPath = pList->GetItemFullPath(nItem);
+				if (PathIsDirectory(strPath)) AddFileListTab(strPath);
+				nItem = pList->GetNextItem(nItem, LVNI_SELECTED);
+			}
+		}
+		break;
 	case IDM_UPDATE_TAB: UpdateTabByWnd((CWnd*)lParam); break;
 	case IDM_UPDATE_SORTINFO: UpdateSortInfo((CWnd*)lParam); break;
 	case IDM_UPDATE_BAR: SetDlgItemText(IDC_ST_BAR, ((CFileListCtrl*)lParam)->m_strBarMsg); break;
@@ -98,6 +112,7 @@ BOOL CDlgTabView::OnInitDialog()
 	m_tool.LoadToolBar(IDR_TB_TAB);
 	m_editPath.EnableFolderBrowseButton();
 	m_tabImgList.Create(IDB_TABICON, 16, 2, RGB(255, 0, 255));
+	//m_tabPath.SetExtendedStyle(TCS_EX_FLATSEPARATORS, TCS_EX_FLATSEPARATORS);
 	m_tabPath.SetImageList(&m_tabImgList);
 	// Init Tabs
 	if (m_aTabInfo.GetSize() == 0)
@@ -127,12 +142,14 @@ void CDlgTabView::CloseFileListTab(int nTab)
 	if (m_aTabInfo.GetCount() == 1) return;
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
+	if (pList->m_bIsThreadWorking == TRUE) return;
 	pList->DestroyWindow();
 	delete pList;
 	m_aTabInfo.RemoveAt(nTab);
 	m_tabPath.DeleteItem(nTab);
 	nTab--;
 	if (nTab < 0) nTab = 0;
+	m_tabPath.SetCurSel(0);
 	SetCurrentTab(nTab);
 }
 
@@ -180,6 +197,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pList->SetBkColor(APP()->m_clrDefault_Bk);
 			pList->SetTextColor(APP()->m_clrDefault_Text);
 		}
+		pList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
 		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
 		pList->CMD_UpdateBar = IDM_UPDATE_BAR;

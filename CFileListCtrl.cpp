@@ -149,6 +149,7 @@ CFileListCtrl::CFileListCtrl()
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateTabCtrl = 0;
 	CMD_UpdateBar = 0;
+	CMD_OpenNewTab = 0;
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
 	m_bIsThreadWorking = FALSE;
@@ -170,12 +171,21 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
 	ON_WM_SETFOCUS()
 	ON_WM_KILLFOCUS()
+	ON_WM_CLIPBOARDUPDATE()
 END_MESSAGE_MAP()
 
 CString CFileListCtrl::GetCurrentFolder()
 {
 	return m_strFolder;
 }
+
+CString CFileListCtrl::GetCurrentItemPath()
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return _T("");
+	return GetItemFullPath(nItem);
+}
+
 
 void CFileListCtrl::InitColumns(int nType)
 {
@@ -219,18 +229,32 @@ CString CFileListCtrl::GetItemFullPath(int nItem)
 
 void CFileListCtrl::OpenSelectedItem()
 {
-	int nIndex = GetNextItem(-1, LVNI_SELECTED);
-	if (nIndex == -1) return;
-
-	INT_PTR nType = GetItemData(nIndex);
-	if (nType == ITEM_TYPE_FILE)
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	BOOL bMulti = FALSE;
+	if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) bMulti = TRUE;
+	
+	while (nItem != -1)
 	{
-		HINSTANCE hr = ShellExecute(NULL, NULL, GetItemFullPath(nIndex), NULL, NULL, SW_SHOW);
-		if ((INT_PTR)hr <= 32) AfxMessageBox(L"Error");
-	}
-	else
-	{
-		DisplayFolder_Start(GetItemFullPath(nIndex));
+		INT_PTR nType = GetItemData(nItem);
+		if (nType == ITEM_TYPE_FILE)
+		{
+			HINSTANCE hr = ShellExecute(NULL, NULL, GetItemFullPath(nItem), NULL, NULL, SW_SHOW);
+			if ((INT_PTR)hr <= 32) AfxMessageBox(L"Shell Execution Error"); //Resource
+		}
+		else //Folder
+		{
+			if (bMulti == TRUE || (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+			{   //Open in a new tab
+				GetParent()->PostMessage(WM_COMMAND, CMD_OpenNewTab, (DWORD_PTR)this);
+			}
+			else
+			{
+				DisplayFolder_Start(GetItemFullPath(nItem));
+			}
+		}
+		if (bMulti == TRUE) nItem = GetNextItem(nItem, LVNI_SELECTED);
+		else nItem = -1;
 	}
 }
 
@@ -342,6 +366,7 @@ ULONGLONG Str2Size(CString str)
 void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 {
 	if (m_bIsThreadWorking == TRUE) return;
+	if (::IsWindow(m_hWnd) == FALSE) return;
 	m_strFolder = strFolder;
 	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
@@ -497,26 +522,26 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 		}
 		if (pMsg->wParam == VK_F2)
 		{
-			ChangeSelectedItemName();
+			RenameSelectedItem();
 			return TRUE;
 		}
-	}
-	if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
-	{
-		if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
-		if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE); return TRUE; }
-		if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
-	}
-	if (pMsg->message == WM_KEYUP && pMsg->wParam == VK_DELETE)
-	{
-		if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) DeleteSelected(FALSE);
-		else DeleteSelected(TRUE);
+		if (pMsg->wParam == VK_DELETE)
+		{
+			if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) DeleteSelected(FALSE);
+			else DeleteSelected(TRUE);
+		}
+		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+		{
+			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
+			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE); return TRUE; }
+			if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
+		}
 	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
 
-void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
+void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl *pListSrc)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
 	TCHAR szFilePath[MAX_PATH];
@@ -528,6 +553,10 @@ void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
 	{
 		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
 		PasteFile(szFilePath, bMove);
+		if (bMove == TRUE && pListSrc != NULL)
+		{
+			pListSrc->DeleteInvalidPath(szFilePath);
+		}
 	}
 	int nEnd = GetItemCount();
 	for (int i = nStart; i < nEnd; i++)
@@ -672,7 +701,7 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 			int nItem = GetNextItem(-1, LVNI_SELECTED);
 			while (nItem != -1)
 			{
-				bDeleted = DeleteInvaildItem(nItem);
+				bDeleted = DeleteInvalidItem(nItem);
 				if (bDeleted == TRUE) nItem -= 1;
 				nItem = GetNextItem(nItem, LVNI_SELECTED);
 			}
@@ -680,17 +709,32 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-BOOL CFileListCtrl::DeleteInvaildItem(int nItem)
+BOOL CFileListCtrl::IsItemExist(int nItem)
+{
+	return PathFileExists(GetItemFullPath(nItem));
+}
+
+BOOL CFileListCtrl::DeleteInvalidItem(int nItem)
 {
 	BOOL bDeleted = FALSE;
-	CString strPath = GetItemFullPath(nItem);
-	CFileFind find;
-	if (find.FindFile(strPath) == FALSE)
+	if (IsItemExist(nItem) == FALSE)
 	{
 		bDeleted = DeleteItem(nItem);
 	}
-	find.Close();
 	return bDeleted;
+}
+
+void CFileListCtrl::DeleteInvalidPath(CString strPath)
+{
+	int nCount = GetItemCount();
+	for (int i = 0; i < nCount; i++)
+	{
+		if (strPath.CompareNoCase(GetItemFullPath(i)) == 0)
+		{
+			if (PathFileExists(strPath) == FALSE) DeleteItem(i);
+			return;
+		}
+	}
 }
 
 int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
@@ -876,6 +920,21 @@ HGLOBAL CFileListCtrl::GetOleDataForClipboard()
 	return hgDrop;
 }
 
+static HGLOBAL st_hgClipboard = NULL;
+static BOOL st_bMove = FALSE;
+static CFileListCtrl* st_pListSrc = NULL;
+
+void CFileListCtrl::OnClipboardUpdate()
+{
+	HWND hwnd = GetClipboardOwner()->GetSafeHwnd();
+	if (hwnd != this->GetSafeHwnd())
+	{
+		st_hgClipboard = NULL;
+		st_pListSrc = NULL;
+	}
+}
+
+
 void CFileListCtrl::ClipBoardExport(BOOL bMove)
 {
 	HGLOBAL hgDrop = GetOleDataForClipboard();
@@ -883,22 +942,66 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 	if (OpenClipboard())
 	{
 		EmptyClipboard();
+		HGLOBAL hEffect = GlobalAlloc(GMEM_ZEROINIT | GMEM_MOVEABLE | GMEM_DDESHARE, sizeof(DWORD));
+		if (hEffect != NULL)
+		{
+			DROPEFFECT effect = bMove ? DROPEFFECT_MOVE : DROPEFFECT_COPY;
+			DWORD* pdw1 = (DWORD*)GlobalLock(hEffect);
+			(*pdw1) = effect;
+			GlobalUnlock(hEffect);
+			SetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), hEffect);
+		}
 		SetClipboardData(CF_HDROP, hgDrop);
 		CloseClipboard();
 	}
+	st_hgClipboard = hgDrop;
+	st_bMove = bMove;
+	st_pListSrc = this;
+	//if (bMove)	st_pListSrc = this;
+	//else		st_pListSrc = NULL;
+	//if (st_pListSrc != NULL && ::IsWindow(st_pListSrc->GetSafeHwnd()))
+	//{
+		//RemoveClipboardFormatListener(st_pListSrc->GetSafeHwnd());
+	//}
+	//AddClipboardFormatListener(this->GetSafeHwnd());
 }
 
 void CFileListCtrl::ClipBoardImport()
 {
-	COleDataObject odj;
 	if (OpenClipboard())
 	{
+		/*UINT fmt = EnumClipboardFormats(0);
+		while (fmt!=0) 
+			fmt = EnumClipboardFormats(fmt);*/
+		//DROPEFFECT effect2 = DROPEFFECT_MOVE;
+		//DROPEFFECT effect = (DROPEFFECT)GetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT));
 		HDROP hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
-		MyDropFiles(hDropInfo, FALSE);
+		if (st_hgClipboard != hDropInfo || st_pListSrc == NULL)
+		{
+			GlobalFree((HGLOBAL)hDropInfo);
+			CloseClipboard();
+			return;
+		}
+		BOOL bMove = FALSE;
+		CFileListCtrl* pListSrc = NULL;
+		if (st_hgClipboard == hDropInfo && st_pListSrc != NULL)
+		{ 
+			bMove = st_bMove;
+			pListSrc = st_pListSrc;
+		}
+		MyDropFiles(hDropInfo, bMove, pListSrc);
+		//EmptyClipboard();
 		CloseClipboard();
-		GlobalFree((HGLOBAL)hDropInfo);
+		if (st_hgClipboard == hDropInfo)
+		{
+			GlobalFree((HGLOBAL)hDropInfo);
+		}
 	}
-/*	if (odj.AttachClipboard())
+	st_bMove = FALSE;
+	st_hgClipboard = NULL;
+	st_pListSrc = NULL;
+/*	COleDataObject odj;
+	if (odj.AttachClipboard())
 	{
 		if (odj.IsDataAvailable(CF_HDROP))
 		{
@@ -955,13 +1058,13 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	BOOL bDeleted = FALSE;
 	while (nItem != -1)
 	{
-		bDeleted = DeleteInvaildItem(nItem);
+		bDeleted = DeleteInvalidItem(nItem);
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
 }
 
-BOOL CFileListCtrl::ChangeSelectedItemName()
+BOOL CFileListCtrl::RenameSelectedItem()
 {
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return FALSE;
@@ -970,8 +1073,43 @@ BOOL CFileListCtrl::ChangeSelectedItemName()
 	dlg.m_strInput = GetItemText(nItem, 0);
 	if (dlg.DoModal() == IDOK)
 	{
-		// Not Finished
-		SetItemText(nItem, 0, dlg.m_strInput);
+		CString strPath = GetItemFullPath(nItem);
+		TCHAR szOldPath[MAX_PATH];
+		TCHAR szNewPath[MAX_PATH];
+		memset(szOldPath, 0, MAX_PATH * sizeof(TCHAR));
+		memset(szNewPath, 0, MAX_PATH * sizeof(TCHAR));
+		lstrcpy(szOldPath, (LPCTSTR)strPath);
+		//CString strName = Get_Name(strPath);
+		PathCombineW(szNewPath, m_strFolder, dlg.m_strInput);
+
+		BOOL bIsSamePath = FALSE;
+		if (strPath.CompareNoCase(szNewPath) == 0) bIsSamePath = TRUE;
+
+		SHFILEOPSTRUCT FileOp = { 0 };
+		FileOp.hwnd = NULL;
+		FileOp.wFunc = FO_RENAME;
+		FileOp.pFrom = szOldPath;
+		FileOp.pTo = szNewPath;
+		FileOp.fFlags = FOF_RENAMEONCOLLISION | FOF_WANTMAPPINGHANDLE | FOF_ALLOWUNDO;
+		FileOp.fAnyOperationsAborted = false;
+		FileOp.hNameMappings = NULL;
+		FileOp.lpszProgressTitle = NULL;
+		int nRet = SHFileOperation(&FileOp);
+		if (FileOp.hNameMappings)
+		{
+			HANDLETOMAPPINGS* phtm = (HANDLETOMAPPINGS*)FileOp.hNameMappings;
+			if (phtm->uNumberOfMappings > 0)
+			{
+				SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
+				lstrcpy(szNewPath, pnm->pszNewPath);
+			}
+			SHFreeNameMappings(FileOp.hNameMappings);
+		}
+		if (PathFileExists(szNewPath))
+		{
+			CString strNewName = Get_Name(szNewPath);
+			SetItemText(nItem, 0, strNewName);
+		}
 	}
 	return TRUE;
 }

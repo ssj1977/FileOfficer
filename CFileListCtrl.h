@@ -19,12 +19,14 @@ public:
 	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE);
 	void DisplayFolder(CString strFolder);
 	void DisplayFolder_Start(CString strFolder);
-	static UINT DisplayFolder_Thread(void* lParam);
 	void InitColumns(int nType);
 	void ShowContextMenu(CPoint pt);
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
-	BOOL DeleteInvaildItem(int nItem);
+	CString GetCurrentItemPath();
+	BOOL DeleteInvalidItem(int nItem);
+	void DeleteInvalidPath(CString strPath);
+	BOOL IsItemExist(int nItem);
 	void PasteFile(CString strPath, BOOL bMove);
 	void ClipBoardExport(BOOL bMove);
 	void ClipBoardImport();
@@ -40,12 +42,17 @@ public:
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateTabCtrl;
 	int CMD_UpdateBar;
+	int CMD_OpenNewTab;
 	CMyDropTarget m_DropTarget;
-	void MyDropFiles(HDROP hDropInfo, BOOL bMove = TRUE);
+	void MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl* pListSrc = NULL);
 	void DeleteSelected(BOOL bRecycle);
-	BOOL ChangeSelectedItemName();
+	BOOL RenameSelectedItem();
+
+	static UINT DisplayFolder_Thread(void* lParam);
+
 protected:
 	DECLARE_MESSAGE_MAP()
+
 public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
@@ -57,6 +64,7 @@ public:
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
+	afx_msg void OnClipboardUpdate();
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 };
 
