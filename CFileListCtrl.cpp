@@ -975,55 +975,51 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 void CFileListCtrl::ClipBoardImport()
 {
 	BOOL bInternal = FALSE;
-
+	UINT DROP_EFFECT = RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+	BOOL bMove = FALSE;
 	if (OpenClipboard())
 	{
-		//UINT fmt = EnumClipboardFormats(0);
-		BOOL bMove = FALSE;
 		DWORD* pEffect = NULL;
 		HANDLE hMemEffect = NULL;
 		HANDLE hMemDropFiles = NULL;
 		HDROP hDropInfo = NULL;
-		UINT DROP_EFFECT = RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
-		//while (fmt != 0)
-		//{
-			//if (fmt == DROP_EFFECT) 
-			//{
-				hMemEffect = GetClipboardData(DROP_EFFECT);
-				pEffect = (DWORD*)GlobalLock(hMemEffect);
-				if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
-				GlobalUnlock(hMemEffect);
-				//GlobalFree(hMemEffect);
-			//}
-			//else if (fmt == CF_HDROP)
-			//{
-				hMemDropFiles = GetClipboardData(CF_HDROP);
-				hDropInfo = (HDROP)GlobalLock(hMemDropFiles);
-				CFileListCtrl* pListSrc = NULL;
-				if (st_hgClipboard == hMemDropFiles && st_pListSrc != NULL)
-				{
-					bMove = st_bMove;
-					pListSrc = st_pListSrc;
-				}
-				MyDropFiles(hDropInfo, bMove, pListSrc);
-				GlobalUnlock(hMemDropFiles);
-				//GlobalFree(hMemDropFiles);
-			//}
-			//fmt = EnumClipboardFormats(fmt);
-		//}
-		//EmptyClipboard();
-		BOOL b = CloseClipboard();
-		if (b != TRUE)
+		hMemEffect = GetClipboardData(DROP_EFFECT);
+		if (hMemEffect)
 		{
-			DWORD err = GetLastError();
+			pEffect = (DWORD*)GlobalLock(hMemEffect);
+			if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
+			GlobalUnlock(hMemEffect);
 		}
+		hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
+		if (hDropInfo)
+		{
+			CFileListCtrl* pListSrc = NULL;
+			if (st_hgClipboard == hDropInfo && st_pListSrc != NULL)
+			{
+				bMove = st_bMove;
+				pListSrc = st_pListSrc;
+			}
+			MyDropFiles(hDropInfo, bMove, pListSrc);
+		}
+		CloseClipboard();
 	}
-	st_bMove = FALSE;
-	st_hgClipboard = NULL;
-	st_pListSrc = NULL;
 /*	COleDataObject odj;
 	if (odj.AttachClipboard())
 	{
+		if (odj.IsDataAvailable(DROP_EFFECT))
+		{
+			STGMEDIUM StgMed;
+			FORMATETC fmte = { (CLIPFORMAT)DROP_EFFECT, (DVTARGETDEVICE FAR*)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+			if (odj.GetData(DROP_EFFECT, &StgMed, &fmte))
+			{
+				HGLOBAL hMemEffect = GlobalLock(StgMed.hGlobal);
+				DWORD* pEffect = (DWORD*)hMemEffect;
+				if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
+				GlobalUnlock(hMemEffect);
+			}
+			if (StgMed.pUnkForRelease) StgMed.pUnkForRelease->Release();
+			else GlobalFree(StgMed.hGlobal);
+		}
 		if (odj.IsDataAvailable(CF_HDROP))
 		{
 			STGMEDIUM StgMed;
@@ -1031,12 +1027,21 @@ void CFileListCtrl::ClipBoardImport()
 			if (odj.GetData(CF_HDROP, &StgMed, &fmte))
 			{
 				HDROP hDropInfo = (HDROP)StgMed.hGlobal;
-				OnDropFiles(hDropInfo);
+				CFileListCtrl* pListSrc = NULL;
+				if (st_hgClipboard == hDropInfo && st_pListSrc != NULL) // not working
+				{
+					bMove = st_bMove;
+					pListSrc = st_pListSrc;
+				}
+				MyDropFiles(hDropInfo, bMove, pListSrc);
 			}
 			if (StgMed.pUnkForRelease) StgMed.pUnkForRelease->Release();
 			else GlobalFree(StgMed.hGlobal);
 		}
 	}*/
+	st_bMove = FALSE;
+	st_hgClipboard = NULL;
+	st_pListSrc = NULL;
 }
 
 
