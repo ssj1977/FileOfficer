@@ -952,11 +952,17 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 			SetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), hEffect);
 		}
 		SetClipboardData(CF_HDROP, hgDrop);
-		CloseClipboard();
+		BOOL b = CloseClipboard();
+		st_hgClipboard = hgDrop;
+		st_bMove = bMove;
+		st_pListSrc = this;
 	}
-	st_hgClipboard = hgDrop;
-	st_bMove = bMove;
-	st_pListSrc = this;
+	else
+	{
+		st_hgClipboard = NULL;
+		st_bMove = FALSE;
+		st_pListSrc = NULL;
+	}
 	//if (bMove)	st_pListSrc = this;
 	//else		st_pListSrc = NULL;
 	//if (st_pListSrc != NULL && ::IsWindow(st_pListSrc->GetSafeHwnd()))
@@ -968,33 +974,48 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 
 void CFileListCtrl::ClipBoardImport()
 {
+	BOOL bInternal = FALSE;
+
 	if (OpenClipboard())
 	{
-		/*UINT fmt = EnumClipboardFormats(0);
-		while (fmt!=0) 
-			fmt = EnumClipboardFormats(fmt);*/
-		//DROPEFFECT effect2 = DROPEFFECT_MOVE;
-		//DROPEFFECT effect = (DROPEFFECT)GetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT));
-		HDROP hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
-		if (st_hgClipboard != hDropInfo || st_pListSrc == NULL)
-		{
-			GlobalFree((HGLOBAL)hDropInfo);
-			CloseClipboard();
-			return;
-		}
+		//UINT fmt = EnumClipboardFormats(0);
 		BOOL bMove = FALSE;
-		CFileListCtrl* pListSrc = NULL;
-		if (st_hgClipboard == hDropInfo && st_pListSrc != NULL)
-		{ 
-			bMove = st_bMove;
-			pListSrc = st_pListSrc;
-		}
-		MyDropFiles(hDropInfo, bMove, pListSrc);
+		DWORD* pEffect = NULL;
+		HANDLE hMemEffect = NULL;
+		HANDLE hMemDropFiles = NULL;
+		HDROP hDropInfo = NULL;
+		UINT DROP_EFFECT = RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
+		//while (fmt != 0)
+		//{
+			//if (fmt == DROP_EFFECT) 
+			//{
+				hMemEffect = GetClipboardData(DROP_EFFECT);
+				pEffect = (DWORD*)GlobalLock(hMemEffect);
+				if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
+				GlobalUnlock(hMemEffect);
+				//GlobalFree(hMemEffect);
+			//}
+			//else if (fmt == CF_HDROP)
+			//{
+				hMemDropFiles = GetClipboardData(CF_HDROP);
+				hDropInfo = (HDROP)GlobalLock(hMemDropFiles);
+				CFileListCtrl* pListSrc = NULL;
+				if (st_hgClipboard == hMemDropFiles && st_pListSrc != NULL)
+				{
+					bMove = st_bMove;
+					pListSrc = st_pListSrc;
+				}
+				MyDropFiles(hDropInfo, bMove, pListSrc);
+				GlobalUnlock(hMemDropFiles);
+				//GlobalFree(hMemDropFiles);
+			//}
+			//fmt = EnumClipboardFormats(fmt);
+		//}
 		//EmptyClipboard();
-		CloseClipboard();
-		if (st_hgClipboard == hDropInfo)
+		BOOL b = CloseClipboard();
+		if (b != TRUE)
 		{
-			GlobalFree((HGLOBAL)hDropInfo);
+			DWORD err = GetLastError();
 		}
 	}
 	st_bMove = FALSE;
