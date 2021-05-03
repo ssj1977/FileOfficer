@@ -5,7 +5,7 @@ class CFileListContextMenu
 public:
 	CFileListContextMenu();
 	virtual ~CFileListContextMenu();
-	void SetPathArray(CStringArray& aPath);
+	void SetPathArray(CString strFolder, CStringArray& aPath);
 	void FreePIDLArray(LPITEMIDLIST* aPIDL);
 	CMenu* GetMenu();
 	BOOL GetContextMenu(void** ppContextMenu, int& iMenuType);

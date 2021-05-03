@@ -841,12 +841,12 @@ void CFileListCtrl::ShowContextMenu(CPoint pt)
 		aSelectedPath.Add(GetItemFullPath(nIndex));
 		nIndex = GetNextItem(nIndex, LVNI_SELECTED);
 	}
-	if (aSelectedPath.GetSize() == 0)
+	/*if (aSelectedPath.GetSize() == 0)
 	{
 		aSelectedPath.Add(m_strFolder);
-	}
+	}*/
 	CFileListContextMenu context_menu;
-	context_menu.SetPathArray(aSelectedPath);
+	context_menu.SetPathArray(m_strFolder, aSelectedPath);
 	UINT idCommand = context_menu.ShowContextMenu(this, pt);
 	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
 }

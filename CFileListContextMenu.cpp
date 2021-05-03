@@ -58,8 +58,26 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
 {
 	*ppContextMenu = NULL;
 	LPCONTEXTMENU pMenu = NULL;
-	HRESULT hr = m_psfFolder->GetUIObjectOf(NULL, (UINT)m_paPath->GetSize(), (LPCITEMIDLIST*)m_aPIDL, IID_IContextMenu, NULL, (void**)ppContextMenu);
-	if (FAILED(hr)) return FALSE;
+	//if (m_paPath == NULL || m_paPath->GetSize() == 0)
+	{
+		DEFCONTEXTMENU dcm =
+		{
+			(HWND)m_pMenu->m_hMenu, //hWnd,
+			NULL, // contextMenuCB
+			NULL, // pidlFolder,
+			m_psfFolder, //IShellFolder 
+			(UINT)m_paPath->GetSize(),    // Item Count cidl;
+			(LPCITEMIDLIST*)m_aPIDL, //(LPCITEMIDLIST*)pidlChilds,
+			NULL, // *punkAssociationInfo
+			NULL, // cKeys
+			NULL // *aKeys
+		};
+		HRESULT hr = SHCreateDefaultContextMenu(&dcm, IID_IContextMenu, (void**)ppContextMenu);
+		if (FAILED(hr)) return FALSE;
+		return TRUE;
+	}
+	//HRESULT hr = m_psfFolder->GetUIObjectOf(NULL, (UINT)m_paPath->GetSize(), (LPCITEMIDLIST*)m_aPIDL, IID_IContextMenu, NULL, (void**)ppContextMenu);
+	//if (FAILED(hr)) return FALSE;
 	return TRUE; // success
 }
 
@@ -71,15 +89,18 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 	int iMenuType = 0;	// to know which version of IContextMenu is supported
 	LPCONTEXTMENU pContextMenu;	// common pointer to IContextMenu and higher version interface
 
-	if (!GetContextMenu((void**)&pContextMenu, iMenuType)) return 0;	// something went wrong
-
 	if (!m_pMenu)
 	{
 		m_pMenu = new CMenu;
 		m_pMenu->CreatePopupMenu();
 	}
+
+	if (!GetContextMenu((void**)&pContextMenu, iMenuType)) return 0;	// something went wrong
+
+
 	// lets fill the our popupmenu  
-	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXPLORE);
+	//pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXPLORE);
+	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXTENDEDVERBS);
 
 	// subclass window to handle menurelated messages in CShellContextMenu 
 	WNDPROC OldWndProc;
@@ -91,7 +112,19 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 	}
 	else OldWndProc = NULL;
 
+	pContextMenu->QueryInterface(IID_IContextMenu2, (void**)&g_pIContext2); //test
+	pContextMenu->QueryInterface(IID_IContextMenu3, (void**)&g_pIContext3); //test
 	UINT idCommand = m_pMenu->TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN, pt.x, pt.y, pWnd);
+	//test//
+	if (g_pIContext2) {
+		g_pIContext2->Release();
+		g_pIContext2 = NULL;
+	}
+	if (g_pIContext3) {
+		g_pIContext3->Release();
+		g_pIContext3 = NULL;
+	}
+	//test//
 
 	if (OldWndProc) // unsubclass
 		SetWindowLong(pWnd->m_hWnd, GWLP_WNDPROC, (LONG)OldWndProc);
@@ -138,6 +171,7 @@ LRESULT CALLBACK CFileListContextMenu::HookWndProc(HWND hWnd, UINT message, WPAR
 		else g_pIContext3->HandleMenuMsg(message, wParam, lParam);
 		return (message == WM_INITMENUPOPUP ? 0 : TRUE); // inform caller that we handled WM_INITPOPUPMENU by ourself
 		break;
+		break;
 	default:
 		break;
 	}
@@ -178,23 +212,29 @@ LPITEMIDLIST CFileListContextMenu::CopyPIDL(LPCITEMIDLIST pidl, int cb)
 }
 
 
-void CFileListContextMenu::SetPathArray(CStringArray& aPath)
+void CFileListContextMenu::SetPathArray(CString strFolder, CStringArray& aPath)
 {
-	if (aPath.GetSize() == 0) return;
-	m_paPath = &aPath;
+	CString strTemp;
 	if (m_psfFolder) m_psfFolder->Release(); //(m_psfFolder && bDelete)
 	m_psfFolder = NULL;
 	HRESULT hr = S_OK;
 	LPITEMIDLIST pidl = NULL;
 	IShellFolder* psfDesktop = NULL;
 	if (FAILED(SHGetDesktopFolder(&psfDesktop))) return; // Default IShellFolder to Call ParseDisplayName
-	CString strTemp = aPath.GetAt(0);
-	hr = psfDesktop->ParseDisplayName(NULL, 0, strTemp.GetBuffer(0), NULL, &pidl, NULL); // pidl = Absolute PIDL of the first path
-	strTemp.ReleaseBuffer();
+	hr = psfDesktop->ParseDisplayName(NULL, 0, strFolder.GetBuffer(0), NULL, &pidl, NULL); // pidl = Absolute PIDL of the first path
+	strFolder.ReleaseBuffer();
 	if (FAILED(hr)) { psfDesktop->Release(); return; }
-	// m_psfFolder = IShellfolder of the parent of the first path ==> For ShowContextMenu
-	hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&m_psfFolder, NULL);
+	hr = SHBindToObject(NULL, pidl, NULL, IID_IShellFolder, (void**)&m_psfFolder);
 	CoTaskMemFree(pidl);
+	m_paPath = &aPath;
+	if (aPath.GetSize() == 0)
+	{
+		FreePIDLArray(m_aPIDL);
+		return;
+	}
+	// m_psfFolder = IShellfolder of the parent of the first path ==> For ShowContextMenu
+	//hr = SHBindToParent(pidl, IID_IShellFolder, (void**)&m_psfFolder, NULL);
+	//CoTaskMemFree(pidl);
 
 	// Enumerate Relative PIDL 
 	IShellFolder* psfFolder = NULL;
