@@ -34,7 +34,7 @@ public:
 	CString m_strFolder;
 	CString m_strBarMsg;
 	BOOL m_bAsc;
-	BOOL m_bIsThreadWorking;
+	BOOL m_bIsLoading;
 	int m_nSortCol;
 	int m_nType;
 	int m_nIconType;
@@ -48,8 +48,9 @@ public:
 	void DeleteSelected(BOOL bRecycle);
 	BOOL RenameSelectedItem();
 	static UINT DisplayFolder_Thread(void* lParam);
-	void SetChangeListner(BOOL bOn);
-	ULONG m_listnerID;
+	static UINT SetChangeListner_Thread(void* lParam);
+	void SetChangeListner();
+	BOOL m_bListening;
 
 protected:
 	DECLARE_MESSAGE_MAP()

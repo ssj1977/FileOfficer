@@ -142,7 +142,7 @@ void CDlgTabView::CloseFileListTab(int nTab)
 	if (m_aTabInfo.GetCount() == 1) return;
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
-	if (pList->m_bIsThreadWorking == TRUE) return;
+	if (pList->m_bIsLoading == TRUE) return;
 	pList->DestroyWindow();
 	delete pList;
 	m_aTabInfo.RemoveAt(nTab);

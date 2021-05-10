@@ -152,9 +152,9 @@ CFileListCtrl::CFileListCtrl()
 	CMD_OpenNewTab = 0;
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
-	m_bIsThreadWorking = FALSE;
+	m_bIsLoading = FALSE;
 	m_nIconType = SHIL_SMALL;
-	m_listnerID = 0;
+	m_bListening = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -366,30 +366,41 @@ ULONGLONG Str2Size(CString str)
 
 void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 {
-	if (m_bIsThreadWorking == TRUE) return;
+	if (m_bIsLoading == TRUE) return;
 	if (::IsWindow(m_hWnd) == FALSE) return;
 	m_strFolder = strFolder;
 	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
-	//SetChangeListner(TRUE);
 	AfxBeginThread(DisplayFolder_Thread, this);
+	AfxBeginThread(SetChangeListner_Thread, this);
 }
+
 UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 {
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
 	//APP()->UpdateThreadLocale();
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	pList->m_bIsThreadWorking = TRUE;
+	pList->m_bIsLoading = TRUE;
 	pList->SetBarMsg(_T("Thread Working..."));
 	pList->DisplayFolder(pList->m_strFolder);
-	pList->m_bIsThreadWorking = FALSE;
+	pList->m_bIsLoading = FALSE;
+	return 0;
+}
+
+UINT CFileListCtrl::SetChangeListner_Thread(void* lParam)
+{
+	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
+	CFileListCtrl* pList = (CFileListCtrl*)lParam;
+	pList->SetChangeListner();
 	return 0;
 }
 
 #define WM_USER_SHNOTIFY WM_USER+88
 
-void CFileListCtrl::SetChangeListner(BOOL bOn)
+void CFileListCtrl::SetChangeListner()
 {
+	if (m_bListening == TRUE) return;
+	m_bListening = TRUE;
 	HANDLE hDir = CreateFileW(m_strFolder, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
 		OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
 	CONST DWORD cbBuffer = 1024 * 1024;
@@ -400,8 +411,7 @@ void CFileListCtrl::SetChangeListner(BOOL bOn)
 		FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
 	DWORD bytesReturned;
 	WCHAR temp[MAX_PATH] = { 0 };
-
-	while (TRUE)
+	while (m_bListening)
 	{
 		FILE_NOTIFY_INFORMATION* pfni;
 		BOOL fOk = ReadDirectoryChangesW(hDir, pBuffer, cbBuffer,
