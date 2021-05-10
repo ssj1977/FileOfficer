@@ -4,6 +4,7 @@
 #include <shellapi.h>
 #include <lm.h>
 #include <atlpath.h>
+#include <strsafe.h>
 #include "CFileListContextMenu.h"
 #include "CDlgInput.h"
 #include "EtcFunctions.h"
@@ -411,6 +412,7 @@ void CFileListCtrl::SetChangeListner()
 		FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
 	DWORD bytesReturned;
 	WCHAR temp[MAX_PATH] = { 0 };
+	int nPrevItem = -1;
 	while (m_bListening)
 	{
 		FILE_NOTIFY_INFORMATION* pfni;
@@ -424,13 +426,30 @@ void CFileListCtrl::SetChangeListner()
 		pfni = (FILE_NOTIFY_INFORMATION*)pBuffer;
 		do
 		{
+			TCHAR szPath[MAX_PATH] = { 0 };
+			TCHAR szName[MAX_PATH] = { 0 };
+			StringCchCopyNW(szName, MAX_PATH, pfni->FileName, pfni->FileNameLength / sizeof(TCHAR));
+			PathCombineW(szPath, m_strFolder, szName);
 			switch (pfni->Action)
 			{
 			case FILE_ACTION_ADDED:
-				AfxMessageBox(L"Add");
+				AddItemByPath(szPath, TRUE);
 				break;
 			case FILE_ACTION_REMOVED:
-				AfxMessageBox(L"Remove");
+				DeleteInvalidPath(szPath);
+				break;
+			case FILE_ACTION_MODIFIED:
+				//UpdateItemByPath(szPath);
+				break;
+			case FILE_ACTION_RENAMED_OLD_NAME:
+				//nPrevItem = GetItemByPath(szPath);
+				break;
+			case FILE_ACTION_RENAMED_NEW_NAME:
+				if (nPrevItem != -1)
+				{
+					//UpdateItem(nPrevItem, szPath);
+				}
+				nPrevItem = -1;
 				break;
 			}
 		} 
