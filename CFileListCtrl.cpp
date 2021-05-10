@@ -154,6 +154,7 @@ CFileListCtrl::CFileListCtrl()
 	m_nSortCol = 0 ;
 	m_bIsThreadWorking = FALSE;
 	m_nIconType = SHIL_SMALL;
+	m_listnerID = 0;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -370,6 +371,7 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 	m_strFolder = strFolder;
 	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+	//SetChangeListner(TRUE);
 	AfxBeginThread(DisplayFolder_Thread, this);
 }
 UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
@@ -383,6 +385,74 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	pList->m_bIsThreadWorking = FALSE;
 	return 0;
 }
+
+#define WM_USER_SHNOTIFY WM_USER+88
+
+void CFileListCtrl::SetChangeListner(BOOL bOn)
+{
+	HANDLE hDir = CreateFileW(m_strFolder, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
+		OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
+	CONST DWORD cbBuffer = 1024 * 1024;
+	BYTE* pBuffer = (PBYTE)malloc(cbBuffer);
+	BOOL bWatchSubTree = FALSE;
+	DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
+		FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
+		FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
+	DWORD bytesReturned;
+	WCHAR temp[MAX_PATH] = { 0 };
+
+	while (TRUE)
+	{
+		FILE_NOTIFY_INFORMATION* pfni;
+		BOOL fOk = ReadDirectoryChangesW(hDir, pBuffer, cbBuffer,
+			bWatchSubTree, dwNotifyFilter, &bytesReturned, 0, 0);
+		if (!fOk)
+		{
+			AfxMessageBox(L"Error");
+			return; // break;
+		}
+		pfni = (FILE_NOTIFY_INFORMATION*)pBuffer;
+		do
+		{
+			switch (pfni->Action)
+			{
+			case FILE_ACTION_ADDED:
+				AfxMessageBox(L"Add");
+				break;
+			case FILE_ACTION_REMOVED:
+				AfxMessageBox(L"Remove");
+				break;
+			}
+		} 
+		while (pfni->NextEntryOffset > 0);
+	}
+/*	if (m_strFolder.IsEmpty())
+	{
+		bOn = FALSE;
+	}
+	if (bOn == FALSE)
+	{
+		if (m_listnerID != 0)
+		{
+			SHChangeNotifyDeregister(m_listnerID);
+			m_listnerID = 0;
+		}
+		return;
+	}
+	LPITEMIDLIST pidl;
+	pidl = ILCreateFromPath(m_strFolder);
+	SHChangeNotifyEntry shCNE;
+	shCNE.pidl = pidl;
+	shCNE.fRecursive = TRUE;
+	m_listnerID = SHChangeNotifyRegister(GetSafeHwnd(),
+		SHCNRF_ShellLevel | SHCNRF_InterruptLevel | SHCNRF_NewDelivery,
+		SHCNE_ALLEVENTS | SHCNE_CREATE | SHCNE_DELETE | SHCNE_MKDIR | SHCNE_RMDIR |
+		SHCNE_RENAMEFOLDER | SHCNE_RENAMEITEM | SHCNE_UPDATEDIR | SHCNE_UPDATEITEM,
+		WM_USER_SHNOTIFY,
+		1,
+		&shCNE);*/
+}
+
 
 void CFileListCtrl::DisplayFolder(CString strFolder)
 {
@@ -469,6 +539,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 	CString strTemp;
 	strTemp.Format(_T("Loading Time : %d"), endTime - startTime);
 	SetBarMsg(strTemp);
+	//SetChangeListner(TRUE);
 }
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
@@ -535,6 +606,24 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
 			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE); return TRUE; }
 			if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
+		}
+	}
+	if (pMsg->message == WM_USER_SHNOTIFY)
+	{
+		long lEvent;
+		PIDLIST_ABSOLUTE* rgpidl;
+		HANDLE hNotifyLock = SHChangeNotification_Lock((HANDLE)pMsg->wParam, (DWORD)pMsg->lParam, &rgpidl, &lEvent);
+		if (hNotifyLock)
+		{
+			if (lEvent == SHCNE_UPDATEDIR)
+			{
+				AfxMessageBox(L"Updated");
+			}
+			else
+			{
+				AfxMessageBox(L"Something Else");
+			}
+			SHChangeNotification_Unlock(hNotifyLock);
 		}
 	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);

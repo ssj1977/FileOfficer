@@ -47,8 +47,9 @@ public:
 	void MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl* pListSrc = NULL);
 	void DeleteSelected(BOOL bRecycle);
 	BOOL RenameSelectedItem();
-
 	static UINT DisplayFolder_Thread(void* lParam);
+	void SetChangeListner(BOOL bOn);
+	ULONG m_listnerID;
 
 protected:
 	DECLARE_MESSAGE_MAP()
