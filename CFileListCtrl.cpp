@@ -68,6 +68,9 @@ static CExtMap mapExt;
 #define SI_LOCK 47	//Lock
 #define SI_HIBERNATE 48	//Hibernate
 
+//For directory change listner
+#define IDM_START_DIRWATCH 55010
+
 //해당 파일의 아이콘 정보를 가져온다
 int GetFileImageIndex(CString strPath)
 {
@@ -116,6 +119,32 @@ CString GetPathName(CString strPath)
 	return strReturn;
 }
 
+// From https://www.codeproject.com/Articles/950/CDirectoryChangeWatcher-ReadDirectoryChangesW-all
+
+CMyDirectoryChangeHandler::CMyDirectoryChangeHandler(CFileListCtrl* pList)
+{
+	m_pList = pList;
+}
+
+void CMyDirectoryChangeHandler::On_FileAdded(const CString& strFileName)
+{
+	m_pList->AddItemByPath(strFileName, TRUE);
+}
+
+void CMyDirectoryChangeHandler::On_FileRemoved(const CString& strFileName)
+{
+	m_pList->DeleteInvalidPath(strFileName);
+}
+
+void CMyDirectoryChangeHandler::On_FileModified(const CString& strFileName)
+{
+	m_pList->UpdateItemByPath(strFileName, strFileName);
+}
+
+void CMyDirectoryChangeHandler::On_FileNameChanged(const CString& strOldFileName, const CString& strNewFileName)
+{
+	m_pList->UpdateItemByPath(strOldFileName, strNewFileName);
+}
 
 
 // CFileListCtrl
@@ -144,6 +173,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_COMP_SIZE 2
 
 CFileListCtrl::CFileListCtrl()
+: m_DirHandler(this)
 {
 	m_strFolder = L"";
 	m_nType = LIST_TYPE_DRIVE;
@@ -153,15 +183,17 @@ CFileListCtrl::CFileListCtrl()
 	CMD_OpenNewTab = 0;
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
-	m_bIsLoading = FALSE;
+	m_bLoading = FALSE;
 	m_nIconType = SHIL_SMALL;
-	m_bListening = FALSE;
+	m_hThreadLoad = NULL;
 }
 
 CFileListCtrl::~CFileListCtrl()
 {
 }
 
+
+static int CMD_DirWatch = IDM_START_DIRWATCH;
 
 BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_WM_SIZE()
@@ -174,6 +206,7 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_WM_SETFOCUS()
 	ON_WM_KILLFOCUS()
 	ON_WM_CLIPBOARDUPDATE()
+	ON_WM_DESTROY()
 END_MESSAGE_MAP()
 
 CString CFileListCtrl::GetCurrentFolder()
@@ -367,13 +400,13 @@ ULONGLONG Str2Size(CString str)
 
 void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 {
-	if (m_bIsLoading == TRUE) return;
+	if (m_bLoading == TRUE) return;
 	if (::IsWindow(m_hWnd) == FALSE) return;
+	ClearThread();
 	m_strFolder = strFolder;
 	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 	AfxBeginThread(DisplayFolder_Thread, this);
-	AfxBeginThread(SetChangeListner_Thread, this);
 }
 
 UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
@@ -381,107 +414,15 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
 	//APP()->UpdateThreadLocale();
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	pList->m_bIsLoading = TRUE;
+	pList->m_bLoading = TRUE;
+	ResetEvent(pList->m_hThreadLoad);
 	pList->SetBarMsg(_T("Thread Working..."));
 	pList->DisplayFolder(pList->m_strFolder);
-	pList->m_bIsLoading = FALSE;
+	pList->m_bLoading = FALSE;
+	SetEvent(pList->m_hThreadLoad);
+	pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 	return 0;
 }
-
-UINT CFileListCtrl::SetChangeListner_Thread(void* lParam)
-{
-	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
-	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	pList->SetChangeListner();
-	return 0;
-}
-
-#define WM_USER_SHNOTIFY WM_USER+88
-
-void CFileListCtrl::SetChangeListner()
-{
-	if (m_bListening == TRUE) return;
-	m_bListening = TRUE;
-	HANDLE hDir = CreateFileW(m_strFolder, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
-		OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, 0);
-	CONST DWORD cbBuffer = 1024 * 1024;
-	BYTE* pBuffer = (PBYTE)malloc(cbBuffer);
-	BOOL bWatchSubTree = FALSE;
-	DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
-		FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
-		FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
-	DWORD bytesReturned;
-	WCHAR temp[MAX_PATH] = { 0 };
-	int nPrevItem = -1;
-	while (m_bListening)
-	{
-		FILE_NOTIFY_INFORMATION* pfni;
-		BOOL fOk = ReadDirectoryChangesW(hDir, pBuffer, cbBuffer,
-			bWatchSubTree, dwNotifyFilter, &bytesReturned, 0, 0);
-		if (!fOk)
-		{
-			AfxMessageBox(L"Error");
-			return; // break;
-		}
-		pfni = (FILE_NOTIFY_INFORMATION*)pBuffer;
-		do
-		{
-			TCHAR szPath[MAX_PATH] = { 0 };
-			TCHAR szName[MAX_PATH] = { 0 };
-			StringCchCopyNW(szName, MAX_PATH, pfni->FileName, pfni->FileNameLength / sizeof(TCHAR));
-			PathCombineW(szPath, m_strFolder, szName);
-			switch (pfni->Action)
-			{
-			case FILE_ACTION_ADDED:
-				AddItemByPath(szPath, TRUE);
-				break;
-			case FILE_ACTION_REMOVED:
-				DeleteInvalidPath(szPath);
-				break;
-			case FILE_ACTION_MODIFIED:
-				//UpdateItemByPath(szPath);
-				break;
-			case FILE_ACTION_RENAMED_OLD_NAME:
-				//nPrevItem = GetItemByPath(szPath);
-				break;
-			case FILE_ACTION_RENAMED_NEW_NAME:
-				if (nPrevItem != -1)
-				{
-					//UpdateItem(nPrevItem, szPath);
-				}
-				nPrevItem = -1;
-				break;
-			}
-		} 
-		while (pfni->NextEntryOffset > 0);
-	}
-/*	if (m_strFolder.IsEmpty())
-	{
-		bOn = FALSE;
-	}
-	if (bOn == FALSE)
-	{
-		if (m_listnerID != 0)
-		{
-			SHChangeNotifyDeregister(m_listnerID);
-			m_listnerID = 0;
-		}
-		return;
-	}
-	LPITEMIDLIST pidl;
-	pidl = ILCreateFromPath(m_strFolder);
-	SHChangeNotifyEntry shCNE;
-	shCNE.pidl = pidl;
-	shCNE.fRecursive = TRUE;
-	m_listnerID = SHChangeNotifyRegister(GetSafeHwnd(),
-		SHCNRF_ShellLevel | SHCNRF_InterruptLevel | SHCNRF_NewDelivery,
-		SHCNE_ALLEVENTS | SHCNE_CREATE | SHCNE_DELETE | SHCNE_MKDIR | SHCNE_RMDIR |
-		SHCNE_RENAMEFOLDER | SHCNE_RENAMEITEM | SHCNE_UPDATEDIR | SHCNE_UPDATEITEM,
-		WM_USER_SHNOTIFY,
-		1,
-		&shCNE);*/
-}
-
 
 void CFileListCtrl::DisplayFolder(CString strFolder)
 {
@@ -568,7 +509,6 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 	CString strTemp;
 	strTemp.Format(_T("Loading Time : %d"), endTime - startTime);
 	SetBarMsg(strTemp);
-	//SetChangeListner(TRUE);
 }
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
@@ -637,22 +577,18 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
 		}
 	}
-	if (pMsg->message == WM_USER_SHNOTIFY)
+	if (pMsg->message == WM_COMMAND)
 	{
-		long lEvent;
-		PIDLIST_ABSOLUTE* rgpidl;
-		HANDLE hNotifyLock = SHChangeNotification_Lock((HANDLE)pMsg->wParam, (DWORD)pMsg->lParam, &rgpidl, &lEvent);
-		if (hNotifyLock)
+		if (pMsg->wParam == CMD_DirWatch && m_strFolder.IsEmpty() == FALSE)
 		{
-			if (lEvent == SHCNE_UPDATEDIR)
-			{
-				AfxMessageBox(L"Updated");
-			}
-			else
-			{
-				AfxMessageBox(L"Something Else");
-			}
-			SHChangeNotification_Unlock(hNotifyLock);
+			DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
+				FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
+				FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
+			CString strInclude = L"*.*";
+			CString strExclude = L"";
+			if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
+			m_DirWatcher.WatchDirectory(m_strFolder, dwNotifyFilter, &m_DirHandler, FALSE, strInclude, strExclude);
+			return TRUE;
 		}
 	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
@@ -671,10 +607,10 @@ void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl *pLis
 	{
 		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
 		PasteFile(szFilePath, bMove);
-		if (bMove == TRUE && pListSrc != NULL)
+/*		if (bMove == TRUE && pListSrc != NULL)
 		{
 			pListSrc->DeleteInvalidPath(szFilePath);
-		}
+		}*/
 	}
 	int nEnd = GetItemCount();
 	for (int i = nStart; i < nEnd; i++)
@@ -726,8 +662,48 @@ void CFileListCtrl::PasteFile(CString strPath, BOOL bMove)
 		}
 		SHFreeNameMappings(FileOp.hNameMappings);
 	}
-	AddItemByPath(szNewPath, TRUE);
+	//AddItemByPath(szNewPath, TRUE);
 }
+
+
+void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
+{
+	CString strOldFolder = Get_Folder(strOldPath, TRUE);
+	CString strNewFolder = Get_Folder(strNewPath, TRUE);
+	CString strOldName = Get_Name(strOldPath);
+	CString strNewName = Get_Name(strNewPath);
+	if (strOldFolder.CompareNoCase(m_strFolder) != 0) return;
+	if (strOldFolder.CompareNoCase(strNewFolder) != 0) return;
+	int nItem = -1;
+	for (int i = 0; i < GetItemCount(); i++)
+	{
+		if (GetItemText(i, 0).CompareNoCase(strOldName) == 0)
+		{
+			nItem = i;
+			break;
+		}
+	}
+	if (nItem == -1) return;
+	HANDLE hFile = CreateFile(strNewPath, 0, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	DWORD itemData = PathIsDirectory(strNewPath) ? ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
+	CString strSize;
+	if (itemData == ITEM_TYPE_FILE)
+	{
+		LARGE_INTEGER filesize;
+		GetFileSizeEx(hFile, &filesize);
+		strSize = GetFileSizeString(filesize.QuadPart);
+	}
+	FILETIME ftWrite;
+	GetFileTime(hFile, NULL, NULL, &ftWrite);
+	CTime tTemp = CTime(ftWrite);
+	CString strWriteTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+	int nImage = GetFileImageIndexFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY) );
+	SetItem(nItem, 0, LVIF_IMAGE | LVIF_TEXT, strNewName, nImage, 0, 0, 0);
+	SetItemText(nItem, COL_DATE, strWriteTime);
+	SetItemText(nItem, COL_SIZE, strSize);
+	CloseHandle(hFile);
+}
+
 
 void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
 {
@@ -786,7 +762,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
 			{
 				SetItemData(nItem, itemData);
 				SetItemText(nItem, COL_DATE, strDate);
-				if (!strSize.IsEmpty()) SetItemText(nItem, COL_SIZE, strSize);
+				SetItemText(nItem, COL_SIZE, strSize);
 			}
 		}
 		b = FindNextFileW(hFind, &fd);
@@ -815,14 +791,14 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		}
 		else
 		{
-			BOOL bDeleted = FALSE;
+/*			BOOL bDeleted = FALSE;
 			int nItem = GetNextItem(-1, LVNI_SELECTED);
 			while (nItem != -1)
 			{
 				bDeleted = DeleteInvalidItem(nItem);
 				if (bDeleted == TRUE) nItem -= 1;
 				nItem = GetNextItem(nItem, LVNI_SELECTED);
-			}
+			}*/
 		}
 	}
 }
@@ -992,6 +968,7 @@ void CFileListCtrl::SetBarMsg(CString strMsg)
 BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID)
 {
 	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
+	m_hThreadLoad = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (b)
 	{
 		BOOL bd = m_DropTarget.Register(this);
@@ -1249,11 +1226,35 @@ BOOL CFileListCtrl::RenameSelectedItem()
 			}
 			SHFreeNameMappings(FileOp.hNameMappings);
 		}
-		if (PathFileExists(szNewPath))
+/*		if (PathFileExists(szNewPath))
 		{
 			CString strNewName = Get_Name(szNewPath);
 			SetItemText(nItem, 0, strNewName);
-		}
+		}*/
 	}
 	return TRUE;
+}
+
+
+void CFileListCtrl::ClearThread()
+{
+	if (m_strFolder.IsEmpty() == FALSE) //&& m_nType == LIST_TYPE_FOLDER)
+	{
+		if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
+	}
+	if (m_bLoading)
+	{
+		m_bLoading = FALSE;
+		DWORD ret = WaitForSingleObject(m_hThreadLoad, 10000);
+		if (ret != WAIT_OBJECT_0)
+		{
+			AfxMessageBox(L"Error:Loading Thread not Clear");
+		}
+	}
+}
+
+void CFileListCtrl::OnDestroy()
+{
+	ClearThread();
+	CMFCListCtrl::OnDestroy();
 }

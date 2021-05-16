@@ -190,6 +190,8 @@
     <ClInclude Include="CFileListCtrl.h" />
     <ClInclude Include="CMyDropTarget.h" />
     <ClInclude Include="CMyEditBrowseCtrl.h" />
+    <ClInclude Include="DelayedDirectoryChangeHandler.h" />
+    <ClInclude Include="DirectoryChanges.h" />
     <ClInclude Include="EtcFunctions.h" />
     <ClInclude Include="FileOfficer.h" />
     <ClInclude Include="FileOfficerDlg.h" />
@@ -206,6 +208,8 @@
     <ClCompile Include="CFileListCtrl.cpp" />
     <ClCompile Include="CMyDropTarget.cpp" />
     <ClCompile Include="CMyEditBrowseCtrl.cpp" />
+    <ClCompile Include="DelayedDirectoryChangeHandler.cpp" />
+    <ClCompile Include="DirectoryChanges.cpp" />
     <ClCompile Include="EtcFunctions.cpp" />
     <ClCompile Include="FileOfficer.cpp" />
     <ClCompile Include="FileOfficerDlg.cpp" />

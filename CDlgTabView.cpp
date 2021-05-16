@@ -53,7 +53,12 @@ void CDlgTabView::Clear()
 	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
-		if (m_aTabInfo[i].pWnd != NULL) delete m_aTabInfo[i].pWnd;
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;;
+			if (IsWindow(pList->GetSafeHwnd())) pList->DestroyWindow();
+			delete pList;
+		}
 	}
 }
 
@@ -142,7 +147,7 @@ void CDlgTabView::CloseFileListTab(int nTab)
 	if (m_aTabInfo.GetCount() == 1) return;
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
-	if (pList->m_bIsLoading == TRUE) return;
+	//if (pList->m_bLoading == TRUE) return;
 	pList->DestroyWindow();
 	delete pList;
 	m_aTabInfo.RemoveAt(nTab);

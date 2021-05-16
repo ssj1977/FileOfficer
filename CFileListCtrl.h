@@ -4,6 +4,26 @@
 
 #define IDM_SET_FOCUS_ON 50010
 #define IDM_SET_FOCUS_OFF 50011
+class CDirectoryChangeWatcher;
+class CFileListCtrl;
+
+// From https://www.codeproject.com/Articles/950/CDirectoryChangeWatcher-ReadDirectoryChangesW-all
+#include "DirectoryChanges.h"
+class CMyDirectoryChangeHandler : public CDirectoryChangeHandler
+{
+public:
+	CMyDirectoryChangeHandler(CFileListCtrl* pList);
+	CFileListCtrl* m_pList;
+	virtual void On_FileAdded(const CString& strFileName);
+	virtual void On_FileRemoved(const CString& strFileName);
+	virtual void On_FileModified(const CString& strFileName);
+	virtual void On_FileNameChanged(const CString& strOldFileName, const CString& strNewFileName);
+	//virtual void On_ReadDirectoryChangesError(DWORD dwError);
+	//virtual void On_WatchStarted(DWORD dwError, const CString& strDirectoryName);
+	//virtual void On_WatchStopped(const CString& strDirectoryName);
+	//Filter related:
+	//virtual bool On_FilterNotification(DWORD dwNotifyAction, LPCTSTR szFileName, LPCTSTR szNewFileName);
+};
 
 class CFileListCtrl : public CMFCListCtrl
 {
@@ -17,6 +37,7 @@ public:
 	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
 	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE);
+	void UpdateItemByPath(CString strOldPath, CString strNewPath);
 	void DisplayFolder(CString strFolder);
 	void DisplayFolder_Start(CString strFolder);
 	void InitColumns(int nType);
@@ -34,7 +55,7 @@ public:
 	CString m_strFolder;
 	CString m_strBarMsg;
 	BOOL m_bAsc;
-	BOOL m_bIsLoading;
+	BOOL m_bLoading;
 	int m_nSortCol;
 	int m_nType;
 	int m_nIconType;
@@ -48,10 +69,10 @@ public:
 	void DeleteSelected(BOOL bRecycle);
 	BOOL RenameSelectedItem();
 	static UINT DisplayFolder_Thread(void* lParam);
-	static UINT SetChangeListner_Thread(void* lParam);
-	void SetChangeListner();
-	BOOL m_bListening;
-
+	void ClearThread();
+	HANDLE m_hThreadLoad;
+	CDirectoryChangeWatcher m_DirWatcher;
+	CMyDirectoryChangeHandler m_DirHandler;
 protected:
 	DECLARE_MESSAGE_MAP()
 
@@ -68,5 +89,7 @@ public:
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
 	afx_msg void OnClipboardUpdate();
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
+	afx_msg void OnDestroy();
 };
+
 

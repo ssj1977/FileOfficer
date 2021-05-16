@@ -168,10 +168,11 @@ CString INTtoSTR(int n)
 	return str;
 }
 
-CString Get_Folder(CString strFile)
+CString Get_Folder(CString strFile, BOOL bIncludeSlash)
 {
 	CString strReturn;
 	int n = strFile.ReverseFind(_T('\\'));
+	if (bIncludeSlash) n++;
 	strReturn = strFile.Left(n);
 	return strReturn;
 }
