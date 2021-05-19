@@ -31,6 +31,8 @@
 #define IDC_EDIT_INPUT                  1011
 #define IDC_ST_COLOR_TEXT               1012
 #define IDC_ST_FONTSIZE                 1013
+#define IDC_CHECK1                      1014
+#define IDC_CHK_BOLD                    1014
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -47,7 +49,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         32781
-#define _APS_NEXT_CONTROL_VALUE         1012
+#define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

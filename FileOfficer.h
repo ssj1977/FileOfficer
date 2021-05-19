@@ -51,6 +51,7 @@ public:
 	int m_bSortAscend_Default;
 	CString m_strPath_Default;
 	int m_lfHeight;
+	BOOL m_bBold;
 	COLORREF m_clrDefault_Bk;
 	COLORREF m_clrDefault_Text;
 	int m_nIconType;

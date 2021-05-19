@@ -281,6 +281,7 @@ void CFileOfficerDlg::ConfigViewOption()
 	dlg.m_nFontSize = APP()->m_nFontSize;
 	dlg.m_bUseDefaultFont = APP()->m_bUseDefaultFont;
 	dlg.m_nIconType = APP()->m_nIconType;
+	dlg.m_bBold = APP()->m_bBold;
 	if (dlg.DoModal() == IDOK)
 	{
 		if (APP()->m_bUseDefaultColor != dlg.m_bUseDefaultColor)
@@ -317,9 +318,10 @@ void CFileOfficerDlg::ConfigViewOption()
 				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, FALSE);
 			}
 		}
-		if (APP()->m_nFontSize != dlg.m_nFontSize)
+		if (APP()->m_nFontSize != dlg.m_nFontSize || APP()->m_bBold != dlg.m_bBold)
 		{
 			APP()->m_nFontSize = dlg.m_nFontSize;
+			APP()->m_bBold = dlg.m_bBold;
 			if (APP()->m_bUseDefaultFont == FALSE)
 			{
 				UpdateFontSize();
@@ -328,6 +330,7 @@ void CFileOfficerDlg::ConfigViewOption()
 		if (APP()->m_bUseDefaultFont != dlg.m_bUseDefaultFont)
 		{
 			APP()->m_bUseDefaultFont = dlg.m_bUseDefaultFont;
+			APP()->m_bBold = dlg.m_bBold;
 			{
 				UpdateFontSize();
 			}
@@ -366,6 +369,8 @@ void CFileOfficerDlg::UpdateFontSize()
 	m_font.GetLogFont(&lf);
 	lf.lfHeight = -1 * MulDiv(nFontSize, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY), 72);
 	APP()->m_lfHeight = abs(lf.lfHeight);
+	if (APP()->m_bBold == TRUE) lf.lfWeight = FW_BOLD;
+	else lf.lfWeight = FW_NORMAL;
 	m_font.DeleteObject();
 	m_font.CreateFontIndirect(&lf); //자동 소멸되지 않도록 멤버 변수 사용
 	m_tv1.UpdateFont(&m_font);

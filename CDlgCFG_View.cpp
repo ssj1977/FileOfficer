@@ -22,6 +22,7 @@ CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	m_nFontSize = 12;
 	m_bUseDefaultFont = TRUE;
 	m_nIconType = SHIL_SMALL;
+	m_bBold = FALSE;
 }
 
 CDlgCFG_View::~CDlgCFG_View()
@@ -54,6 +55,7 @@ BOOL CDlgCFG_View::OnInitDialog()
 	pColorText->SetColor(m_clrText);
 
 	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->SetCheck(m_bUseDefaultFont);
+	((CButton*)GetDlgItem(IDC_CHK_BOLD))->SetCheck(m_bBold);
 	CString strTemp;
 	strTemp.Format(_T("%d"), m_nFontSize);
 	GetDlgItem(IDC_EDIT_FONTSIZE)->SetWindowText(strTemp);
@@ -102,6 +104,7 @@ void CDlgCFG_View::OnOK()
 	m_clrText = pColorText->GetColor();
 	m_bUseDefaultColor = ((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->GetCheck();
 	m_bUseDefaultFont = ((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->GetCheck();
+	m_bBold = ((CButton*)GetDlgItem(IDC_CHK_BOLD))->GetCheck();
 	CString strTemp;
 	GetDlgItem(IDC_EDIT_FONTSIZE)->GetWindowText(strTemp);
 	m_nFontSize = _ttoi(strTemp);

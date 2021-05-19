@@ -25,6 +25,7 @@ public:
 	COLORREF m_clrBk;
 	BOOL m_bUseDefaultColor;
 	int m_nFontSize;
+	BOOL m_bBold;
 	BOOL m_bUseDefaultFont;
 	int m_nIconType;
 	void UpdateControl();

@@ -43,6 +43,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_bUseDefaultColor = TRUE;
 	m_nFontSize = 12;
 	m_bUseDefaultFont = TRUE;
+	m_bBold = FALSE;
 }
 
 
@@ -141,6 +142,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("ColorBk=%d\r\n"), m_clrBk);	strData += strLine;
 	strLine.Format(_T("ColorText=%d\r\n"), m_clrText);	strData += strLine;
 	strLine.Format(_T("UseDefaultFont=%d\r\n"), m_bUseDefaultFont);	strData += strLine;
+	strLine.Format(_T("UseBoldFont=%d\r\n"), m_bBold);	strData += strLine;
 	strLine.Format(_T("FontSize=%d\r\n"), m_nFontSize);	strData += strLine;
 	strLine.Format(_T("IconType=%d\r\n"), m_nIconType);	strData += strLine;
 
@@ -189,6 +191,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("ColorBk")) == 0) m_clrBk = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ColorText")) == 0) m_clrText = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("UseDefaultFont")) == 0) m_bUseDefaultFont = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("UseBoldFont")) == 0) m_bBold = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("FontSize")) == 0) m_nFontSize = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("IconType")) == 0) m_nIconType = _ttoi(str2);
 	}
