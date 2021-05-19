@@ -119,6 +119,31 @@ CString GetPathName(CString strPath)
 	return strReturn;
 }
 
+void StringArray2szzBuffer(CStringArray& aPath, TCHAR*& pszzBuf)
+{
+	if (aPath.GetSize() == 0)
+	{
+		pszzBuf = NULL;
+		return;
+	}
+	//Caculate Buffer Size
+	size_t uBufSize = 0;
+	for (int i = 0; i < aPath.GetSize(); i++)
+	{
+		uBufSize += aPath[i].GetLength() + 1; //String + '\0'
+	}
+	uBufSize += 1; //For the last '\0'
+	//Copy into buffer
+	pszzBuf = new TCHAR[uBufSize];
+	memset(pszzBuf, 0, uBufSize * sizeof(TCHAR));
+	TCHAR* pBufPos = pszzBuf;
+	for (int i = 0; i < aPath.GetSize(); i++)
+	{
+		lstrcpy(pBufPos, (LPCTSTR)aPath[i]);
+		pBufPos = 1 + _tcschr(pBufPos, _T('\0'));
+	}
+}
+
 // From https://www.codeproject.com/Articles/950/CDirectoryChangeWatcher-ReadDirectoryChangesW-all
 
 CMyDirectoryChangeHandler::CMyDirectoryChangeHandler(CFileListCtrl* pList)
@@ -581,21 +606,32 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	{
 		if (pMsg->wParam == CMD_DirWatch && m_strFolder.IsEmpty() == FALSE)
 		{
-			DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
-				FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
-				FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
-			CString strInclude = L"*.*";
-			CString strExclude = L"";
-			if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
-			m_DirWatcher.WatchDirectory(m_strFolder, dwNotifyFilter, &m_DirHandler, FALSE, strInclude, strExclude);
+			WatchCurrentDirectory(TRUE);
 			return TRUE;
 		}
 	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
 
+void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
+{
+	if (bOn == FALSE)
+	{
+		m_DirWatcher.UnwatchDirectory(m_strFolder);
+	}
+	else
+	{
+		DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
+			FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
+			FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
+		CString strInclude = L"*";
+		CString strExclude = L"";
+		if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
+		m_DirWatcher.WatchDirectory(m_strFolder, dwNotifyFilter, &m_DirHandler, FALSE, strInclude, strExclude);
+	}
+}
 
-void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl *pListSrc)
+void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
 	TCHAR szFilePath[MAX_PATH];
@@ -603,15 +639,13 @@ void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl *pLis
 	memset(szFilePath, 0, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	int nStart = GetItemCount();
+	CStringArray aPath;
 	for (int i = 0; i < cFiles; i++)
 	{
 		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
-		PasteFile(szFilePath, bMove);
-/*		if (bMove == TRUE && pListSrc != NULL)
-		{
-			pListSrc->DeleteInvalidPath(szFilePath);
-		}*/
+		aPath.Add(szFilePath);
 	}
+	PasteFiles(aPath, bMove);
 	int nEnd = GetItemCount();
 	for (int i = nStart; i < nEnd; i++)
 	{
@@ -628,24 +662,33 @@ struct HANDLETOMAPPINGS
 	LPSHNAMEMAPPING   lpSHNameMapping;    // Pointer to the array of mappings.
 };
 
-void CFileListCtrl::PasteFile(CString strPath, BOOL bMove)
+void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 {
-	TCHAR szOldPath[MAX_PATH];
-	TCHAR szNewPath[MAX_PATH];
-	memset(szOldPath, 0, MAX_PATH * sizeof(TCHAR));
-	memset(szNewPath, 0, MAX_PATH * sizeof(TCHAR));
-	lstrcpy(szOldPath, (LPCTSTR)strPath);
-	CString strName = Get_Name(strPath);
-	PathCombineW(szNewPath, m_strFolder, strName);
+	if (aOldPath.GetSize() == 0) return;
 
 	BOOL bIsSamePath = FALSE;
-	if (strPath.CompareNoCase(szNewPath) == 0) bIsSamePath = TRUE;
+	CString strOldFolder = Get_Folder(aOldPath[0], TRUE);
+	CString strNewFolder = m_strFolder;
+	if (strOldFolder.CompareNoCase(strNewFolder) == 0) bIsSamePath = TRUE;
+
+	CStringArray aNewPath;
+	aNewPath.SetSize(aOldPath.GetSize());
+	for (int i = 0; i < aOldPath.GetSize(); i++)
+	{
+		aNewPath[i] = strNewFolder + Get_Name(aOldPath[i]);
+	}
+	TCHAR* pszzBuf_OldPath = NULL;
+	TCHAR* pszzBuf_NewPath = NULL;
+	StringArray2szzBuffer(aOldPath, pszzBuf_OldPath);
+	if (pszzBuf_OldPath == NULL) return;
+	StringArray2szzBuffer(aNewPath, pszzBuf_NewPath);
+	if (pszzBuf_NewPath == NULL) return;
 
 	SHFILEOPSTRUCT FileOp = { 0 };
 	FileOp.hwnd = NULL;
 	FileOp.wFunc = bMove ? FO_MOVE : FO_COPY;
-	FileOp.pFrom = szOldPath;
-	FileOp.pTo = szNewPath;
+	FileOp.pFrom = pszzBuf_OldPath;
+	FileOp.pTo = pszzBuf_NewPath;
 	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_WANTMAPPINGHANDLE | FOF_ALLOWUNDO;
 	if (bIsSamePath == TRUE) FileOp.fFlags = FileOp.fFlags | FOF_RENAMEONCOLLISION;
 	FileOp.fAnyOperationsAborted = false;
@@ -658,10 +701,12 @@ void CFileListCtrl::PasteFile(CString strPath, BOOL bMove)
 		if (phtm->uNumberOfMappings > 0)
 		{
 			SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
-			lstrcpy(szNewPath, pnm->pszNewPath);
+			lstrcpy(pszzBuf_NewPath, pnm->pszNewPath);
 		}
 		SHFreeNameMappings(FileOp.hNameMappings);
 	}
+	delete pszzBuf_OldPath;
+	delete pszzBuf_NewPath;
 	//AddItemByPath(szNewPath, TRUE);
 }
 
@@ -1015,20 +1060,6 @@ HGLOBAL CFileListCtrl::GetOleDataForClipboard()
 	return hgDrop;
 }
 
-static HGLOBAL st_hgClipboard = NULL;
-static BOOL st_bMove = FALSE;
-static CFileListCtrl* st_pListSrc = NULL;
-
-void CFileListCtrl::OnClipboardUpdate()
-{
-	HWND hwnd = GetClipboardOwner()->GetSafeHwnd();
-	if (hwnd != this->GetSafeHwnd())
-	{
-		st_hgClipboard = NULL;
-		st_pListSrc = NULL;
-	}
-}
-
 
 void CFileListCtrl::ClipBoardExport(BOOL bMove)
 {
@@ -1047,29 +1078,12 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 			SetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), hEffect);
 		}
 		SetClipboardData(CF_HDROP, hgDrop);
-		BOOL b = CloseClipboard();
-		st_hgClipboard = hgDrop;
-		st_bMove = bMove;
-		st_pListSrc = this;
+		CloseClipboard();
 	}
-	else
-	{
-		st_hgClipboard = NULL;
-		st_bMove = FALSE;
-		st_pListSrc = NULL;
-	}
-	//if (bMove)	st_pListSrc = this;
-	//else		st_pListSrc = NULL;
-	//if (st_pListSrc != NULL && ::IsWindow(st_pListSrc->GetSafeHwnd()))
-	//{
-		//RemoveClipboardFormatListener(st_pListSrc->GetSafeHwnd());
-	//}
-	//AddClipboardFormatListener(this->GetSafeHwnd());
 }
 
 void CFileListCtrl::ClipBoardImport()
 {
-	BOOL bInternal = FALSE;
 	UINT DROP_EFFECT = RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT);
 	BOOL bMove = FALSE;
 	if (OpenClipboard())
@@ -1088,13 +1102,7 @@ void CFileListCtrl::ClipBoardImport()
 		hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
 		if (hDropInfo)
 		{
-			CFileListCtrl* pListSrc = NULL;
-			if (st_hgClipboard == hDropInfo && st_pListSrc != NULL)
-			{
-				bMove = st_bMove;
-				pListSrc = st_pListSrc;
-			}
-			MyDropFiles(hDropInfo, bMove, pListSrc);
+			MyDropFiles(hDropInfo, bMove);
 		}
 		CloseClipboard();
 	}
@@ -1122,59 +1130,42 @@ void CFileListCtrl::ClipBoardImport()
 			if (odj.GetData(CF_HDROP, &StgMed, &fmte))
 			{
 				HDROP hDropInfo = (HDROP)StgMed.hGlobal;
-				CFileListCtrl* pListSrc = NULL;
-				if (st_hgClipboard == hDropInfo && st_pListSrc != NULL) // not working
-				{
-					bMove = st_bMove;
-					pListSrc = st_pListSrc;
-				}
-				MyDropFiles(hDropInfo, bMove, pListSrc);
+				MyDropFiles(hDropInfo, bMove);
 			}
 			if (StgMed.pUnkForRelease) StgMed.pUnkForRelease->Release();
 			else GlobalFree(StgMed.hGlobal);
 		}
 	}*/
-	st_bMove = FALSE;
-	st_hgClipboard = NULL;
-	st_pListSrc = NULL;
 }
 
 
 void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 {
-	CStringList aFiles;
+	CStringArray aPath;
 	CString strPath;
-	size_t uBufSize = 0;
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
 	while (nItem != -1)
 	{
 		strPath = GetItemFullPath(nItem);
-		aFiles.AddTail(strPath);
+		aPath.Add(strPath);
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
-		uBufSize += strPath.GetLength() + 1;
 	}
-	uBufSize += 1; //For an additional NULL character
-	TCHAR* pszzBuff = new TCHAR[uBufSize];
-	memset(pszzBuff, 0, uBufSize * sizeof(TCHAR));
-	POSITION pos = aFiles.GetHeadPosition();
-	TCHAR* pBufPos = pszzBuff;
-	while (NULL != pos)
-	{
-		lstrcpy(pBufPos, (LPCTSTR)aFiles.GetNext(pos));
-		pBufPos = 1 + _tcschr(pBufPos, _T('\0'));
-	}
+	TCHAR* pszBuf_Delete;
+	StringArray2szzBuffer(aPath, pszBuf_Delete);
+
 	SHFILEOPSTRUCT FileOp = { 0 };
 	FileOp.hwnd = NULL;
 	FileOp.wFunc = FO_DELETE;
-	FileOp.pFrom = pszzBuff;
+	FileOp.pFrom = pszBuf_Delete;
 	FileOp.pTo = NULL;
 	FileOp.fFlags = bRecycle ? FOF_ALLOWUNDO : 0;
 	FileOp.fAnyOperationsAborted = false;
 	FileOp.hNameMappings = NULL;
 	FileOp.lpszProgressTitle = NULL;
+	WatchCurrentDirectory(FALSE);
 	int nRet = SHFileOperation(&FileOp);
-	delete[] pszzBuff;
+	delete[] pszBuf_Delete;
 	nItem = GetNextItem(-1, LVNI_SELECTED);
 	BOOL bDeleted = FALSE;
 	while (nItem != -1)
@@ -1183,6 +1174,7 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
+	WatchCurrentDirectory(TRUE);
 }
 
 BOOL CFileListCtrl::RenameSelectedItem()
@@ -1200,7 +1192,6 @@ BOOL CFileListCtrl::RenameSelectedItem()
 		memset(szOldPath, 0, MAX_PATH * sizeof(TCHAR));
 		memset(szNewPath, 0, MAX_PATH * sizeof(TCHAR));
 		lstrcpy(szOldPath, (LPCTSTR)strPath);
-		//CString strName = Get_Name(strPath);
 		PathCombineW(szNewPath, m_strFolder, dlg.m_strInput);
 
 		BOOL bIsSamePath = FALSE;
@@ -1226,11 +1217,6 @@ BOOL CFileListCtrl::RenameSelectedItem()
 			}
 			SHFreeNameMappings(FileOp.hNameMappings);
 		}
-/*		if (PathFileExists(szNewPath))
-		{
-			CString strNewName = Get_Name(szNewPath);
-			SetItemText(nItem, 0, strNewName);
-		}*/
 	}
 	return TRUE;
 }
@@ -1240,7 +1226,8 @@ void CFileListCtrl::ClearThread()
 {
 	if (m_strFolder.IsEmpty() == FALSE) //&& m_nType == LIST_TYPE_FOLDER)
 	{
-		if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
+		m_DirWatcher.UnwatchAllDirectories();
+		//if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
 	}
 	if (m_bLoading)
 	{

@@ -48,7 +48,7 @@ public:
 	BOOL DeleteInvalidItem(int nItem);
 	void DeleteInvalidPath(CString strPath);
 	BOOL IsItemExist(int nItem);
-	void PasteFile(CString strPath, BOOL bMove);
+	void PasteFiles(CStringArray& aOldPath, BOOL bMove);
 	void ClipBoardExport(BOOL bMove);
 	void ClipBoardImport();
 	HGLOBAL GetOleDataForClipboard();
@@ -65,7 +65,7 @@ public:
 	int CMD_UpdateBar;
 	int CMD_OpenNewTab;
 	CMyDropTarget m_DropTarget;
-	void MyDropFiles(HDROP hDropInfo, BOOL bMove, CFileListCtrl* pListSrc = NULL);
+	void MyDropFiles(HDROP hDropInfo, BOOL bMove);
 	void DeleteSelected(BOOL bRecycle);
 	BOOL RenameSelectedItem();
 	static UINT DisplayFolder_Thread(void* lParam);
@@ -73,6 +73,7 @@ public:
 	HANDLE m_hThreadLoad;
 	CDirectoryChangeWatcher m_DirWatcher;
 	CMyDirectoryChangeHandler m_DirHandler;
+	void WatchCurrentDirectory(BOOL bOn);
 protected:
 	DECLARE_MESSAGE_MAP()
 
@@ -87,7 +88,6 @@ public:
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
-	afx_msg void OnClipboardUpdate();
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 	afx_msg void OnDestroy();
 };

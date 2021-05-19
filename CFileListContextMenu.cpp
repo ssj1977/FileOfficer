@@ -58,7 +58,11 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
 {
 	*ppContextMenu = NULL;
 	LPCONTEXTMENU pMenu = NULL;
-	//if (m_paPath == NULL || m_paPath->GetSize() == 0)
+	if (m_paPath == NULL || m_paPath->GetSize() == 0)
+	{
+		HRESULT hr = m_psfFolder->CreateViewObject(NULL, IID_IContextMenu, (void**)ppContextMenu);
+	}
+	else
 	{
 		DEFCONTEXTMENU dcm =
 		{
