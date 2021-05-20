@@ -14,11 +14,13 @@ public:
 	void InvokeCommand(LPCONTEXTMENU pContextMenu, UINT idCommand);
 	UINT GetPIDLSize(LPCITEMIDLIST pidl);
 	LPITEMIDLIST CopyPIDL(LPCITEMIDLIST pidl, int cb = -1);
+	void SetParent(CWnd* pWnd);
 
 private:
 	CMenu* m_pMenu;
 	CStringArray* m_paPath;
 	IShellFolder* m_psfFolder;
 	LPITEMIDLIST* m_aPIDL;
+	CWnd* m_pParent;
 };
 

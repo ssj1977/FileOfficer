@@ -37,6 +37,7 @@ CFileListContextMenu::CFileListContextMenu()
 	m_paPath = NULL;
 	m_psfFolder = NULL; // To use GetUIObjectOf() to get a menu
 	m_aPIDL = NULL;
+	m_pParent = NULL;
 }
 
 CFileListContextMenu::~CFileListContextMenu()
@@ -60,7 +61,7 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
 	LPCONTEXTMENU pMenu = NULL;
 	if (m_paPath == NULL || m_paPath->GetSize() == 0)
 	{
-		HRESULT hr = m_psfFolder->CreateViewObject(NULL, IID_IContextMenu, (void**)ppContextMenu);
+		HRESULT hr = m_psfFolder->CreateViewObject(m_pParent->GetSafeHwnd(), IID_IContextMenu, (void**)ppContextMenu);
 	}
 	else
 	{
@@ -269,3 +270,7 @@ void CFileListContextMenu::SetPathArray(CString strFolder, CStringArray& aPath)
 	psfDesktop->Release();
 }
 
+void  CFileListContextMenu::SetParent(CWnd* pWnd)
+{
+	m_pParent = pWnd;
+}

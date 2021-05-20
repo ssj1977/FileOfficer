@@ -985,6 +985,7 @@ void CFileListCtrl::ShowContextMenu(CPoint pt)
 		aSelectedPath.Add(m_strFolder);
 	}*/
 	CFileListContextMenu context_menu;
+	context_menu.SetParent(this);
 	context_menu.SetPathArray(m_strFolder, aSelectedPath);
 	UINT idCommand = context_menu.ShowContextMenu(this, pt);
 	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
