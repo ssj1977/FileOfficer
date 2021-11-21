@@ -5,6 +5,7 @@
 
 IContextMenu2* g_pIContext2 = NULL;
 IContextMenu3* g_pIContext3 = NULL;
+WNDPROC g_oldWndProc = NULL;
 
 UINT GetPIDLSize(LPCITEMIDLIST pidl)
 {
@@ -55,7 +56,7 @@ CMenu* CFileListContextMenu::GetMenu()
 	return m_pMenu;
 }
 
-BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
+BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu)
 {
 	*ppContextMenu = NULL;
 	LPCONTEXTMENU pMenu = NULL;
@@ -91,7 +92,6 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
 
 UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 {
-	int iMenuType = 0;	// to know which version of IContextMenu is supported
 	LPCONTEXTMENU pContextMenu;	// common pointer to IContextMenu and higher version interface
 
 	if (!m_pMenu)
@@ -100,38 +100,42 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		m_pMenu->CreatePopupMenu();
 	}
 
-	if (!GetContextMenu((void**)&pContextMenu, iMenuType)) return 0;	// something went wrong
+	if (!GetContextMenu((void**)&pContextMenu)) return 0;
 
 	// lets fill the our popupmenu  
-	//pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXPLORE);
-	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXTENDEDVERBS);
-
+	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXTENDEDVERBS); //CMF_NORMAL | CMF_EXPLORE);
 	// subclass window to handle menurelated messages in CShellContextMenu 
-	WNDPROC OldWndProc;
-	if (iMenuType > 1)	// only subclass if its version 2 or 3
-	{
-		OldWndProc = (WNDPROC)SetWindowLongPtr(pWnd->m_hWnd, GWLP_WNDPROC, (LONG_PTR)&HookWndProc);
-		if (iMenuType == 2)	g_pIContext2 = (LPCONTEXTMENU2)pContextMenu;
-		else g_pIContext3 = (LPCONTEXTMENU3)pContextMenu;
-	}
-	else OldWndProc = NULL;
-
 	pContextMenu->QueryInterface(IID_IContextMenu2, (void**)&g_pIContext2); //test
 	pContextMenu->QueryInterface(IID_IContextMenu3, (void**)&g_pIContext3); //test
-	UINT idCommand = m_pMenu->TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN, pt.x, pt.y, pWnd);
+
+	if (g_pIContext2 != NULL || g_pIContext3 !=NULL)
+	{
+		g_oldWndProc = (WNDPROC)SetWindowLongPtr(pWnd->m_hWnd, GWLP_WNDPROC, (LONG_PTR)&HookWndProc);
+	}
+	else
+	{
+		g_oldWndProc = NULL;
+	}
+
+	UINT idCommand = m_pMenu->TrackPopupMenuEx(TPM_RETURNCMD | TPM_LEFTALIGN, pt.x, pt.y, pWnd, NULL);
 	//test//
-	if (g_pIContext2) {
+	if (g_pIContext2) 
+	{
 		g_pIContext2->Release();
 		g_pIContext2 = NULL;
 	}
-	if (g_pIContext3) {
+	if (g_pIContext3) 
+	{
 		g_pIContext3->Release();
 		g_pIContext3 = NULL;
 	}
 	//test//
 
-	if (OldWndProc) // unsubclass
-		SetWindowLong(pWnd->m_hWnd, GWLP_WNDPROC, (LONG)OldWndProc);
+	if (g_oldWndProc)
+	{
+		SetWindowLongPtr(pWnd->m_hWnd, GWLP_WNDPROC, (LONG_PTR)g_oldWndProc);  // unsubclass
+		g_oldWndProc = NULL;
+	}
 
 	if (idCommand >= MIN_ID && idCommand <= MAX_ID)	// see if returned idCommand belongs to shell menu entries
 	{
@@ -199,7 +203,7 @@ LRESULT CALLBACK CFileListContextMenu::HookWndProc(HWND hWnd, UINT message, WPAR
 		break;
 	}
 	// call original WndProc of window to prevent undefined bevhaviour of window
-	return ::CallWindowProc((WNDPROC)GetProp(hWnd, TEXT("OldWndProc")), hWnd, message, wParam, lParam);
+	return ::CallWindowProc(g_oldWndProc, hWnd, message, wParam, lParam);
 }
 
 void CFileListContextMenu::FreePIDLArray(LPITEMIDLIST* aPIDL)

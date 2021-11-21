@@ -919,7 +919,6 @@ void CDelayedDirectoryChangeHandler::On_WatchStarted(DWORD dwError, const CStrin
 	if( !(m_dwFilterFlags & CDirectoryChangeWatcher::FILTERS_NO_WATCHSTART_NOTIFICATION))
 	{
 		CDirChangeNotification * p = GetNotificationObject();
-
 		if( p ) p->PostOn_WatchStarted(dwError, strDirectoryName);
 	}
 }
@@ -929,13 +928,10 @@ void CDelayedDirectoryChangeHandler::On_WatchStopped(const CString & strDirector
 	if( !(m_dwFilterFlags & CDirectoryChangeWatcher::FILTERS_NO_WATCHSTOP_NOTIFICATION))
 	{
 		CDirChangeNotification * p = GetNotificationObject();
-
 		if( p ){
 			if( m_hWatchStoppedDispatchedEvent )
 				::ResetEvent(m_hWatchStoppedDispatchedEvent);
-
 			p->PostOn_WatchStopped( strDirectoryName );
-
 			//	Wait that this function has been dispatched to the other thread
 			//	before continueing.  This object may be getting deleted
 			//	soon after this function returns, and before the function can be

@@ -1214,7 +1214,7 @@ void CFileListCtrl::ClearThread()
 }
 
 void CFileListCtrl::OnDestroy()
-{
+{ 
 	ClearThread();
 	CMFCListCtrl::OnDestroy();
 }
