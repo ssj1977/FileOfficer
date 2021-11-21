@@ -44,11 +44,11 @@ BOOL CMyDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT d
 	}
 	if ((dropEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
 	{
-		pList->MyDropFiles(hdrop, TRUE);
+		pList->ProcessDropFiles(hdrop, TRUE);
 	}
 	else if ((dropEffect & DROPEFFECT_COPY) == DROPEFFECT_COPY)
 	{
-		pList->MyDropFiles(hdrop, FALSE);
+		pList->ProcessDropFiles(hdrop, FALSE);
 	}
 	GlobalUnlock(hg);
 	return TRUE;

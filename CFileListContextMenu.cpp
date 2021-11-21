@@ -87,7 +87,7 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, int& iMenuType)
 }
 
 #define MIN_ID 1
-#define MAX_ID 10000
+#define MAX_ID 0x7FFF
 
 UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 {
@@ -101,7 +101,6 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 	}
 
 	if (!GetContextMenu((void**)&pContextMenu, iMenuType)) return 0;	// something went wrong
-
 
 	// lets fill the our popupmenu  
 	//pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXPLORE);
@@ -136,6 +135,15 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 
 	if (idCommand >= MIN_ID && idCommand <= MAX_ID)	// see if returned idCommand belongs to shell menu entries
 	{
+		/*int iCmdTemp = idCommand - MIN_ID;
+		CMINVOKECOMMANDINFOEX info = { 0 };
+		info.cbSize = sizeof(info);
+		info.fMask = 0x00004000;
+		info.hwnd = m_pParent->GetSafeHwnd();
+		info.lpVerb = MAKEINTRESOURCEA(iCmdTemp);
+		info.lpVerbW = MAKEINTRESOURCEW(iCmdTemp);
+		info.nShow = SW_SHOWNORMAL;
+		pContextMenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);*/
 		InvokeCommand(pContextMenu, idCommand - MIN_ID);	// execute related command
 		idCommand = 0;
 	}
@@ -147,12 +155,14 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 
 void CFileListContextMenu::InvokeCommand(LPCONTEXTMENU pContextMenu, UINT idCommand)
 {
-	CMINVOKECOMMANDINFO cmi = { 0 };
-	cmi.cbSize = sizeof(CMINVOKECOMMANDINFO);
+	CMINVOKECOMMANDINFOEX cmi = { 0 };
+	cmi.cbSize = sizeof(CMINVOKECOMMANDINFOEX);
+	cmi.fMask = 0x00004000;
+	cmi.hwnd = m_pParent->GetSafeHwnd();
 	cmi.lpVerb = (LPSTR)MAKEINTRESOURCE(idCommand);
+	cmi.lpVerbW = (LPWSTR)MAKEINTRESOURCE(idCommand);;
 	cmi.nShow = SW_SHOWNORMAL;
-
-	pContextMenu->InvokeCommand(&cmi);
+	pContextMenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&cmi);
 }
 
 
@@ -172,10 +182,18 @@ LRESULT CALLBACK CFileListContextMenu::HookWndProc(HWND hWnd, UINT message, WPAR
 	case WM_MEASUREITEM:
 		if (wParam)	break; // if wParam != 0 then the message is not menu-related
 	case WM_INITMENUPOPUP:
-		if (g_pIContext2) g_pIContext2->HandleMenuMsg(message, wParam, lParam);
-		else g_pIContext3->HandleMenuMsg(message, wParam, lParam);
-		return (message == WM_INITMENUPOPUP ? 0 : TRUE); // inform caller that we handled WM_INITPOPUPMENU by ourself
-		break;
+		if (g_pIContext3)
+		{
+			LRESULT lres = NULL;
+			if (SUCCEEDED(g_pIContext3->HandleMenuMsg2(message, wParam, lParam, &lres)))
+				return lres;
+		}
+		else if (g_pIContext2)
+		{
+			LRESULT lres = NULL;
+			if (SUCCEEDED(g_pIContext2->HandleMenuMsg(message, wParam, lParam)))
+				return lres;
+		}
 		break;
 	default:
 		break;

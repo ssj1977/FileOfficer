@@ -65,7 +65,7 @@ public:
 	int CMD_UpdateBar;
 	int CMD_OpenNewTab;
 	CMyDropTarget m_DropTarget;
-	void MyDropFiles(HDROP hDropInfo, BOOL bMove);
+	void ProcessDropFiles(HDROP hDropInfo, BOOL bMove);
 	void DeleteSelected(BOOL bRecycle);
 	BOOL RenameSelectedItem();
 	static UINT DisplayFolder_Thread(void* lParam);
@@ -90,6 +90,7 @@ public:
 	afx_msg void OnKillFocus(CWnd* pNewWnd);
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 	afx_msg void OnDestroy();
+	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 };
 
 

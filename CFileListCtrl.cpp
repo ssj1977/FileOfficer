@@ -232,6 +232,7 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_WM_KILLFOCUS()
 	ON_WM_CLIPBOARDUPDATE()
 	ON_WM_DESTROY()
+	ON_WM_CONTEXTMENU()
 END_MESSAGE_MAP()
 
 CString CFileListCtrl::GetCurrentFolder()
@@ -631,7 +632,7 @@ void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 	}
 }
 
-void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
+void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
 	TCHAR szFilePath[MAX_PATH];
@@ -652,7 +653,7 @@ void CFileListCtrl::MyDropFiles(HDROP hDropInfo, BOOL bMove)
 		SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	}
 	if (nStart<nEnd && nEnd>1) EnsureVisible(nEnd-1, FALSE);
-	DragFinish(hDropInfo);
+	//DragFinish(hDropInfo); //실제로 마우스 드래그 메시지를 받은 경우에만 이 방식으로 메모리 해제
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
 }
 
@@ -961,11 +962,10 @@ void CFileListCtrl::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CFileListCtrl::OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-
+/*	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 	CPoint pt(pNMItemActivate->ptAction);
 	ClientToScreen(&pt);
-	ShowContextMenu(pt);
+	ShowContextMenu(pt);*/
 	*pResult = 0;
 }
 
@@ -1100,43 +1100,15 @@ void CFileListCtrl::ClipBoardImport()
 			if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
 			GlobalUnlock(hMemEffect);
 		}
-		hDropInfo = (HDROP)GetClipboardData(CF_HDROP);
-		if (hDropInfo)
+		HGLOBAL hGlobal = (HGLOBAL)GetClipboardData(CF_HDROP);
+		if (hGlobal)
 		{
-			MyDropFiles(hDropInfo, bMove);
+			HDROP hDropInfo = (HDROP)GlobalLock(hGlobal);
+			ProcessDropFiles(hDropInfo, bMove);
+			GlobalUnlock(hGlobal);
 		}
 		CloseClipboard();
 	}
-/*	COleDataObject odj;
-	if (odj.AttachClipboard())
-	{
-		if (odj.IsDataAvailable(DROP_EFFECT))
-		{
-			STGMEDIUM StgMed;
-			FORMATETC fmte = { (CLIPFORMAT)DROP_EFFECT, (DVTARGETDEVICE FAR*)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-			if (odj.GetData(DROP_EFFECT, &StgMed, &fmte))
-			{
-				HGLOBAL hMemEffect = GlobalLock(StgMed.hGlobal);
-				DWORD* pEffect = (DWORD*)hMemEffect;
-				if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
-				GlobalUnlock(hMemEffect);
-			}
-			if (StgMed.pUnkForRelease) StgMed.pUnkForRelease->Release();
-			else GlobalFree(StgMed.hGlobal);
-		}
-		if (odj.IsDataAvailable(CF_HDROP))
-		{
-			STGMEDIUM StgMed;
-			FORMATETC fmte = { CF_HDROP, (DVTARGETDEVICE FAR*)NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-			if (odj.GetData(CF_HDROP, &StgMed, &fmte))
-			{
-				HDROP hDropInfo = (HDROP)StgMed.hGlobal;
-				MyDropFiles(hDropInfo, bMove);
-			}
-			if (StgMed.pUnkForRelease) StgMed.pUnkForRelease->Release();
-			else GlobalFree(StgMed.hGlobal);
-		}
-	}*/
 }
 
 
@@ -1245,4 +1217,10 @@ void CFileListCtrl::OnDestroy()
 {
 	ClearThread();
 	CMFCListCtrl::OnDestroy();
+}
+
+
+void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
+{
+	ShowContextMenu(point);
 }
