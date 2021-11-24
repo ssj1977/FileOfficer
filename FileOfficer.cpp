@@ -196,3 +196,14 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("IconType")) == 0) m_nIconType = _ttoi(str2);
 	}
 }
+
+COLORREF CFileOfficerApp::GetMyClrText()
+{
+	return m_bUseDefaultColor ? m_clrDefault_Text : m_clrText;
+}
+
+COLORREF CFileOfficerApp::GetMyClrBk()
+{
+	// TODO: 여기에 구현 코드 추가.
+	return m_bUseDefaultColor ? m_clrDefault_Bk : m_clrBk;
+}

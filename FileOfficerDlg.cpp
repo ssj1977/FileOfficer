@@ -49,7 +49,7 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);
 	//Create Temporary List for Default Option Values
 	CFileListCtrl list;
-	if (list.Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, CRect(0, 0, 0, 0), this, 0) == TRUE)
+	if (list.Create(WS_CHILD | LVS_REPORT | LVS_SHAREIMAGELISTS, CRect(0, 0, 0, 0), this, 0) == TRUE)
 	{
 		InitDefaultListOption(&list);
 		list.DestroyWindow();
@@ -282,42 +282,34 @@ void CFileOfficerDlg::ConfigViewOption()
 	dlg.m_bUseDefaultFont = APP()->m_bUseDefaultFont;
 	dlg.m_nIconType = APP()->m_nIconType;
 	dlg.m_bBold = APP()->m_bBold;
+	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
 	if (dlg.DoModal() == IDOK)
 	{
+		//Color
 		if (APP()->m_bUseDefaultColor != dlg.m_bUseDefaultColor)
 		{
 			APP()->m_bUseDefaultColor = dlg.m_bUseDefaultColor;
-			if (APP()->m_bUseDefaultColor == TRUE)
-			{
-				m_tv1.SetListColor(APP()->m_clrDefault_Bk, APP()->m_clrDefault_Text, TRUE, TRUE);
-				m_tv2.SetListColor(APP()->m_clrDefault_Bk, APP()->m_clrDefault_Text, TRUE, TRUE);
-			}
-			else
+			if (APP()->m_bUseDefaultColor == FALSE)
 			{
 				APP()->m_clrText = dlg.m_clrText;
 				APP()->m_clrBk = dlg.m_clrBk;
-				m_tv1.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, TRUE);
-				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, TRUE);
-			}
-		}
-		if (APP()->m_clrText != dlg.m_clrText)
-		{
-			APP()->m_clrText = dlg.m_clrText;
-			if (APP()->m_bUseDefaultColor == FALSE)
-			{
-				m_tv1.SetListColor(APP()->m_clrBk, APP()->m_clrText, FALSE, TRUE);
-				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, FALSE, TRUE);
+				bUpdateClrBk = TRUE;
+				bUpdateClrText = TRUE;
 			}
 		}
 		if (APP()->m_clrBk != dlg.m_clrBk)
 		{
 			APP()->m_clrBk = dlg.m_clrBk;
-			if (APP()->m_bUseDefaultColor == FALSE)
-			{
-				m_tv1.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, FALSE);
-				m_tv2.SetListColor(APP()->m_clrBk, APP()->m_clrText, TRUE, FALSE);
-			}
+			if (APP()->m_bUseDefaultColor == FALSE) bUpdateClrBk = TRUE;
 		}
+		if (APP()->m_clrText != dlg.m_clrText)
+		{
+			APP()->m_clrText = dlg.m_clrText;
+			if (APP()->m_bUseDefaultColor == FALSE) bUpdateClrText = TRUE;
+		}
+		m_tv1.SetListColor(APP()->GetMyClrBk(), APP()->GetMyClrText(), bUpdateClrBk, bUpdateClrText);
+		m_tv2.SetListColor(APP()->GetMyClrBk(), APP()->GetMyClrText(), bUpdateClrBk, bUpdateClrText);
+		//Font
 		if (APP()->m_nFontSize != dlg.m_nFontSize || APP()->m_bBold != dlg.m_bBold)
 		{
 			APP()->m_nFontSize = dlg.m_nFontSize;
@@ -342,8 +334,8 @@ void CFileOfficerDlg::ConfigViewOption()
 			m_tv2.UpdateImageList();
 		}
 		RedrawWindow(NULL,NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
-//		m_tv1.RedrawWindow();
-	//	m_tv2.RedrawWindow();
+		m_tv1.SetSelected(m_tv1.m_bSelected);
+		m_tv2.SetSelected(m_tv2.m_bSelected);
 		//m_toolMain.RedrawWindow();
 	}
 }

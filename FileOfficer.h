@@ -72,6 +72,8 @@ public:
 public:
 	void INISave(CString strFile);
 	void INILoad(CString strFile);
+	COLORREF GetMyClrText();
+	COLORREF GetMyClrBk();
 	DECLARE_MESSAGE_MAP()
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();

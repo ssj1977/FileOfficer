@@ -40,7 +40,6 @@ void CDlgTabView::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_WM_SIZE()
-	ON_WM_ERASEBKGND()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_PATH, &CDlgTabView::OnTcnSelchangeTabPath)
 END_MESSAGE_MAP()
 
@@ -185,23 +184,15 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	{
 		pList = new CFileListCtrl;
 		pList->m_nIconType = APP()->m_nIconType;
-		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
+		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE) //LVS_SHOWSELALWAYS
 		{
 			delete pList;
 			return;
 		}
 		if (m_pFont) pList->SetFont(m_pFont);
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
-		if (APP()->m_bUseDefaultColor == FALSE)
-		{
-			pList->SetBkColor(APP()->m_clrBk);
-			pList->SetTextColor(APP()->m_clrText);
-		}
-		else
-		{
-			pList->SetBkColor(APP()->m_clrDefault_Bk);
-			pList->SetTextColor(APP()->m_clrDefault_Text);
-		}
+		pList->SetBkColor(APP()->GetMyClrBk());
+		pList->SetTextColor(APP()->GetMyClrText());
 		pList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
 		pList->CMD_UpdateTabCtrl = IDM_UPDATE_TAB;
 		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
@@ -331,42 +322,44 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 }
 
 
+COLORREF GetDimColor(COLORREF clr)
+{
+	COLORREF clrDim = clr;
+	BYTE R = (BYTE)(clr);
+	BYTE G = (BYTE)(((WORD)(clr)) >> 8);
+	BYTE B = (BYTE)((clr) >> 16);
+	if (R > 100) R = int((float)R * 0.7);
+	else R = R + 50;
+	if (G > 100) G = int((float)G * 0.7);
+	else G = G + 50;
+	if (B > 100) B = int((float)B * 0.7);
+	else B = B + 50;
+
+	return RGB(R, G, B);
+}
 void CDlgTabView::SetSelected(BOOL bSelected)
 {
 	m_bSelected = bSelected;
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	if (bSelected)
 	{
-		m_editPath.SetBkColor(APP()->m_clrBk);
-		m_editPath.SetTextColor(APP()->m_clrText);
+		m_editPath.SetBkColor(APP()->GetMyClrBk());
+		m_editPath.SetTextColor(APP()->GetMyClrText());
+		pList->SetBkColor(APP()->GetMyClrBk());
+		pList->SetTextColor(APP()->GetMyClrText());
+		pList->RedrawWindow();
 	}
 	else
 	{
-		m_editPath.SetBkColor(APP()->m_clrDefault_Bk);
-		m_editPath.SetTextColor(APP()->m_clrDefault_Text);
+		COLORREF clrBk2 = GetDimColor(APP()->GetMyClrBk());
+		COLORREF clrText2 = GetDimColor(APP()->GetMyClrText());
+		m_editPath.SetBkColor(clrBk2);
+		m_editPath.SetTextColor(clrText2);
+		pList->SetBkColor(clrBk2);
+		pList->SetTextColor(clrText2);
+		pList->RedrawWindow();
 	}
 	m_editPath.RedrawWindow();
-}
-
-
-BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
-{
-	CRect rc;
-	GetClientRect(rc);
-/*	CWnd* pWnd = GetFocus();
-	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
-	{
-		if (pWnd == this || pWnd->GetParent() == this)
-		{
-		}
-	}*/
-	if (m_bSelected == TRUE)
-	{
-		COLORREF clrBk = APP()->m_clrText; // RGB(130, 180, 255);
-		pDC->SetBkColor(clrBk);
-		pDC->FillSolidRect(rc, clrBk);
-		return TRUE;
-	}
-	return CDialogEx::OnEraseBkgnd(pDC);
 }
 
 
@@ -378,6 +371,7 @@ void CDlgTabView::OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CDlgTabView::SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText)
 {
+	if (bSetBk == FALSE && bSetText == FALSE) return;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		if (m_aTabInfo[i].pWnd != NULL)
