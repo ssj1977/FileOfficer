@@ -542,7 +542,7 @@ CDelayedDirectoryChangeHandler::CDelayedDirectoryChangeHandler(CDirectoryChangeH
 		m_pDelayNotifier = new CDelayedNotificationThread();
 	}
 }
-
+void ClearAllNotification();
 CDelayedDirectoryChangeHandler::~CDelayedDirectoryChangeHandler()
 {
 	if( m_pRealHandler )
@@ -584,6 +584,7 @@ CDelayedDirectoryChangeHandler::~CDelayedDirectoryChangeHandler()
 	}
 
 	UninitializePathMatchFunc();
+	ClearAllNotification();
 }
 
 BOOL CDelayedDirectoryChangeHandler::_PathMatchSpec(LPCTSTR szPath, LPCTSTR szPattern)
@@ -860,6 +861,42 @@ void CDelayedDirectoryChangeHandler::SetPartialPathOffset(const CString & strWat
 		m_dwPartialPathOffset = 0;
 }
 
+
+//메모리 누수를 방지하기 위한 임시 가비지 콜렉터
+CList<CDirChangeNotification*> g_NotificationList;
+void DeleteNotification(CDirChangeNotification* pNotification)
+{
+	if (pNotification == NULL) return;
+	POSITION pos = g_NotificationList.Find(pNotification);
+	if (pos != NULL)
+	{
+		g_NotificationList.RemoveAt(pos);
+	}
+	delete pNotification;
+	int nCount = (int)g_NotificationList.GetCount();
+	if (nCount > 10) //10개가 넘어가면 뒤쪽을 청소한다
+	{
+		nCount -= 10;
+		for (int i = 0; i < nCount; i++)
+		{
+			delete g_NotificationList.GetTail();
+			g_NotificationList.RemoveTail();
+		}
+	}
+}
+
+void ClearAllNotification()
+{
+	POSITION pos = g_NotificationList.GetHeadPosition();
+	int nCount = (int)g_NotificationList.GetCount();
+	for (int i = 0; i < nCount; i++)
+	{
+		delete g_NotificationList.GetNext(pos);
+	}
+	g_NotificationList.RemoveAll();
+}
+
+
 CDirChangeNotification * CDelayedDirectoryChangeHandler::GetNotificationObject()
 //
 //	Maybe in future I'll keep a pool of these 
@@ -870,12 +907,17 @@ CDirChangeNotification * CDelayedDirectoryChangeHandler::GetNotificationObject()
 //  
 {
 	ASSERT( m_pRealHandler );
-	return new CDirChangeNotification(this, m_dwPartialPathOffset);//helps support FILTERS_CHECK_PARTIAL_PATH
+	CDirChangeNotification* pRet = new CDirChangeNotification(this, m_dwPartialPathOffset);
+	g_NotificationList.AddHead(pRet);
+	return pRet;
+	//return new CDirChangeNotification(this, m_dwPartialPathOffset);//helps support FILTERS_CHECK_PARTIAL_PATH
+
 }
 
 void CDelayedDirectoryChangeHandler::DisposeOfNotification(CDirChangeNotification * pNotification)
 {
-	delete pNotification;
+	//delete pNotification;
+	DeleteNotification(pNotification);
 }
 
 //These functions are called when the directory to watch has had a change made to it

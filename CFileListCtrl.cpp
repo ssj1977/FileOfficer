@@ -198,7 +198,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_COMP_SIZE 2
 
 CFileListCtrl::CFileListCtrl()
-: m_DirHandler(this)
+: m_DirHandler(this) , m_DirWatcher(true)
 {
 	m_strFolder = L"";
 	m_nType = LIST_TYPE_DRIVE;
@@ -690,24 +690,25 @@ void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 	FileOp.wFunc = bMove ? FO_MOVE : FO_COPY;
 	FileOp.pFrom = pszzBuf_OldPath;
 	FileOp.pTo = pszzBuf_NewPath;
-	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_WANTMAPPINGHANDLE | FOF_ALLOWUNDO;
+	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_ALLOWUNDO; //| FOF_WANTMAPPINGHANDLE 
 	if (bIsSamePath == TRUE) FileOp.fFlags = FileOp.fFlags | FOF_RENAMEONCOLLISION;
 	FileOp.fAnyOperationsAborted = false;
 	FileOp.hNameMappings = NULL;
 	FileOp.lpszProgressTitle = NULL;
 	int nRet = SHFileOperation(&FileOp);
-	if (FileOp.hNameMappings)
+/*	if (FileOp.hNameMappings)
 	{
 		HANDLETOMAPPINGS* phtm = (HANDLETOMAPPINGS*)FileOp.hNameMappings;
 		if (phtm->uNumberOfMappings > 0)
+		+ 
 		{
 			SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
 			lstrcpy(pszzBuf_NewPath, pnm->pszNewPath);
 		}
 		SHFreeNameMappings(FileOp.hNameMappings);
-	}
-	delete pszzBuf_OldPath;
-	delete pszzBuf_NewPath;
+	}*/
+	delete[] pszzBuf_OldPath;
+	delete[] pszzBuf_NewPath;
 	//AddItemByPath(szNewPath, TRUE);
 }
 
