@@ -223,21 +223,26 @@ CWnd* CDlgTabView::CurrentList()
 void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 {
 	if (pWnd == NULL || ::IsWindow(pWnd->GetSafeHwnd()) == FALSE) return;
-	int nTab = -1;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		if (m_aTabInfo[i].pWnd == pWnd)
 		{
-			nTab = i;
+			PathTabInfo& pti = m_aTabInfo[i];
+			CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
+			pti.strPath = pList->m_strFolder;
+			//pti.strFilterInclude = pList->m_strFilterInclude; //필터정보의 저장 및 관리는 추후 검토
+			SetTabTitle(i, GetPathName(pti.strPath));
+			if (pList->m_strFilterInclude != L"*")
+			{
+				m_editPath.SetWindowText(pList->m_strFolder + pList->m_strFilterInclude);
+			}
+			else
+			{
+				m_editPath.SetWindowText(pti.strPath);
+			}
 			break;
 		}
 	}
-	if (nTab == -1) return;
-	PathTabInfo& pti = m_aTabInfo[nTab];
-	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
-	pti.strPath = pList->m_strFolder;
-	SetTabTitle(nTab, GetPathName(pti.strPath));
-	m_editPath.SetWindowText(pti.strPath);
 }
 
 void CDlgTabView::UpdateSortInfo(CWnd* pWnd)

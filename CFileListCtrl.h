@@ -53,6 +53,8 @@ public:
 	void ClipBoardImport();
 	HGLOBAL GetOleDataForClipboard();
 	CString m_strFolder;
+	CString m_strFilterInclude;
+	CString m_strFilterExclude;
 	CString m_strBarMsg;
 	BOOL m_bAsc;
 	BOOL m_bLoading;

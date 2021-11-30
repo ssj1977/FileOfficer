@@ -491,6 +491,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 			}
 			flag = flag * 2;
 		}
+		m_strFolder = (CString)path;
 	}
 	else if (path.IsUNCServer())
 	{
@@ -520,17 +521,32 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 			}
 		} while (res == ERROR_MORE_DATA);
 		strFolder.ReleaseBuffer();
+		m_strFolder = (CString)path;
 	}
 	else
 	{
 		InitColumns(LIST_TYPE_FOLDER);
-		path.AddBackslash();
-		CString strFind = path + _T("*");
+		CString strFind = strFolder;
+		if (strFind.Find(L'*') == -1 && strFind.Find(L'?') == -1)
+		{
+			path.AddBackslash();
+			strFind = path + _T("*");
+			m_strFolder = (CString)path;
+			m_strFilterInclude = L"*";
+			m_strFilterExclude = L"";
+		}
+		else
+		{
+			strFind = strFolder;
+			m_strFolder = Get_Folder(strFolder, TRUE);
+			m_strFilterInclude = Get_Name(strFolder);
+			m_strFilterExclude = L"";
+			if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
+				GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+		}
 		AddItemByPath(strFind);
 		Sort(m_nSortCol, m_bAsc);
 	}
-	m_strFolder = (CString)path;
-
 	endTime = clock();
 	CString strTemp;
 	strTemp.Format(_T("Loading Time : %d"), endTime - startTime);
@@ -625,10 +641,8 @@ void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 		DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
 			FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
 			FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
-		CString strInclude = L"*";
-		CString strExclude = L"";
 		if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
-		m_DirWatcher.WatchDirectory(m_strFolder, dwNotifyFilter, &m_DirHandler, FALSE, strInclude, strExclude);
+		m_DirWatcher.WatchDirectory(m_strFolder, dwNotifyFilter, &m_DirHandler, FALSE, m_strFilterInclude, m_strFilterExclude);
 	}
 }
 
