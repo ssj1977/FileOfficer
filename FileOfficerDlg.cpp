@@ -189,7 +189,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_CLOSE_LIST:
 		if (m_pWndFocus != NULL && ::IsWindow(m_pWndFocus->GetSafeHwnd()))
 		{
-			m_pWndFocus->PostMessage(WM_COMMAND, wParam, lParam);
+			m_pWndFocus->GetParent()->PostMessage(WM_COMMAND, wParam, lParam);
 		}
 		break;
 	case IDM_TOGGLE_VIEW:
@@ -213,9 +213,9 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 	{
 		if (pWnd == &m_tv1 || pWnd->GetParent() == &m_tv1)
 		{
-			if (m_pWndFocus != &m_tv1)
+			if (m_pWndFocus != m_tv1.CurrentList())
 			{
-				m_pWndFocus = &m_tv1;
+				m_pWndFocus = m_tv1.CurrentList();
 				m_tv1.SetSelected(TRUE);
 				m_tv2.SetSelected(FALSE);
 				m_tv1.RedrawWindow();
@@ -224,9 +224,9 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 		}
 		else if (pWnd == &m_tv2 || pWnd->GetParent() == &m_tv2)
 		{
-			if (m_pWndFocus != &m_tv2)
+			if (m_pWndFocus != m_tv2.CurrentList())
 			{
-				m_pWndFocus = &m_tv2;
+				m_pWndFocus = m_tv2.CurrentList();
 				m_tv1.SetSelected(FALSE);
 				m_tv2.SetSelected(TRUE);
 				m_tv1.RedrawWindow();
