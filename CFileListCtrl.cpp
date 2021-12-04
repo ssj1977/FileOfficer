@@ -228,8 +228,6 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CFileListCtrl::OnLvnBegindrag)
 	ON_NOTIFY_REFLECT(NM_DBLCLK, &CFileListCtrl::OnNMDblclk)
 	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
-	ON_WM_SETFOCUS()
-	ON_WM_KILLFOCUS()
 	ON_WM_CLIPBOARDUPDATE()
 	ON_WM_DESTROY()
 	ON_WM_CONTEXTMENU()
@@ -576,15 +574,14 @@ void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 
 BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 {
-	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
-	if (pMsg->message == WM_LBUTTONDBLCLK)
+	/*if (pMsg->message == WM_LBUTTONDBLCLK)
 	{
 		if (GetNextItem(-1, LVNI_SELECTED) == -1)
 		{
 			OpenParentFolder();
 			return TRUE;
 		}
-	}
+	}*/
 	if (pMsg->message == WM_KEYDOWN)
 	{
 		if (pMsg->wParam == VK_F5)
@@ -1006,19 +1003,6 @@ void CFileListCtrl::ShowContextMenu(CPoint pt)
 	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
 }
 
-
-void CFileListCtrl::OnSetFocus(CWnd* pOldWnd)
-{
-	CMFCListCtrl::OnSetFocus(pOldWnd);
-	GetParent()->PostMessage(WM_COMMAND, IDM_SET_FOCUS_ON, 0);
-}
-
-
-void CFileListCtrl::OnKillFocus(CWnd* pNewWnd)
-{
-	CMFCListCtrl::OnKillFocus(pNewWnd);
-	GetParent()->PostMessage(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
-}
 
 void CFileListCtrl::SetBarMsg(CString strMsg)
 {

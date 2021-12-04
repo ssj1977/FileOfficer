@@ -10,16 +10,12 @@ public:
 	CFileOfficerDlg(CWnd* pParent = nullptr);
 	CDlgTabView m_tv1;
 	CDlgTabView m_tv2;
-	CWnd* m_pWndFocus;
+	//CWnd* m_pWndFocus;
 	BOOL m_bShow2;
 	CRect m_rcMain;
-	CToolBar m_toolMain;
-	CFont m_font;
 	int m_nDefault_FontSize;
 	void ArrangeCtrl();
-	void ConfigViewOption();
 	void InitDefaultListOption(CWnd* pWnd);
-	void UpdateFontSize();
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_FILEOFFICER_DIALOG };
 #endif

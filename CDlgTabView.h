@@ -14,8 +14,10 @@ public:
 	CImageList m_tabImgList;
 	PathTabInfoArray m_aTabInfo;
 	int m_nCurrentTab;
+	int m_nViewOptionIndex;
+	int m_lfHeight;
 	CToolBar m_tool;
-	CFont* m_pFont;
+	CFont m_font;
 	BOOL m_bSelected;
 	void ArrangeCtrl();
 	void SetCurrentTab(int nTab);
@@ -24,13 +26,22 @@ public:
 	void UpdateSortInfo(CWnd* pWnd);
 	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);
-	void SetSelected(BOOL bSelected);
+//	void SetSelected(BOOL bSelected);
 	void AddFileListTab(CString strFolder);
 	void CloseFileListTab(int nTab);
 	void Clear();
 	void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
-	void UpdateImageList();
-	void UpdateFont(CFont* pFont);
+	int GetIconType();
+	void SetIconType(int nIconType);
+	int GetFontSize();
+	BOOL GetIsBold();
+	COLORREF GetMyClrText();
+	COLORREF GetMyClrBk();
+	void InitFont();
+	void InitToolBar();
+	void UpdateChildFont();
+	void ConfigViewOption();
+
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };

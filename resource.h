@@ -5,6 +5,13 @@
 #define IDS_CONFIRM_EXIT                10
 #define IDS_CONFIRM_TRASH               11
 #define IDS_CONFIRM_DELETE              12
+#define IDS_TB_00                       20
+#define IDS_TB_01                       21
+#define IDS_TB_02                       22
+#define IDS_TB_03                       23
+#define IDS_TB_04                       24
+#define IDS_TB_05                       25
+#define IDS_TB_06                       26
 #define IDS_MSG_INVALIDFONTSIZE         56
 #define IDS_ICON_LARGE                  57
 #define IDS_ICON_SMALL                  58
@@ -12,7 +19,6 @@
 #define IDS_ICON_JUMBO                  60
 #define IDD_FILEOFFICER_DIALOG          102
 #define IDR_MAINFRAME                   128
-#define IDR_TB_MAIN                     131
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135
 #define IDD_CFG_VIEW                    138
@@ -31,7 +37,6 @@
 #define IDC_EDIT_INPUT                  1011
 #define IDC_ST_COLOR_TEXT               1012
 #define IDC_ST_FONTSIZE                 1013
-#define IDC_CHECK1                      1014
 #define IDC_CHK_BOLD                    1014
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
@@ -48,7 +53,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        145
-#define _APS_NEXT_COMMAND_VALUE         32781
+#define _APS_NEXT_COMMAND_VALUE         32784
 #define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -25,10 +25,10 @@ END_MESSAGE_MAP()
 
 CFileOfficerApp::CFileOfficerApp()
 {
-	m_nIconType = SHIL_EXTRALARGE;
-	m_pSysImgList = NULL;
-	m_clrDefault_Bk = RGB(255,255,2555);
-	m_clrDefault_Text = RGB(0, 0, 0);
+	m_pSysImgList_SMALL = NULL;
+	m_pSysImgList_LARGE = NULL;
+	m_pSysImgList_EXTRALARGE = NULL;
+	m_pSysImgList_JUMBO = NULL;
 	m_nSortCol_Default = 0;
 	m_bSortAscend_Default = TRUE;
 	m_strPath_Default.Empty();
@@ -37,13 +37,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nCurrentTab2 = 0;
 	m_nFocus = 1;
 	m_nViewMode = 0;
-
-	m_clrText = RGB(130, 180, 255);;
-	m_clrBk = RGB(0, 0, 0);
-	m_bUseDefaultColor = TRUE;
-	m_nFontSize = 12;
-	m_bUseDefaultFont = TRUE;
-	m_bBold = FALSE;
+	m_hIcon = NULL;
 }
 
 
@@ -77,7 +71,6 @@ BOOL CFileOfficerApp::InitInstance()
 		AfxMessageBox(L"AfxOleInit Error!");
 		return FALSE;
 	}
-	LoadImageList(m_nIconType);
 
 	CFileOfficerDlg dlg;
 	m_pMainWnd = &dlg;
@@ -112,10 +105,21 @@ BOOL CFileOfficerApp::InitInstance()
 	return FALSE;
 }
 
-void CFileOfficerApp::LoadImageList(int nIconType)
+HIMAGELIST* CFileOfficerApp::GetImageListByType(int nIconType)
 {
-	m_nIconType = nIconType;
-	HRESULT hr = SHGetImageList(m_nIconType, IID_IImageList, (void**)&m_pSysImgList);
+	HIMAGELIST*& pRet = m_pSysImgList_SMALL;
+	switch (nIconType)
+	{
+	//case SHIL_SMALL:		pRet = m_pSysImgList_SMALL;			break;
+	case SHIL_LARGE:		pRet = m_pSysImgList_LARGE;			break;
+	case SHIL_EXTRALARGE:	pRet = m_pSysImgList_EXTRALARGE;	break;
+	case SHIL_JUMBO:		pRet = m_pSysImgList_JUMBO;			break;
+	}
+	if (pRet == NULL)
+	{
+		SHGetImageList(nIconType, IID_IImageList, (void**)&pRet);
+	}
+	return pRet;
 }
 
 
@@ -130,22 +134,28 @@ int CFileOfficerApp::ExitInstance()
 void CFileOfficerApp::INISave(CString strFile)
 {
 	CString strData, strLine, str1, str2;
-	strLine.Format(_T("MainRectLeft=%d\r\n"), m_rcMain.left);		strData += strLine;
-	strLine.Format(_T("MainRectTop=%d\r\n"), m_rcMain.top);		strData += strLine;
-	strLine.Format(_T("MainRectRight=%d\r\n"), m_rcMain.right);	strData += strLine;
-	strLine.Format(_T("MainRectBottom=%d\r\n"), m_rcMain.bottom);	strData += strLine;
+	if (m_rcMain.IsRectEmpty() == FALSE)
+	{
+		strLine.Format(_T("RectMain=%d,%d,%d,%d\r\n"), m_rcMain.left, m_rcMain.top, m_rcMain.right, m_rcMain.bottom);
+		strData += strLine;;
+	}
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
 	strLine.Format(_T("ViewMode=%d\r\n"), m_nViewMode); strData += strLine;
-	strLine.Format(_T("UseDefaultColor=%d\r\n"), m_bUseDefaultColor);	strData += strLine;
-	strLine.Format(_T("ColorBk=%d\r\n"), m_clrBk);	strData += strLine;
-	strLine.Format(_T("ColorText=%d\r\n"), m_clrText);	strData += strLine;
-	strLine.Format(_T("UseDefaultFont=%d\r\n"), m_bUseDefaultFont);	strData += strLine;
-	strLine.Format(_T("UseBoldFont=%d\r\n"), m_bBold);	strData += strLine;
-	strLine.Format(_T("FontSize=%d\r\n"), m_nFontSize);	strData += strLine;
-	strLine.Format(_T("IconType=%d\r\n"), m_nIconType);	strData += strLine;
-
+	strLine.Format(_T("DefaultViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"), 
+		m_DefaultViewOption.clrText, m_DefaultViewOption.clrBk,
+		m_DefaultViewOption.nIconType,
+		m_DefaultViewOption.nFontSize, m_DefaultViewOption.bBold,
+		m_DefaultViewOption.bUseDefaultColor, m_DefaultViewOption.bUseDefaultFont); strData += strLine;
+	for (int i = 0; i < m_aTabViewOption.GetSize(); i++)
+	{
+		TabViewOption& tvo = m_aTabViewOption.GetAt(i);
+		strLine.Format(_T("TabViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"),
+			tvo.clrText, tvo.clrBk,	tvo.nIconType, tvo.nFontSize, tvo.bBold,
+			tvo.bUseDefaultColor, tvo.bUseDefaultFont); 
+		strData += strLine;
+	}
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab1_Path=%s\r\n"), m_aTab1[i].strPath);	strData += strLine;
@@ -161,11 +171,45 @@ void CFileOfficerApp::INISave(CString strFile)
 	WriteCStringToFile(strFile, strData);
 }
 
+static CRect ConvertString2Rect(CString& str)
+{
+	CRect rc;
+	CString strValue;
+	int i = 0, nVal = 0;
+	while (AfxExtractSubString(strValue, str, i, L','))
+	{
+		nVal = _ttoi(strValue);
+		if (i == 0) rc.left = nVal;
+		else if (i == 1) rc.top = nVal;
+		else if (i == 2) rc.right = nVal;
+		else if (i == 3) rc.bottom = nVal;
+		i++;
+	}
+	return rc;
+}
+
+static void ConvertString2ViewOption(CString& str, TabViewOption& tvo)
+{
+	CString strValue;
+	int i = 0, nVal = 0;
+	while (AfxExtractSubString(strValue, str, i, L','))
+	{
+		nVal = _ttoi(strValue);
+		if (i == 0) tvo.clrText = nVal;
+		else if (i == 1) tvo.clrBk = nVal;
+		else if (i == 2) tvo.nIconType = nVal;
+		else if (i == 3) tvo.nFontSize = nVal;
+		else if (i == 4) tvo.bBold = nVal;
+		else if (i == 5) tvo.bUseDefaultColor = nVal;
+		else if (i == 6) tvo.bUseDefaultFont = nVal;
+		i++;
+	}
+}
 
 void CFileOfficerApp::INILoad(CString strFile)
 {
 	CString strData, strLine, str1, str2, strTemp;
-	//m_aTabInfo.RemoveAll();
+	m_aTabViewOption.RemoveAll();
 	ReadFileToCString(strFile, strData);
 	int nPos = 0;
 	int nTabCount = -1;
@@ -173,10 +217,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 	{
 		nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
 		GetToken(strLine, str1, str2, _T('='), FALSE);
-		if (str1.CompareNoCase(_T("MainRectLeft")) == 0) m_rcMain.left = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("MainRectTop")) == 0) m_rcMain.top = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("MainRectRight")) == 0) m_rcMain.right = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("MainRectBottom")) == 0) m_rcMain.bottom = _ttoi(str2);
+		if (str1.CompareNoCase(_T("RectMain")) == 0) m_rcMain = ConvertString2Rect(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);
@@ -187,23 +228,16 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount != -1) m_aTab2[nTabCount].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount != -1) m_aTab2[nTabCount].bSortAscend = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("UseDefaultColor")) == 0) m_bUseDefaultColor = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("ColorBk")) == 0) m_clrBk = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("ColorText")) == 0) m_clrText = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("UseDefaultFont")) == 0) m_bUseDefaultFont = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("UseBoldFont")) == 0) m_bBold = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("FontSize")) == 0) m_nFontSize = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("IconType")) == 0) m_nIconType = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("DefaultViewOption")) == 0)
+		{
+			ConvertString2ViewOption(str2, m_DefaultViewOption);
+		}
+		else if (str1.CompareNoCase(_T("TabViewOption")) == 0)
+		{
+			TabViewOption tvo;
+			ConvertString2ViewOption(str2, tvo);
+			m_aTabViewOption.Add(tvo);
+		}
 	}
-}
-
-COLORREF CFileOfficerApp::GetMyClrText()
-{
-	return m_bUseDefaultColor ? m_clrDefault_Text : m_clrText;
-}
-
-COLORREF CFileOfficerApp::GetMyClrBk()
-{
-	// TODO: 여기에 구현 코드 추가.
-	return m_bUseDefaultColor ? m_clrDefault_Bk : m_clrBk;
+	if (m_aTabViewOption.GetSize() < 2) m_aTabViewOption.SetSize(2);
 }

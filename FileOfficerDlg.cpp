@@ -8,7 +8,6 @@
 #include "FileOfficerDlg.h"
 #include "afxdialogex.h"
 #include "CFileListCtrl.h"
-#include "CDlgCFG_View.h"
 #include "EtcFunctions.h"
 
 #ifdef _DEBUG
@@ -24,7 +23,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_FILEOFFICER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_pWndFocus = NULL;
+	//m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
 	m_nDefault_FontSize = -1;
 }
@@ -42,6 +41,20 @@ END_MESSAGE_MAP()
 
 // CFileOfficerDlg 메시지 처리기
 
+void CFileOfficerDlg::InitDefaultListOption(CWnd* pWnd)
+{
+	CFileListCtrl* pList = (CFileListCtrl*)pWnd;
+	LOGFONT lf;
+	pList->GetFont()->GetLogFont(&lf);
+	APP()->m_fontDefault.DeleteObject();
+	APP()->m_fontDefault.CreateFontIndirect(&lf);
+	TabViewOption& tvo = APP()->m_DefaultViewOption;
+	tvo.nFontSize = MulDiv(-1 * lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
+	tvo.clrText = pList->GetTextColor();
+	tvo.clrBk = pList->GetBkColor();
+}
+
+
 BOOL CFileOfficerDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
@@ -55,6 +68,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		list.DestroyWindow();
 	}
 	//
+	m_tv1.m_nViewOptionIndex = 0;
+	m_tv2.m_nViewOptionIndex = 1;
 	m_tv1.m_aTabInfo.Copy(APP()->m_aTab1);
 	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
 	m_tv1.m_nCurrentTab = APP()->m_nCurrentTab1;
@@ -65,10 +80,6 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_tv1.ShowWindow(SW_SHOW);
 	m_tv2.ShowWindow(SW_SHOW);
-	// Init ToolBar
-	m_toolMain.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_LEFT
-		| CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC | CCS_VERT);
-	m_toolMain.LoadToolBar(IDR_TB_MAIN);
 	//Set Default Size
 	if (!m_rcMain.IsRectEmpty())
 	{
@@ -95,10 +106,7 @@ BOOL CFileOfficerDlg::OnInitDialog()
 			MoveWindow(APP()->m_rcMain, TRUE);
 		}
 	}
-	UpdateFontSize();
 	ArrangeCtrl();
-	m_tv2.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_OFF, 0);
-	m_tv1.PostMessageW(WM_COMMAND, IDM_SET_FOCUS_ON, 0);
 	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }
 	else if (APP()->m_nFocus == 2) { m_tv2.CurrentList()->SetFocus(); return FALSE; }
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
@@ -106,15 +114,9 @@ BOOL CFileOfficerDlg::OnInitDialog()
 
 void CFileOfficerDlg::ArrangeCtrl()
 {
-	CRect rcBtnMain;
-	m_toolMain.GetToolBarCtrl().GetItemRect(0, rcBtnMain);
-	int TOOLMAIN_WIDTH = rcBtnMain.Width();
 	CRect rc; 
 	GetClientRect(rc);
 	int BW = 0;
-	m_toolMain.MoveWindow(rc.right - TOOLMAIN_WIDTH, rc.top, TOOLMAIN_WIDTH, rc.Height());
-	rc.DeflateRect(0, 0, TOOLMAIN_WIDTH, 0);
-
 	if (APP()->m_nViewMode == 0)
 	{
 		m_tv1.ShowWindow(SW_SHOW);
@@ -183,7 +185,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
-	case IDM_OPEN_PARENT:
+/*	case IDM_OPEN_PARENT:
 	case IDM_REFRESH_LIST:
 	case IDM_ADD_LIST:
 	case IDM_CLOSE_LIST:
@@ -191,14 +193,12 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 		{
 			m_pWndFocus->GetParent()->PostMessage(WM_COMMAND, wParam, lParam);
 		}
-		break;
+		break;*/
 	case IDM_TOGGLE_VIEW:
 		APP()->m_nViewMode += 1;
 		if (APP()->m_nViewMode == 3) APP()->m_nViewMode = 0;
 		ArrangeCtrl();
 		break;
-	case IDM_CONFIG: ConfigViewOption(); break;
-
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
@@ -208,7 +208,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 
 BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 {
-	CWnd* pWnd = GetFocus();
+/*	CWnd* pWnd = GetFocus();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
 		if (pWnd == &m_tv1 || pWnd->GetParent() == &m_tv1)
@@ -233,7 +233,7 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 				m_tv2.RedrawWindow();
 			}
 		}
-	}
+	}*/
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
@@ -270,103 +270,4 @@ void CFileOfficerDlg::OnOK()
 {
 	//CDialogEx::OnOK();
 }
-
-
-void CFileOfficerDlg::ConfigViewOption()
-{
-	CDlgCFG_View dlg;
-	dlg.m_clrText = APP()->m_clrText;
-	dlg.m_clrBk = APP()->m_clrBk;
-	dlg.m_bUseDefaultColor = APP()->m_bUseDefaultColor;
-	dlg.m_nFontSize = APP()->m_nFontSize;
-	dlg.m_bUseDefaultFont = APP()->m_bUseDefaultFont;
-	dlg.m_nIconType = APP()->m_nIconType;
-	dlg.m_bBold = APP()->m_bBold;
-	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
-	if (dlg.DoModal() == IDOK)
-	{
-		//Color
-		if (APP()->m_bUseDefaultColor != dlg.m_bUseDefaultColor)
-		{
-			APP()->m_bUseDefaultColor = dlg.m_bUseDefaultColor;
-			if (APP()->m_bUseDefaultColor == FALSE)
-			{
-				APP()->m_clrText = dlg.m_clrText;
-				APP()->m_clrBk = dlg.m_clrBk;
-				bUpdateClrBk = TRUE;
-				bUpdateClrText = TRUE;
-			}
-		}
-		if (APP()->m_clrBk != dlg.m_clrBk)
-		{
-			APP()->m_clrBk = dlg.m_clrBk;
-			if (APP()->m_bUseDefaultColor == FALSE) bUpdateClrBk = TRUE;
-		}
-		if (APP()->m_clrText != dlg.m_clrText)
-		{
-			APP()->m_clrText = dlg.m_clrText;
-			if (APP()->m_bUseDefaultColor == FALSE) bUpdateClrText = TRUE;
-		}
-		m_tv1.SetListColor(APP()->GetMyClrBk(), APP()->GetMyClrText(), bUpdateClrBk, bUpdateClrText);
-		m_tv2.SetListColor(APP()->GetMyClrBk(), APP()->GetMyClrText(), bUpdateClrBk, bUpdateClrText);
-		//Font
-		if (APP()->m_nFontSize != dlg.m_nFontSize || APP()->m_bBold != dlg.m_bBold)
-		{
-			APP()->m_nFontSize = dlg.m_nFontSize;
-			APP()->m_bBold = dlg.m_bBold;
-			if (APP()->m_bUseDefaultFont == FALSE)
-			{
-				UpdateFontSize();
-			}
-		}
-		if (APP()->m_bUseDefaultFont != dlg.m_bUseDefaultFont)
-		{
-			APP()->m_bUseDefaultFont = dlg.m_bUseDefaultFont;
-			APP()->m_bBold = dlg.m_bBold;
-			{
-				UpdateFontSize();
-			}
-		}
-		if (APP()->m_nIconType != dlg.m_nIconType)
-		{
-			APP()->LoadImageList(dlg.m_nIconType);
-			m_tv1.UpdateImageList();
-			m_tv2.UpdateImageList();
-		}
-		RedrawWindow(NULL,NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
-		m_tv1.SetSelected(m_tv1.m_bSelected);
-		m_tv2.SetSelected(m_tv2.m_bSelected);
-		//m_toolMain.RedrawWindow();
-	}
-}
-
-void CFileOfficerDlg::InitDefaultListOption(CWnd* pWnd)
-{
-	CFileListCtrl* pList = (CFileListCtrl*)pWnd;
-	LOGFONT lf;
-	pList->GetFont()->GetLogFont(&lf);
-	m_font.DeleteObject();
-	m_font.CreateFontIndirect(&lf);
-	m_nDefault_FontSize = MulDiv(-1 * lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
-	APP()->m_clrDefault_Bk = pList->GetBkColor();
-	APP()->m_clrDefault_Text = pList->GetTextColor();
-	APP()->m_lfHeight = abs(lf.lfHeight);
-}
-
-void CFileOfficerDlg::UpdateFontSize()
-{
-	int nFontSize = APP()->m_nFontSize;
-	if (APP()->m_bUseDefaultFont == TRUE) nFontSize = m_nDefault_FontSize;
-	LOGFONT lf;
-	m_font.GetLogFont(&lf);
-	lf.lfHeight = -1 * MulDiv(nFontSize, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY), 72);
-	APP()->m_lfHeight = abs(lf.lfHeight);
-	if (APP()->m_bBold == TRUE) lf.lfWeight = FW_BOLD;
-	else lf.lfWeight = FW_NORMAL;
-	m_font.DeleteObject();
-	m_font.CreateFontIndirect(&lf); //자동 소멸되지 않도록 멤버 변수 사용
-	m_tv1.UpdateFont(&m_font);
-	m_tv2.UpdateFont(&m_font);
-}
-
 

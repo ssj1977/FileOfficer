@@ -2,8 +2,6 @@
 #include <afxlistctrl.h>
 #include "CMyDropTarget.h"
 
-#define IDM_SET_FOCUS_ON 50010
-#define IDM_SET_FOCUS_OFF 50011
 class CDirectoryChangeWatcher;
 class CFileListCtrl;
 
@@ -88,8 +86,6 @@ public:
 	afx_msg void OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
-	afx_msg void OnSetFocus(CWnd* pOldWnd);
-	afx_msg void OnKillFocus(CWnd* pNewWnd);
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 	afx_msg void OnDestroy();
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);

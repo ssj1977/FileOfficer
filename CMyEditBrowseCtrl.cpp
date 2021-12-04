@@ -26,3 +26,8 @@ HBRUSH CMyEditBrowseCtrl::CtlColor(CDC* pDC, UINT)
     pDC->SetTextColor(m_clrText);
     return m_brush;
 }
+
+void CMyEditBrowseCtrl::OnAfterUpdate()
+{
+    GetParent()->PostMessageW(WM_COMMAND, CMD_UpdateList, 0);
+}

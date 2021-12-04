@@ -29,7 +29,6 @@ public:
 	BOOL m_bUseDefaultFont;
 	int m_nIconType;
 	void UpdateControl();
-
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();

@@ -38,6 +38,42 @@ struct PathTabInfo
 typedef CArray<PathTabInfo> PathTabInfoArray;
 #endif 
 
+#ifndef TabViewOption
+struct TabViewOption
+{
+	COLORREF clrText;
+	COLORREF clrBk;
+	int nFontSize;
+	int nIconType;
+	BOOL bBold;
+	BOOL bUseDefaultColor;
+	BOOL bUseDefaultFont;
+	TabViewOption()
+	{
+		clrText = RGB(0,0,0);
+		clrBk = RGB(255, 255, 255);
+		nFontSize = 11;
+		nIconType = SHIL_SMALL;
+		bBold = FALSE;
+		bUseDefaultColor = TRUE;
+		bUseDefaultFont = TRUE;
+	};
+	TabViewOption(COLORREF clrText, COLORREF clrBk, int nIconType, int nFontSize, BOOL bBold)
+	{
+		SetTabViewOption(clrText, clrBk, nIconType, nFontSize, bBold);
+	};
+	void SetTabViewOption(COLORREF clrText, COLORREF clrBk, int nIconType, int nFontSize, BOOL bBold)
+	{
+		this->clrText = clrText;
+		this->clrBk = clrBk;
+		this->nIconType = nIconType;
+		this->nFontSize = nFontSize;
+		this->bBold = bBold;
+	};
+};
+typedef CArray<TabViewOption> TabViewOptionArray;
+#endif
+
 
 // CFileOfficerApp:
 // 이 클래스의 구현에 대해서는 FileOfficer.cpp을(를) 참조하세요.
@@ -50,21 +86,19 @@ public:
 	int m_nSortCol_Default;
 	int m_bSortAscend_Default;
 	CString m_strPath_Default;
-	int m_lfHeight;
-	BOOL m_bBold;
-	COLORREF m_clrDefault_Bk;
-	COLORREF m_clrDefault_Text;
-	int m_nIconType;
-	COLORREF m_clrText;
-	COLORREF m_clrBk;
-	BOOL m_bUseDefaultColor;
-	int m_nFontSize;
-	BOOL m_bUseDefaultFont;
-	HIMAGELIST* m_pSysImgList;
+	CFont m_fontDefault;
+	TabViewOption m_DefaultViewOption;
+	TabViewOptionArray m_aTabViewOption;
+
 	HICON m_hIcon;
 	CRect m_rcMain;
 	CString m_strINIPath;
-	void LoadImageList(int nIconType);
+	HIMAGELIST* GetImageListByType(int nIconType);
+	HIMAGELIST* m_pSysImgList_SMALL;
+	HIMAGELIST* m_pSysImgList_LARGE;
+	HIMAGELIST* m_pSysImgList_EXTRALARGE;
+	HIMAGELIST* m_pSysImgList_JUMBO;
+
 	PathTabInfoArray m_aTab1;
 	PathTabInfoArray m_aTab2;
 	int m_nCurrentTab1, m_nCurrentTab2, m_nFocus;
@@ -72,8 +106,6 @@ public:
 public:
 	void INISave(CString strFile);
 	void INILoad(CString strFile);
-	COLORREF GetMyClrText();
-	COLORREF GetMyClrBk();
 	DECLARE_MESSAGE_MAP()
 	virtual BOOL InitInstance();
 	virtual int ExitInstance();
