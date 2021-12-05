@@ -47,7 +47,26 @@ END_MESSAGE_MAP()
 
 
 // CDlgTabView 메시지 처리기
-
+BOOL CDlgTabView::BreakThreads()
+{
+	BOOL bRet = FALSE;
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;;
+			if (IsWindow(pList->GetSafeHwnd()))
+			{
+				if (CFileListCtrl::IsLoading(pList) == TRUE)
+				{
+					CFileListCtrl::SetLoadingStatus(pList, FALSE);
+					bRet = TRUE;
+				}
+			}
+		}
+	}
+	return bRet;
+}
 
 void CDlgTabView::Clear()
 {
@@ -57,7 +76,11 @@ void CDlgTabView::Clear()
 		if (m_aTabInfo[i].pWnd != NULL)
 		{
 			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;;
-			if (IsWindow(pList->GetSafeHwnd())) pList->DestroyWindow();
+			if (IsWindow(pList->GetSafeHwnd()))
+			{
+				pList->ClearThread();
+				pList->DestroyWindow();
+			}
 			delete pList;
 		}
 	}
@@ -170,6 +193,7 @@ void CDlgTabView::CloseFileListTab(int nTab)
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	//if (pList->m_bLoading == TRUE) return;
 	pList->DestroyWindow();
+	CFileListCtrl::DeleteLoadingStatus(pList);
 	delete pList;
 	m_aTabInfo.RemoveAt(nTab);
 	m_tabPath.DeleteItem(nTab);
@@ -233,6 +257,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	m_tabPath.SetCurSel(nTab);
 	pList->SetFocus();
 	m_editPath.SetWindowText(pti.strPath);
+	SetDlgItemText(IDC_ST_BAR, pList->m_strBarMsg);
 	ArrangeCtrl();
 }
 
@@ -360,47 +385,6 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
-
-
-COLORREF GetDimColor(COLORREF clr)
-{
-	COLORREF clrDim = clr;
-	BYTE R = (BYTE)(clr);
-	BYTE G = (BYTE)(((WORD)(clr)) >> 8);
-	BYTE B = (BYTE)((clr) >> 16);
-	if (R > 100) R = int((float)R * 0.7);
-	else R = R + 50;
-	if (G > 100) G = int((float)G * 0.7);
-	else G = G + 50;
-	if (B > 100) B = int((float)B * 0.7);
-	else B = B + 50;
-
-	return RGB(R, G, B);
-}
-/*void CDlgTabView::SetSelected(BOOL bSelected)
-{
-	m_bSelected = bSelected;
-	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-	if (bSelected)
-	{
-		m_editPath.SetBkColor(APP()->GetMyClrBk());
-		m_editPath.SetTextColor(APP()->GetMyClrText());
-		pList->SetBkColor(APP()->GetMyClrBk());
-		pList->SetTextColor(APP()->GetMyClrText());
-		pList->RedrawWindow();
-	}
-	else
-	{
-		COLORREF clrBk2 = GetDimColor(APP()->GetMyClrBk());
-		COLORREF clrText2 = GetDimColor(APP()->GetMyClrText());
-		m_editPath.SetBkColor(clrBk2);
-		m_editPath.SetTextColor(clrText2);
-		pList->SetBkColor(clrBk2);
-		pList->SetTextColor(clrText2);
-		pList->RedrawWindow();
-	}
-	m_editPath.RedrawWindow();
-}*/
 
 
 void CDlgTabView::OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult)

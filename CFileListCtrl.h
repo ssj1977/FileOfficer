@@ -2,6 +2,10 @@
 #include <afxlistctrl.h>
 #include "CMyDropTarget.h"
 
+//using namespace std;
+//#include <set>
+//typedef set<CString> CPathSet; //중복이름 체크용 맵 해당하는 이미지맵의 번호를 기억
+
 class CDirectoryChangeWatcher;
 class CFileListCtrl;
 
@@ -54,8 +58,8 @@ public:
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
 	CString m_strBarMsg;
+	//CPathSet m_setPath;
 	BOOL m_bAsc;
-	BOOL m_bLoading;
 	int m_nSortCol;
 	int m_nType;
 	int m_nIconType;
@@ -69,6 +73,10 @@ public:
 	void DeleteSelected(BOOL bRecycle);
 	BOOL RenameSelectedItem();
 	static UINT DisplayFolder_Thread(void* lParam);
+	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
+	static BOOL IsLoading(CFileListCtrl* pList);
+	static void DeleteLoadingStatus(CFileListCtrl* pList);
+
 	void ClearThread();
 	HANDLE m_hThreadLoad;
 	CDirectoryChangeWatcher m_DirWatcher;

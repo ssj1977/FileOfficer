@@ -260,6 +260,14 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_nCurrentTab2 = m_tv2.m_nCurrentTab;
 	APP()->m_aTab1.Copy(m_tv1.m_aTabInfo);
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
+	if (m_tv1.BreakThreads() == TRUE)
+	{
+		Sleep(500);
+	}
+	if (m_tv2.BreakThreads() == TRUE)
+	{
+		Sleep(500);
+	}
 	m_tv1.Clear();
 	m_tv2.Clear();
 	CDialogEx::OnCancel();

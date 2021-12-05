@@ -197,6 +197,44 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_COMP_PATH 1
 #define COL_COMP_SIZE 2
 
+typedef std::map<CFileListCtrl*, BOOL> CLoadingMap;
+static CLoadingMap st_mapLoading;
+
+void CFileListCtrl::SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading)
+{
+	CLoadingMap::iterator it = st_mapLoading.find(pList);
+	if (it == st_mapLoading.end())
+	{
+		st_mapLoading.insert(CLoadingMap::value_type(pList, bLoading));
+	}
+	else
+	{
+		st_mapLoading.at(pList) = bLoading;
+	}
+}
+
+BOOL CFileListCtrl::IsLoading(CFileListCtrl* pList)
+{
+	CLoadingMap::iterator it = st_mapLoading.find(pList);
+	if (it == st_mapLoading.end())
+	{
+		return FALSE;
+	}
+	else
+	{
+		return (*it).second;
+	}
+}
+
+void CFileListCtrl::DeleteLoadingStatus(CFileListCtrl* pList)
+{
+	CLoadingMap::iterator it = st_mapLoading.find(pList);
+	if (it != st_mapLoading.end())
+	{
+		st_mapLoading.erase(pList);
+	}
+}
+
 CFileListCtrl::CFileListCtrl()
 : m_DirHandler(this) , m_DirWatcher(true)
 {
@@ -208,7 +246,6 @@ CFileListCtrl::CFileListCtrl()
 	CMD_OpenNewTab = 0;
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
-	m_bLoading = FALSE;
 	m_nIconType = SHIL_SMALL;
 	m_hThreadLoad = NULL;
 }
@@ -216,7 +253,6 @@ CFileListCtrl::CFileListCtrl()
 CFileListCtrl::~CFileListCtrl()
 {
 }
-
 
 static int CMD_DirWatch = IDM_START_DIRWATCH;
 
@@ -424,7 +460,7 @@ ULONGLONG Str2Size(CString str)
 
 void CFileListCtrl::DisplayFolder_Start(CString strFolder)
 {
-	if (m_bLoading == TRUE) return;
+	if (IsLoading(this) == TRUE) return;
 	if (::IsWindow(m_hWnd) == FALSE) return;
 	ClearThread();
 	m_strFolder = strFolder;
@@ -438,15 +474,58 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
 	//APP()->UpdateThreadLocale();
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	pList->m_bLoading = TRUE;
+	SetLoadingStatus(pList, TRUE);
 	ResetEvent(pList->m_hThreadLoad);
-	pList->SetBarMsg(_T("Thread Working..."));
+	pList->SetBarMsg(_T("Now Loading..."));
 	pList->DisplayFolder(pList->m_strFolder);
-	pList->m_bLoading = FALSE;
+	if (IsLoading(pList) == TRUE)
+	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우
+		SetLoadingStatus(pList, FALSE);
+		pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
+	}
 	SetEvent(pList->m_hThreadLoad);
-	pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 	return 0;
 }
+
+COLORREF GetDimColor(COLORREF clr)
+{
+	COLORREF clrDim = clr;
+	BYTE R = (BYTE)(clr);
+	BYTE G = (BYTE)(((WORD)(clr)) >> 8);
+	BYTE B = (BYTE)((clr) >> 16);
+	if (R > 100) R = int((float)R * 0.7);
+	else R = R + 50;
+	if (G > 100) G = int((float)G * 0.7);
+	else G = G + 50;
+	if (B > 100) B = int((float)B * 0.7);
+	else B = B + 50;
+
+	return RGB(R, G, B);
+}
+/*void CDlgTabView::SetSelected(BOOL bSelected)
+{
+	m_bSelected = bSelected;
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	if (bSelected)
+	{
+		m_editPath.SetBkColor(APP()->GetMyClrBk());
+		m_editPath.SetTextColor(APP()->GetMyClrText());
+		pList->SetBkColor(APP()->GetMyClrBk());
+		pList->SetTextColor(APP()->GetMyClrText());
+		pList->RedrawWindow();
+	}
+	else
+	{
+		COLORREF clrBk2 = GetDimColor(APP()->GetMyClrBk());
+		COLORREF clrText2 = GetDimColor(APP()->GetMyClrText());
+		m_editPath.SetBkColor(clrBk2);
+		m_editPath.SetTextColor(clrText2);
+		pList->SetBkColor(clrBk2);
+		pList->SetTextColor(clrText2);
+		pList->RedrawWindow();
+	}
+	m_editPath.RedrawWindow();
+}*/
 
 void CFileListCtrl::DisplayFolder(CString strFolder)
 {
@@ -455,6 +534,14 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 
 	CPath path = CPath(strFolder);
 	DeleteAllItems();
+	//m_setPath.clear();
+	COLORREF clrBk = GetBkColor();
+	COLORREF clrText = GetTextColor();
+	COLORREF clrBk2 = GetDimColor(clrBk);
+	COLORREF clrText2 = GetDimColor(clrText);
+	SetBkColor(clrBk2);
+	SetTextColor(clrText2);
+	RedrawWindow();
 	if (strFolder.IsEmpty())
 	{
 		InitColumns(LIST_TYPE_DRIVE);
@@ -543,12 +630,15 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 				GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 		}
 		AddItemByPath(strFind);
-		Sort(m_nSortCol, m_bAsc);
+		if (IsLoading(this) == TRUE) Sort(m_nSortCol, m_bAsc);
 	}
 	endTime = clock();
 	CString strTemp;
-	strTemp.Format(_T("Loading Time : %d"), endTime - startTime);
+	strTemp.Format(_T("%d Item(s) / Loading Time : %d"), GetItemCount(), endTime - startTime);
 	SetBarMsg(strTemp);
+	SetBkColor(clrBk);
+	SetTextColor(clrText);
+	RedrawWindow();
 }
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
@@ -780,6 +870,10 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
 	CString strDir = Get_Folder(strPath);
 	while (b)
 	{
+		if (IsLoading(this) == FALSE)
+		{
+			break;
+		}
 		itemData = ITEM_TYPE_FILE;
 		nLen = _tcsclen(fd.cFileName);
 		if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
@@ -805,13 +899,20 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
 			BOOL bExist = FALSE;
 			if (bCheckExist == TRUE)
 			{
-				for (int i = 0; i < GetItemCount(); i++)
+				//CPathSet::iterator it = m_setPath.find(fd.cFileName);
+				//if (it == m_setPath.end()) m_setPath.insert(fd.cFileName);
+				//else bExist = TRUE; // Set을 이용해도 7000개 수준에서도 속도에 큰 차이가 없음
+
+				if (bExist == TRUE) // 존재하는 경우 인덱스 찾기
 				{
-					if (GetItemText(i, 0).CompareNoCase(fd.cFileName) == 0)
+					for (int i = 0; i < GetItemCount(); i++)
 					{
-						bExist = TRUE; 
-						nItem = i;
-						break;
+						if (GetItemText(i, 0).CompareNoCase(fd.cFileName) == 0)
+						{
+							bExist = TRUE;
+							nItem = i;
+							break;
+						}
 					}
 				}
 			}
@@ -872,6 +973,7 @@ BOOL CFileListCtrl::DeleteInvalidItem(int nItem)
 	if (IsItemExist(nItem) == FALSE)
 	{
 		bDeleted = DeleteItem(nItem);
+		//if (bDeleted == TRUE) m_setPath.erase(GetItemText(nItem, COL_NAME));
 	}
 	return bDeleted;
 }
@@ -883,7 +985,11 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 	{
 		if (strPath.CompareNoCase(GetItemFullPath(i)) == 0)
 		{
-			if (PathFileExists(strPath) == FALSE) DeleteItem(i);
+			if (PathFileExists(strPath) == FALSE)
+			{
+				DeleteItem(i);
+				//m_setPath.erase(GetItemText(i, COL_NAME));
+			}
 			return;
 		}
 	}
@@ -1201,13 +1307,13 @@ void CFileListCtrl::ClearThread()
 		m_DirWatcher.UnwatchAllDirectories();
 		//if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
 	}
-	if (m_bLoading)
+	if (IsLoading(this) == TRUE)
 	{
-		m_bLoading = FALSE;
+		SetLoadingStatus(this, FALSE);
 		DWORD ret = WaitForSingleObject(m_hThreadLoad, 10000);
 		if (ret != WAIT_OBJECT_0)
 		{
-			AfxMessageBox(L"Error:Loading Thread not Clear");
+			AfxMessageBox(L"Error:Loading thread is not cleared properly");
 		}
 	}
 }
@@ -1215,6 +1321,7 @@ void CFileListCtrl::ClearThread()
 void CFileListCtrl::OnDestroy()
 { 
 	ClearThread();
+	//m_setPath.clear();
 	CMFCListCtrl::OnDestroy();
 }
 
