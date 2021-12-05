@@ -248,6 +248,8 @@ CFileListCtrl::CFileListCtrl()
 	m_nSortCol = 0 ;
 	m_nIconType = SHIL_SMALL;
 	m_hThreadLoad = NULL;
+	m_posPathHistory = NULL;
+	m_bUpdatePathHistory = TRUE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -458,12 +460,13 @@ ULONGLONG Str2Size(CString str)
 	return size;
 }
 
-void CFileListCtrl::DisplayFolder_Start(CString strFolder)
+void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory)
 {
 	if (IsLoading(this) == TRUE) return;
 	if (::IsWindow(m_hWnd) == FALSE) return;
 	ClearThread();
 	m_strFolder = strFolder;
+	m_bUpdatePathHistory = bUpdatePathHistory;
 	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 	AfxBeginThread(DisplayFolder_Thread, this);
@@ -477,7 +480,7 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	SetLoadingStatus(pList, TRUE);
 	ResetEvent(pList->m_hThreadLoad);
 	pList->SetBarMsg(_T("Now Loading..."));
-	pList->DisplayFolder(pList->m_strFolder);
+	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
 	if (IsLoading(pList) == TRUE)
 	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우
 		SetLoadingStatus(pList, FALSE);
@@ -499,39 +502,13 @@ COLORREF GetDimColor(COLORREF clr)
 	else G = G + 50;
 	if (B > 100) B = int((float)B * 0.7);
 	else B = B + 50;
-
 	return RGB(R, G, B);
 }
-/*void CDlgTabView::SetSelected(BOOL bSelected)
-{
-	m_bSelected = bSelected;
-	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-	if (bSelected)
-	{
-		m_editPath.SetBkColor(APP()->GetMyClrBk());
-		m_editPath.SetTextColor(APP()->GetMyClrText());
-		pList->SetBkColor(APP()->GetMyClrBk());
-		pList->SetTextColor(APP()->GetMyClrText());
-		pList->RedrawWindow();
-	}
-	else
-	{
-		COLORREF clrBk2 = GetDimColor(APP()->GetMyClrBk());
-		COLORREF clrText2 = GetDimColor(APP()->GetMyClrText());
-		m_editPath.SetBkColor(clrBk2);
-		m_editPath.SetTextColor(clrText2);
-		pList->SetBkColor(clrBk2);
-		pList->SetTextColor(clrText2);
-		pList->RedrawWindow();
-	}
-	m_editPath.RedrawWindow();
-}*/
 
-void CFileListCtrl::DisplayFolder(CString strFolder)
+void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 {
 	clock_t startTime, endTime;
 	startTime = clock();
-
 	CPath path = CPath(strFolder);
 	DeleteAllItems();
 	//m_setPath.clear();
@@ -542,6 +519,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 	SetBkColor(clrBk2);
 	SetTextColor(clrText2);
 	RedrawWindow();
+	if (bUpdatePathHistory) AddPathHistory(strFolder);
 	if (strFolder.IsEmpty())
 	{
 		InitColumns(LIST_TYPE_DRIVE);
@@ -623,6 +601,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder)
 		else
 		{
 			strFind = strFolder;
+			CString strPrevFind = m_strFolder + (m_strFilterInclude.IsEmpty() ? m_strFilterExclude : m_strFilterInclude);
 			m_strFolder = Get_Folder(strFolder, TRUE);
 			m_strFilterInclude = Get_Name(strFolder);
 			m_strFilterExclude = L"";
@@ -713,6 +692,19 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			WatchCurrentDirectory(TRUE);
 			return TRUE;
 		}
+	}
+	if (pMsg->message == WM_XBUTTONUP)
+	{
+		WORD w = HIWORD(pMsg->wParam);
+		if (w == XBUTTON2) //Back
+		{
+			BrowsePathHistory(TRUE);
+		}
+		else if (w == XBUTTON1) //Forward
+		{
+			BrowsePathHistory(FALSE);
+		}
+		return TRUE;
 	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
 }
@@ -1329,4 +1321,50 @@ void CFileListCtrl::OnDestroy()
 void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
 {
 	ShowContextMenu(point);
+}
+
+
+void CFileListCtrl::BrowsePathHistory(BOOL bPrevious)
+{
+	if (m_posPathHistory == NULL || m_aPathHistory.GetSize() < 2) return;
+	if (bPrevious == TRUE && m_posPathHistory != m_aPathHistory.GetHeadPosition())
+	{
+		m_aPathHistory.GetPrev(m_posPathHistory);
+		CString strFolder =m_aPathHistory.GetAt(m_posPathHistory);
+		DisplayFolder_Start(strFolder, FALSE);
+	}
+	else if (bPrevious == FALSE && m_posPathHistory != m_aPathHistory.GetTailPosition())
+	{
+		m_aPathHistory.GetNext(m_posPathHistory);
+		CString strFolder = m_aPathHistory.GetAt(m_posPathHistory);
+		DisplayFolder_Start(strFolder, FALSE);
+	}
+}
+
+void CFileListCtrl::AddPathHistory(CString strPath)
+{
+	if (m_aPathHistory.GetSize() > 0)
+	{
+		while (m_posPathHistory != m_aPathHistory.GetTailPosition())
+		{
+			m_aPathHistory.RemoveTail();
+			if (m_aPathHistory.GetTailPosition() == NULL) break;
+		}
+	}
+	m_posPathHistory = m_aPathHistory.AddTail(strPath);
+}
+
+BOOL CFileListCtrl::IsFirstPath()
+{
+	return m_posPathHistory == m_aPathHistory.GetHeadPosition();
+}
+
+BOOL CFileListCtrl::IsLastPath()
+{
+	return m_posPathHistory == m_aPathHistory.GetTailPosition();
+}
+
+BOOL CFileListCtrl::IsRootPath()
+{
+	return m_strFolder.IsEmpty();
 }

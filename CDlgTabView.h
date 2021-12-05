@@ -42,6 +42,7 @@ public:
 	void InitToolBar();
 	void UpdateChildFont();
 	void ConfigViewOption();
+	void UpdateToolBar();
 
 
 #ifdef AFX_DESIGN_TIME

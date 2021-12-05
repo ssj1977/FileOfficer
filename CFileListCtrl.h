@@ -40,8 +40,8 @@ public:
 	void SetBarMsg(CString strMsg);
 	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE);
 	void UpdateItemByPath(CString strOldPath, CString strNewPath);
-	void DisplayFolder(CString strFolder);
-	void DisplayFolder_Start(CString strFolder);
+	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
+	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void InitColumns(int nType);
 	void ShowContextMenu(CPoint pt);
 	CString GetItemFullPath(int nItem);
@@ -58,6 +58,14 @@ public:
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
 	CString m_strBarMsg;
+	CList<CString> m_aPathHistory;
+	POSITION m_posPathHistory;
+	BOOL m_bUpdatePathHistory;
+	void BrowsePathHistory(BOOL bPrevious);
+	void AddPathHistory(CString strPath);
+	BOOL IsFirstPath();
+	BOOL IsLastPath();
+	BOOL IsRootPath();
 	//CPathSet m_setPath;
 	BOOL m_bAsc;
 	int m_nSortCol;

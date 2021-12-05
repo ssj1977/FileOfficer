@@ -12,6 +12,7 @@
 #define IDS_TB_04                       24
 #define IDS_TB_05                       25
 #define IDS_TB_06                       26
+#define IDS_TB_07                       27
 #define IDS_MSG_INVALIDFONTSIZE         56
 #define IDS_ICON_LARGE                  57
 #define IDS_ICON_SMALL                  58
@@ -47,13 +48,15 @@
 #define IDM_SET_PATH                    32777
 #define IDM_REFRESH_LIST                32779
 #define IDM_TOGGLE_VIEW                 32780
+#define IDM_OPEN_PREV                   32784
+#define IDM_OPEN_NEXT                   32785
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        145
-#define _APS_NEXT_COMMAND_VALUE         32784
+#define _APS_NEXT_COMMAND_VALUE         32788
 #define _APS_NEXT_CONTROL_VALUE         1015
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -107,19 +107,22 @@ BOOL CFileOfficerApp::InitInstance()
 
 HIMAGELIST* CFileOfficerApp::GetImageListByType(int nIconType)
 {
-	HIMAGELIST*& pRet = m_pSysImgList_SMALL;
 	switch (nIconType)
 	{
-	//case SHIL_SMALL:		pRet = m_pSysImgList_SMALL;			break;
-	case SHIL_LARGE:		pRet = m_pSysImgList_LARGE;			break;
-	case SHIL_EXTRALARGE:	pRet = m_pSysImgList_EXTRALARGE;	break;
-	case SHIL_JUMBO:		pRet = m_pSysImgList_JUMBO;			break;
+	case SHIL_SMALL:		
+		if (m_pSysImgList_SMALL == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_SMALL);
+		return m_pSysImgList_SMALL;
+	case SHIL_LARGE:
+		if (m_pSysImgList_LARGE == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_LARGE);
+		return m_pSysImgList_LARGE;
+	case SHIL_EXTRALARGE:
+		if (m_pSysImgList_EXTRALARGE == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_EXTRALARGE);
+		return m_pSysImgList_EXTRALARGE;
+	case SHIL_JUMBO:
+		if (m_pSysImgList_JUMBO == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_JUMBO);
+		return m_pSysImgList_JUMBO;
 	}
-	if (pRet == NULL)
-	{
-		SHGetImageList(nIconType, IID_IImageList, (void**)&pRet);
-	}
-	return pRet;
+	return NULL;
 }
 
 

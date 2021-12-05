@@ -91,6 +91,8 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
+	case IDM_OPEN_PREV: ((CFileListCtrl*)CurrentList())->BrowsePathHistory(TRUE); break;
+	case IDM_OPEN_NEXT:((CFileListCtrl*)CurrentList())->BrowsePathHistory(FALSE); break;
 	case IDM_PLAY_ITEM: ((CFileListCtrl*)CurrentList())->OpenSelectedItem(); break;
 	case IDM_OPEN_PARENT: ((CFileListCtrl*)CurrentList())->OpenParentFolder(); break;
 	case IDM_OPEN_NEWTAB: 
@@ -118,6 +120,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
+	UpdateToolBar();
 	return TRUE;
 }
 
@@ -352,7 +355,7 @@ void CDlgTabView::ArrangeCtrl()
 	int nBtnW = (LOWORD(btnsize) + nHP);
 	int nBtnH = (HIWORD(btnsize) + nVP);
 	int nBtnLineCount = TW / nBtnW; if (nBtnLineCount == 0) nBtnLineCount = 1;
-	int nBtnTotalCount = m_tool.GetToolBarCtrl().GetButtonCount() / 2 -1; 
+	int nBtnTotalCount = m_tool.GetToolBarCtrl().GetButtonCount() / 2; 
 	int nRow = (nBtnTotalCount / nBtnLineCount) + 1;
 	int nH = nBtnH * nRow;
 	m_tool.MoveWindow(rc.left, rc.top, TW, nH);
@@ -495,9 +498,9 @@ void CDlgTabView::ConfigViewOption()
 			{
 				tvo.clrText = dlg.m_clrText;
 				tvo.clrBk = dlg.m_clrBk;
-				bUpdateClrBk = TRUE;
-				bUpdateClrText = TRUE;
 			}
+			bUpdateClrBk = TRUE;
+			bUpdateClrText = TRUE;
 		}
 		if (tvo.clrBk != dlg.m_clrBk)
 		{
@@ -573,4 +576,12 @@ void CDlgTabView::UpdateChildFont()
 			pList->SetFont(&m_font);
 		}
 	}
+}
+
+void CDlgTabView::UpdateToolBar()
+{
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, !(pList->IsFirstPath()));
+	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, !(pList->IsLastPath()));
+	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, !(pList->IsRootPath()));
 }
