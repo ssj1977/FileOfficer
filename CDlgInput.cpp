@@ -16,6 +16,7 @@ CDlgInput::CDlgInput(CWnd* pParent /*=nullptr*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	m_nBH = 30;
+	m_nMode = INPUT_MODE_FILENAME;
 }
 
 CDlgInput::~CDlgInput()
@@ -47,7 +48,16 @@ BOOL CDlgInput::OnInitDialog()
 	m_nBH = abs(lf.lfHeight) * 2;
 	SetWindowText(m_strTitle);
 	m_editInput.SetWindowText(m_strInput);
+
 	ArrangeCtrl();
+	if (m_nMode == INPUT_MODE_FILENAME)
+	{
+		int nPos = m_strInput.ReverseFind(L'.');
+		if (nPos > 0)	m_editInput.SetSel(0, nPos);
+		else 			m_editInput.SetSel(0, -1);
+		m_editInput.SetFocus();
+		return FALSE;
+	}
 	return TRUE; 
 }
 
@@ -64,11 +74,13 @@ void CDlgInput::ArrangeCtrl()
 	if (IsWindow(m_editInput.GetSafeHwnd()) == FALSE) return;
 	CRect rc;
 	GetClientRect(rc);
-	m_editInput.MoveWindow(0, 0, rc.Width(), rc.Height() - m_nBH);
+	rc.DeflateRect(5, 5, 5, 5);
+	m_editInput.MoveWindow(rc.left, rc.top, rc.Width(), rc.Height() - m_nBH - 3);
 	int nBW = rc.Width() / 2;
-	rc.top = rc.Height() - m_nBH;
-	GetDlgItem(IDOK)->MoveWindow(0, rc.top, nBW, m_nBH);
-	GetDlgItem(IDCANCEL)->MoveWindow(nBW, rc.top, nBW, m_nBH);
+	rc.top = rc.bottom - m_nBH;
+	GetDlgItem(IDOK)->MoveWindow(rc.left, rc.top, nBW, m_nBH);
+	rc.left += nBW+1;
+	GetDlgItem(IDCANCEL)->MoveWindow(rc.left, rc.top, rc.Width(), m_nBH);
 }
 
 

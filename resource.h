@@ -25,6 +25,7 @@
 #define IDD_CFG_VIEW                    138
 #define IDB_TABICON                     142
 #define IDD_INPUT                       143
+#define IDD_CFG_LAYOUT                  145
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -39,6 +40,16 @@
 #define IDC_ST_COLOR_TEXT               1012
 #define IDC_ST_FONTSIZE                 1013
 #define IDC_CHK_BOLD                    1014
+#define IDC_RADIO_LAYOUT_HORIZONTAL     1015
+#define IDC_RADIO_LAYOUT_VERTICAL       1016
+#define IDC_RADIO_LAYOUT_SINGLE_1       1017
+#define IDC_RADIO_LAYOUT_SINGLE_2       1018
+#define IDC_RADIO_LAYOUT_PERCENT        1019
+#define IDC_RADIO_LAYOUT_FIXED_1        1020
+#define IDC_RADIO_LAYOUT_FIXED_2        1021
+#define IDC_EDIT_LAYOUT_PERCENT         1022
+#define IDC_EDIT_LAYOUT_FIXED_1         1023
+#define IDC_EDIT_LAYOUT_FIXED_2         1024
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -48,6 +59,7 @@
 #define IDM_SET_PATH                    32777
 #define IDM_REFRESH_LIST                32779
 #define IDM_TOGGLE_VIEW                 32780
+#define IDM_CFG_LAYOUT                  32780
 #define IDM_OPEN_PREV                   32784
 #define IDM_OPEN_NEXT                   32785
 
@@ -55,9 +67,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        145
+#define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         32788
-#define _APS_NEXT_CONTROL_VALUE         1015
+#define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

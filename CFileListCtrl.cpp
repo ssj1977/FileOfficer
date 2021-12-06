@@ -1263,6 +1263,7 @@ BOOL CFileListCtrl::RenameSelectedItem()
 	CDlgInput dlg;
 	dlg.m_strTitle = _T("이름 바꾸기"); // 리소스 처리
 	dlg.m_strInput = GetItemText(nItem, 0);
+	dlg.m_nMode = INPUT_MODE_FILENAME;
 	if (dlg.DoModal() == IDOK)
 	{
 		CString strPath = GetItemFullPath(nItem);

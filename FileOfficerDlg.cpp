@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 #include "CFileListCtrl.h"
 #include "EtcFunctions.h"
+#include "CDlgCFG_Layout.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -194,11 +195,18 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			m_pWndFocus->GetParent()->PostMessage(WM_COMMAND, wParam, lParam);
 		}
 		break;*/
-	case IDM_TOGGLE_VIEW:
-		APP()->m_nViewMode += 1;
+	case IDM_CFG_LAYOUT:
+		{
+			CDlgCFG_Layout dlg;
+			if (dlg.DoModal() == IDOK)
+			{
+				ArrangeCtrl();
+			}
+		}
+		return TRUE;
+		/*APP()->m_nViewMode += 1;
 		if (APP()->m_nViewMode == 3) APP()->m_nViewMode = 0;
-		ArrangeCtrl();
-		break;
+		ArrangeCtrl();*/
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}

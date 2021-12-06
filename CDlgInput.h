@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#ifndef INPUT_MODE_FILENAME
+#define INPUT_MODE_FILENAME 0
+#endif 
 
 // CDlgInput 대화 상자
 
@@ -14,6 +17,7 @@ public:
 	CString m_strInput;
 	CString m_strTitle;
 	int m_nBH;
+	int m_nMode;
 	HICON m_hIcon;
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME

@@ -183,6 +183,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CDlgCFG_Layout.h" />
     <ClInclude Include="CDlgCFG_View.h" />
     <ClInclude Include="CDlgInput.h" />
     <ClInclude Include="CDlgTabView.h" />
@@ -201,6 +202,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CDlgCFG_Layout.cpp" />
     <ClCompile Include="CDlgCFG_View.cpp" />
     <ClCompile Include="CDlgInput.cpp" />
     <ClCompile Include="CDlgTabView.cpp" />

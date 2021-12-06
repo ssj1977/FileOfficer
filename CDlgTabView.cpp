@@ -115,7 +115,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_SET_PATH: UpdateTabByPathEdit(); break;
 	case IDM_ADD_LIST: AddFileListTab(APP()->m_strPath_Default); break;
 	case IDM_CLOSE_LIST: CloseFileListTab(m_nCurrentTab); break;
-	case IDM_TOGGLE_VIEW: GetParent()->PostMessage(WM_COMMAND, wParam, lParam); break;
+	case IDM_CFG_LAYOUT: GetParent()->PostMessage(WM_COMMAND, wParam, lParam); break;
 	case IDM_CONFIG: ConfigViewOption(); break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
