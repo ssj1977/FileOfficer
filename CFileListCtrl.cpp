@@ -153,7 +153,7 @@ CMyDirectoryChangeHandler::CMyDirectoryChangeHandler(CFileListCtrl* pList)
 
 void CMyDirectoryChangeHandler::On_FileAdded(const CString& strFileName)
 {
-	m_pList->AddItemByPath(strFileName, TRUE);
+	m_pList->AddItemByPath(strFileName, TRUE, FALSE);
 }
 
 void CMyDirectoryChangeHandler::On_FileRemoved(const CString& strFileName)
@@ -171,6 +171,7 @@ void CMyDirectoryChangeHandler::On_FileNameChanged(const CString& strOldFileName
 	m_pList->UpdateItemByPath(strOldFileName, strNewFileName);
 }
 
+void ClearAllNotification();
 
 // CFileListCtrl
 
@@ -250,10 +251,12 @@ CFileListCtrl::CFileListCtrl()
 	m_hThreadLoad = NULL;
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
+	m_bMenuOn = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
 {
+	ClearAllNotification();
 }
 
 static int CMD_DirWatch = IDM_START_DIRWATCH;
@@ -608,7 +611,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 				GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 		}
-		AddItemByPath(strFind);
+		AddItemByPath(strFind, FALSE, TRUE);
 		if (IsLoading(this) == TRUE) Sort(m_nSortCol, m_bAsc);
 	}
 	endTime = clock();
@@ -817,6 +820,7 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 	int nItem = -1;
 	for (int i = 0; i < GetItemCount(); i++)
 	{
+		CString strTemp = GetItemText(i, 0);
 		if (GetItemText(i, 0).CompareNoCase(strOldName) == 0)
 		{
 			nItem = i;
@@ -824,19 +828,22 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 		}
 	}
 	if (nItem == -1) return;
-	HANDLE hFile = CreateFile(strNewPath, 0, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFile(strNewPath, 0, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL);
+	if (hFile == INVALID_HANDLE_VALUE || hFile == NULL)	return;
 	DWORD itemData = PathIsDirectory(strNewPath) ? ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
 	CString strSize;
 	if (itemData == ITEM_TYPE_FILE)
 	{
 		LARGE_INTEGER filesize;
-		GetFileSizeEx(hFile, &filesize);
-		strSize = GetFileSizeString(filesize.QuadPart);
+		if (GetFileSizeEx(hFile, &filesize)) strSize = GetFileSizeString(filesize.QuadPart);
 	}
 	FILETIME ftWrite;
-	GetFileTime(hFile, NULL, NULL, &ftWrite);
-	CTime tTemp = CTime(ftWrite);
-	CString strWriteTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+	CString strWriteTime;
+	if (GetFileTime(hFile, NULL, NULL, &ftWrite))
+	{
+		CTime tTemp = CTime(ftWrite);
+		strWriteTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+	}
 	int nImage = GetFileImageIndexFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY) );
 	SetItem(nItem, 0, LVIF_IMAGE | LVIF_TEXT, strNewName, nImage, 0, 0, 0);
 	SetItemText(nItem, COL_DATE, strWriteTime);
@@ -845,7 +852,7 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 }
 
 
-void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
+void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak)
 {
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
@@ -862,7 +869,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist)
 	CString strDir = Get_Folder(strPath);
 	while (b)
 	{
-		if (IsLoading(this) == FALSE)
+		if (bAllowBreak == TRUE && IsLoading(this) == FALSE)
 		{
 			break;
 		}
@@ -1094,11 +1101,13 @@ void CFileListCtrl::ShowContextMenu(CPoint pt)
 	{
 		aSelectedPath.Add(m_strFolder);
 	}*/
+	m_bMenuOn = TRUE;
 	CFileListContextMenu context_menu;
 	context_menu.SetParent(this);
 	context_menu.SetPathArray(m_strFolder, aSelectedPath);
 	UINT idCommand = context_menu.ShowContextMenu(this, pt);
 	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
+	m_bMenuOn = FALSE;
 }
 
 
@@ -1320,7 +1329,7 @@ void CFileListCtrl::OnDestroy()
 
 void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
 {
-	ShowContextMenu(point);
+	if (m_bMenuOn == FALSE)	ShowContextMenu(point);
 }
 
 

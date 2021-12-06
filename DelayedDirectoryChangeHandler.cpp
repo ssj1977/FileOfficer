@@ -319,20 +319,21 @@ void CDelayedNotificationWindow::PostNotification(CDirChangeNotification * pNoti
 //	the context of the main thread.
 //
 {
-	ASSERT( pNotification );
+
+/*	ASSERT( pNotification );
 	ASSERT( s_hWnd );
 	ASSERT( ::IsWindow( s_hWnd ) );
 
 	PostMessage(s_hWnd, 
 				UWM_DELAYED_DIRECTORY_NOTIFICATION, 
 				0, 
-				reinterpret_cast<LPARAM>( pNotification ));
+				reinterpret_cast<LPARAM>( pNotification ));*/
 
 //  if you don't want the notification delayed, 
 //  
 //	if( false )
 //	{
-//		pNotification->DispatchNotificationFunction();
+		pNotification->DispatchNotificationFunction();
 //	}
 }
 
@@ -888,10 +889,10 @@ void DeleteNotification(CDirChangeNotification* pNotification)
 void ClearAllNotification()
 {
 	POSITION pos = g_NotificationList.GetHeadPosition();
-	int nCount = (int)g_NotificationList.GetCount();
-	for (int i = 0; i < nCount; i++)
+	while (pos != NULL)
 	{
-		delete g_NotificationList.GetNext(pos);
+		CDirChangeNotification* p = g_NotificationList.GetNext(pos);
+		delete p;
 	}
 	g_NotificationList.RemoveAll();
 }
