@@ -94,8 +94,8 @@ void CDlgCFG_Layout::OnOK()
 	
 	CString strTemp;
 	GetDlgItemText(IDC_EDIT_LAYOUT_PERCENT, strTemp); m_nLayoutSizePercent = _ttoi(strTemp);
-	GetDlgItemText(IDC_RADIO_LAYOUT_FIXED_1, strTemp); m_nLayoutSizeFixed1 = _ttoi(strTemp);
-	GetDlgItemText(IDC_RADIO_LAYOUT_FIXED_2, strTemp); m_nLayoutSizeFixed2 = _ttoi(strTemp);
+	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_1, strTemp); m_nLayoutSizeFixed1 = _ttoi(strTemp);
+	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_2, strTemp); m_nLayoutSizeFixed2 = _ttoi(strTemp);
 
 	CDialogEx::OnOK();
 }
@@ -135,17 +135,23 @@ void CDlgCFG_Layout::OnBnClickedRadioLayoutSingle2()
 
 void CDlgCFG_Layout::OnBnClickedRadioLayoutPercent()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(TRUE);
+	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(FALSE);
+	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(FALSE);
 }
 
 
 void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed1()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(FALSE);
+	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(TRUE);
+	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(FALSE);
 }
 
 
 void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed2()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(FALSE);
+	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(FALSE);
+	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(TRUE);
 }

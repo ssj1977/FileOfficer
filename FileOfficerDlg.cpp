@@ -117,30 +117,70 @@ void CFileOfficerDlg::ArrangeCtrl()
 {
 	CRect rc; 
 	GetClientRect(rc);
-	int BW = 0;
-	if (APP()->m_nViewMode == 0)
+	int BW = 0; 
+	if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
 	{
 		m_tv1.ShowWindow(SW_SHOW);
 		m_tv2.ShowWindow(SW_SHOW);
-		int TABWIDTH = rc.Width() / 2;
-		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH - BW, rc.Height());
-		m_tv2.MoveWindow(rc.right - TABWIDTH + BW, rc.top, TABWIDTH - BW, rc.Height());
+		int TABWIDTH1 = rc.Width();
+		int TABWIDTH2 = rc.Width();
+		if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
+		{
+			TABWIDTH1 = int((float)TABWIDTH1 * ((float)(APP()->m_nLayoutSizePercent) / 100.0F));
+			TABWIDTH2 = TABWIDTH2 -TABWIDTH1;
+		}
+		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_1)
+		{
+			TABWIDTH1 = APP()->m_nLayoutSizeFixed1;
+			TABWIDTH2 = TABWIDTH2 - TABWIDTH1;
+		}
+		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_2)
+		{
+			TABWIDTH2 = APP()->m_nLayoutSizeFixed2;
+			TABWIDTH1 = TABWIDTH1 - TABWIDTH2;
+		}
+		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH1 - BW, rc.Height());
+		m_tv2.MoveWindow(rc.right - TABWIDTH2 + BW, rc.top, TABWIDTH2 - BW, rc.Height());
 	}
-	else if (APP()->m_nViewMode == 1)
+	else if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
+	{
+		m_tv1.ShowWindow(SW_SHOW);
+		m_tv2.ShowWindow(SW_SHOW);
+		int TABHEIGHT1 = rc.Height();
+		int TABHEIGHT2 = rc.Height();
+		if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
+		{
+			TABHEIGHT1 = int((float)TABHEIGHT1 * ((float)(APP()->m_nLayoutSizePercent) / 100.0F));
+			TABHEIGHT2 = TABHEIGHT2 - TABHEIGHT1;
+		}
+		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_1)
+		{
+			TABHEIGHT1 = APP()->m_nLayoutSizeFixed1;
+			TABHEIGHT2 = TABHEIGHT2 - TABHEIGHT1;
+		}
+		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_2)
+		{
+			TABHEIGHT2 = APP()->m_nLayoutSizeFixed2;
+			TABHEIGHT1 = TABHEIGHT1 - TABHEIGHT2;
+		}
+		m_tv1.MoveWindow(rc.left, rc.top, rc.Width(), TABHEIGHT1 - BW);
+		m_tv2.MoveWindow(rc.left, rc.bottom - TABHEIGHT2 + BW, rc.Width(), TABHEIGHT2 - BW);
+	}
+	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE1)
 	{
 		m_tv1.ShowWindow(SW_SHOW);
 		m_tv2.ShowWindow(SW_HIDE);
 		int TABWIDTH = rc.Width();
-		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH - BW, rc.Height());
+		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH, rc.Height());
 		m_tv2.MoveWindow(0,0,0,0);
 	}
-	else if (APP()->m_nViewMode == 2)
+	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
 	{
 		m_tv1.ShowWindow(SW_HIDE);
 		m_tv2.ShowWindow(SW_SHOW);
 		int TABWIDTH = rc.Width();
 		m_tv1.MoveWindow(0, 0, 0, 0);
-		m_tv2.MoveWindow(rc.left, rc.top, TABWIDTH - BW, rc.Height());
+		m_tv2.MoveWindow(rc.left, rc.top, TABWIDTH, rc.Height());
 	}
 }
 
@@ -198,8 +238,18 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_CFG_LAYOUT:
 		{
 			CDlgCFG_Layout dlg;
+			dlg.m_nLayoutType = APP()->m_nLayoutType;
+			dlg.m_nLayoutSizeType = APP()->m_nLayoutSizeType;
+			dlg.m_nLayoutSizePercent = APP()->m_nLayoutSizePercent;
+			dlg.m_nLayoutSizeFixed1 = APP()->m_nLayoutSizeFixed1;
+			dlg.m_nLayoutSizeFixed2 = APP()->m_nLayoutSizeFixed2;
 			if (dlg.DoModal() == IDOK)
 			{
+				APP()->m_nLayoutType = dlg.m_nLayoutType;
+				APP()->m_nLayoutSizeType = dlg.m_nLayoutSizeType;
+				APP()->m_nLayoutSizePercent = dlg.m_nLayoutSizePercent;
+				APP()->m_nLayoutSizeFixed1 = dlg.m_nLayoutSizeFixed1;
+				APP()->m_nLayoutSizeFixed2 = dlg.m_nLayoutSizeFixed2;
 				ArrangeCtrl();
 			}
 		}

@@ -8,6 +8,7 @@
 #include "EtcFunctions.h"
 #include "CFileListCtrl.h"
 #include "CDlgCFG_View.h"
+#include "CDlgCFG_Layout.h"
 
 #define IDC_LIST_FILE 50000
 #define IDM_UPDATE_TAB 55000
@@ -342,9 +343,10 @@ void CDlgTabView::ArrangeCtrl()
 {
 	CRect rc;
 	GetClientRect(rc);
-	rc.DeflateRect(3,3,3,3);
+	rc.DeflateRect(3, 3, 3, 3);
 	int BH = m_lfHeight * 2;
 	int TW = rc.Width();
+	//Edit Control
 	m_editPath.MoveWindow(rc.left, rc.top, TW, BH);
 	rc.top += BH;
 	rc.top += 2;
@@ -355,24 +357,26 @@ void CDlgTabView::ArrangeCtrl()
 	int nBtnW = (LOWORD(btnsize) + nHP);
 	int nBtnH = (HIWORD(btnsize) + nVP);
 	int nBtnLineCount = TW / nBtnW; if (nBtnLineCount == 0) nBtnLineCount = 1;
-	int nBtnTotalCount = m_tool.GetToolBarCtrl().GetButtonCount() / 2; 
+	int nBtnTotalCount = m_tool.GetToolBarCtrl().GetButtonCount() / 2;
 	int nRow = (nBtnTotalCount / nBtnLineCount) + 1;
 	int nH = nBtnH * nRow;
 	m_tool.MoveWindow(rc.left, rc.top, TW, nH);
 	m_tool.Invalidate();
 	rc.top += nH;
 	rc.top += 2;
+	//Tab Part
 	m_tabPath.MoveWindow(rc.left, rc.top, TW, BH);
 	rc.top += BH;
 	CWnd* pWnd = CurrentList();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
-		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height()- BH);
+		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height() - BH);
 		pWnd->Invalidate();
 	}
-	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH+2, TW, BH-2);
-	GetDlgItem(IDC_ST_BAR)->RedrawWindow();
+	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH + 2, TW, BH - 2);
+	GetDlgItem(IDC_ST_BAR)->Invalidate();
 }
+
 
 
 

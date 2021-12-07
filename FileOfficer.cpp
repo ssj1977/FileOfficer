@@ -36,7 +36,12 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nCurrentTab1 = 0;
 	m_nCurrentTab2 = 0;
 	m_nFocus = 1;
-	m_nViewMode = 0;
+	m_nLayoutType = 0;
+	m_nLayoutSizeType = 0;
+	m_nLayoutSizePercent = 50;
+	m_nLayoutSizeFixed1 = 600;
+	m_nLayoutSizeFixed2 = 600;
+
 	m_hIcon = NULL;
 }
 
@@ -145,7 +150,11 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
-	strLine.Format(_T("ViewMode=%d\r\n"), m_nViewMode); strData += strLine;
+	strLine.Format(_T("LayoutType=%d\r\n"), m_nLayoutType); strData += strLine;
+	strLine.Format(_T("LayoutSizeType=%d\r\n"), m_nLayoutSizeType); strData += strLine;
+	strLine.Format(_T("LayoutSizePercent=%d\r\n"), m_nLayoutSizePercent); strData += strLine;
+	strLine.Format(_T("LayoutSizeFixed1=%d\r\n"), m_nLayoutSizeFixed1); strData += strLine;
+	strLine.Format(_T("LayoutSizeFixed2=%d\r\n"), m_nLayoutSizeFixed2); strData += strLine;
 	strLine.Format(_T("DefaultViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"), 
 		m_DefaultViewOption.clrText, m_DefaultViewOption.clrBk,
 		m_DefaultViewOption.nIconType,
@@ -224,7 +233,11 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("ViewMode")) == 0) m_nViewMode = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("LayoutType")) == 0) m_nLayoutType = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("LayoutSizeType")) == 0) m_nLayoutSizeType = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("LayoutSizePercent")) == 0) m_nLayoutSizePercent = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("LayoutSizeFixed1")) == 0) m_nLayoutSizeFixed1 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0) nTabCount = (int)m_aTab1.Add(PathTabInfo(str2, 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount != -1) m_aTab1[nTabCount].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount != -1) m_aTab1[nTabCount].bSortAscend = _ttoi(str2);
