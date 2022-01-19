@@ -321,10 +321,21 @@ void CFileListCtrl::InitColumns(int nType)
 
 CString CFileListCtrl::GetItemFullPath(int nItem)
 {
-	CPath path = CPath(m_strFolder);
+/*	CPath path = CPath(m_strFolder);
 	path.AddBackslash();
 	path.Append(GetItemText(nItem, COL_NAME));
-	return CString(path);
+	return CString(path);*/
+	if (m_nType == LIST_TYPE_FOLDER || m_nType == LIST_TYPE_UNCSERVER)
+	{
+		TCHAR path[MAX_PATH] = {};
+		PathCombineW(path, m_strFolder, GetItemText(nItem, COL_NAME));
+		return path;
+	}
+	else if (m_nType == LIST_TYPE_DRIVE)
+	{
+		return GetItemText(nItem, COL_NAME);
+	}
+	return _T("");
 }
 
 void CFileListCtrl::OpenSelectedItem()
@@ -358,6 +369,19 @@ void CFileListCtrl::OpenSelectedItem()
 	}
 }
 
+CString GetParentFolder(CString strFolder)
+{
+	if (strFolder.IsEmpty()) return strFolder;
+	int nPos = strFolder.GetLength() - 1;
+	if (strFolder.GetAt(nPos) == '\\')
+	{	//끝에 있는 '\' 제거
+		strFolder = strFolder.Left(nPos);
+	}
+	nPos = strFolder.ReverseFind(_T('\\'));
+	if (nPos <= 0) return _T("");
+	return strFolder.Left(nPos);
+}
+
 void CFileListCtrl::OpenParentFolder()
 {
 	if (m_strFolder.IsEmpty()) return;
@@ -366,22 +390,24 @@ void CFileListCtrl::OpenParentFolder()
 	{
 		return;
 	}
-	else if (path.IsRoot())
+/*	else if (path.IsRoot())
 	{
 		DisplayFolder_Start(_T(""));
-	}
+	}*/
 	else
 	{
-		CString strParent = m_strFolder;
+		/*CString strParent = m_strFolder;
 		int nPos = strParent.ReverseFind(_T('\\'));
-		if (nPos = strParent.GetLength() - 1)
+		if (nPos == strParent.GetLength() - 1)
 		{
 			strParent = strParent.Left(nPos);
 			nPos = strParent.ReverseFind(_T('\\'));
 		}
 		if (nPos <= 0) return;
-		strParent = strParent.Left(nPos);
-		DisplayFolder_Start(strParent);
+		strParent = strParent.Left(nPos);*/
+		m_strFilterExclude.Empty();
+		m_strFilterInclude.Empty();
+		DisplayFolder_Start(GetParentFolder(m_strFolder));
 	}
 }
 
@@ -468,6 +494,7 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 	if (IsLoading(this) == TRUE) return;
 	if (::IsWindow(m_hWnd) == FALSE) return;
 	ClearThread();
+	m_strPrevFolder = m_strFolder;
 	m_strFolder = strFolder;
 	m_bUpdatePathHistory = bUpdatePathHistory;
 	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
@@ -523,7 +550,28 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	SetTextColor(clrText2);
 	RedrawWindow();
 	if (bUpdatePathHistory) AddPathHistory(strFolder);
-	if (strFolder.IsEmpty())
+	//새로운 폴더가 기존 폴더의 상위 폴더인지 체크
+	CString strSelectedFolder; //새로운 폴더가 기존 폴더의 상위 폴더라면 여기에 기본으로 선택할 기존 폴더 저장
+	if (m_strPrevFolder.GetLength() > m_strFolder.GetLength()) //예) c:\test\temp => c:\test
+	{
+		if (m_strPrevFolder.MakeLower().Find(m_strFolder.MakeLower()) != -1) //새로운 폴더 경로가 기존 폴더에 포함
+		{	//기본 선택할 항목 찾기 = 
+			strSelectedFolder = m_strPrevFolder;
+			CString strParent = GetParentFolder(m_strPrevFolder);
+			//여러 단계 상위 폴더로 바로 이동하는 경우에도 찾을 수 있도록 탐색
+			while (strParent.IsEmpty() == FALSE)
+			{
+				if (strParent.CompareNoCase(m_strFolder) == 0)
+				{
+					strSelectedFolder = Get_Name(strSelectedFolder);
+					break; 
+				}
+				strSelectedFolder = strParent; 
+				strParent = GetParentFolder(strParent);
+			}
+		}
+	}
+	if (strFolder.IsEmpty()) //strFolder가 빈 값 = 루트이므로 모든 드라이브 표시
 	{
 		InitColumns(LIST_TYPE_DRIVE);
 		DWORD drives = GetLogicalDrives();
@@ -532,14 +580,14 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 		UINT nType = 0;
 		TCHAR c = _T('A');
 		CString strDrive;
-		ULARGE_INTEGER space_free, space_total;
+	 	ULARGE_INTEGER space_free, space_total;
 
 		for (int i = 0; i < 32; i++)
 		{
 			if (drives & flag)
 			{
 				strDrive = (TCHAR)(c + i);
-				strDrive += _T(":\\");
+				strDrive += _T(":");
 				nType = GetDriveType(strDrive);
 				if (nType == DRIVE_REMOVABLE) nImage = SI_REMOVABLE;
 				else if (nType == DRIVE_CDROM) nImage = SI_CDROM;
@@ -554,6 +602,11 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 					SetItemText(nItem, COL_TOTALSPACE, GetDriveSizeString(space_total));
 				}
 				SetItemData(nItem, ITEM_TYPE_DRIVE);
+				if (strSelectedFolder.CompareNoCase(strDrive) == 0)
+				{
+					SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+				}
+
 			}
 			flag = flag * 2;
 		}
@@ -595,25 +648,27 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 		CString strFind = strFolder;
 		if (strFind.Find(L'*') == -1 && strFind.Find(L'?') == -1)
 		{
+			m_strFolder = (CString)path;
 			path.AddBackslash();
 			strFind = path + _T("*");
-			m_strFolder = (CString)path;
 			m_strFilterInclude = L"*";
 			m_strFilterExclude = L"";
 		}
 		else
 		{
 			strFind = strFolder;
-			CString strPrevFind = m_strFolder + (m_strFilterInclude.IsEmpty() ? m_strFilterExclude : m_strFilterInclude);
 			m_strFolder = Get_Folder(strFolder, TRUE);
 			m_strFilterInclude = Get_Name(strFolder);
 			m_strFilterExclude = L"";
 			if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
 				GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 		}
-		AddItemByPath(strFind, FALSE, TRUE);
-		if (IsLoading(this) == TRUE) Sort(m_nSortCol, m_bAsc);
+		AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder);
+		//if (IsLoading(this) == TRUE) 
+		Sort(m_nSortCol, m_bAsc);
 	}
+	int nSelected = GetNextItem(-1, LVNI_SELECTED);
+	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
 	endTime = clock();
 	CString strTemp;
 	strTemp.Format(_T("%d Item(s) / Loading Time : %d"), GetItemCount(), endTime - startTime);
@@ -852,7 +907,7 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 }
 
 
-void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak)
+void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak, CString strSelectByName)
 {
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
@@ -867,6 +922,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 	BOOL b = TRUE, bIsDir = FALSE;
 	TCHAR fullpath[MAX_PATH];
 	CString strDir = Get_Folder(strPath);
+	BOOL bSelect = !(strSelectByName.IsEmpty());
 	while (b)
 	{
 		if (bAllowBreak == TRUE && IsLoading(this) == FALSE)
@@ -918,6 +974,14 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 			if (bExist == FALSE) nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
 			if (nItem != -1)
 			{
+				if (bSelect == TRUE)
+				{
+					if (strSelectByName.CompareNoCase(fd.cFileName) == 0)
+					{
+						SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+						bSelect = FALSE; //한번만
+					}
+				}
 				SetItemData(nItem, itemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				SetItemText(nItem, COL_SIZE, strSize);
@@ -1337,6 +1401,8 @@ void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
 void CFileListCtrl::BrowsePathHistory(BOOL bPrevious)
 {
 	if (m_posPathHistory == NULL || m_aPathHistory.GetSize() < 2) return;
+	m_strFilterExclude.Empty();
+	m_strFilterInclude.Empty();
 	if (bPrevious == TRUE && m_posPathHistory != m_aPathHistory.GetHeadPosition())
 	{
 		m_aPathHistory.GetPrev(m_posPathHistory);

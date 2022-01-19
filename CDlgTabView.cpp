@@ -17,6 +17,8 @@
 #define IDM_OPEN_NEWTAB 55003
 
 CString GetPathName(CString strPath);
+CString GetParentFolder(CString strFolder);
+CString GetActualPath(CString strPath);
 // CDlgTabView 대화 상자
 
 IMPLEMENT_DYNAMIC(CDlgTabView, CDialogEx)
@@ -280,12 +282,14 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 		{
 			PathTabInfo& pti = m_aTabInfo[i];
 			CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
-			pti.strPath = pList->m_strFolder;
+			pti.strPath = GetActualPath(pList->m_strFolder);
 			//pti.strFilterInclude = pList->m_strFilterInclude; //필터정보의 저장 및 관리는 추후 검토
 			SetTabTitle(i, GetPathName(pti.strPath));
-			if (pList->m_strFilterInclude != L"*")
+			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
-				m_editPath.SetWindowText(pList->m_strFolder + pList->m_strFilterInclude);
+				TCHAR path[MAX_PATH];
+				PathCombineW(path, pList->m_strFolder, pList->m_strFilterInclude);
+				m_editPath.SetWindowText(path);
 			}
 			else
 			{
@@ -315,21 +319,61 @@ void CDlgTabView::UpdateSortInfo(CWnd* pWnd)
 	pti.iSortColumn = pList->GetHeaderCtrl().GetSortColumn();
 }
 
+CString GetActualPath(CString strPath)
+{
+	if (strPath.IsEmpty()) return strPath;
+	if (strPath.GetAt(0) == L'\\') return strPath;
+	TCHAR path[MAX_PATH] = {};
+	CString strParent = GetParentFolder(strPath);
+	WIN32_FIND_DATA fd;
+	HANDLE hFind;
+	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+	CString strReturn;
+	if (strParent.IsEmpty())
+	{
+		strReturn = strPath.MakeUpper();
+	}
+	else
+	{
+		//strReturn = GetActualPath(strParent) + L"\\" + fd.cFileName;
+		PathCombine(path, GetActualPath(strParent), fd.cFileName);
+		strReturn = path;
+	}
+	FindClose(hFind);
+	return strReturn;
+}
+
 void CDlgTabView::UpdateTabByPathEdit()
 {
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-	//pList->SetRedraw(FALSE);
-	CString strPath, strName;
-	GetDlgItemText(IDC_EDIT_PATH, strPath);
-	pList->DisplayFolder_Start(strPath);
+	CString strEdit, strPath, strName, strFilter;
+	GetDlgItemText(IDC_EDIT_PATH, strEdit);
+	//검색필터가 들어가 있는 경우 해당 필터를 잘라낸다
+	int nTemp1 = strEdit.ReverseFind(L'\\');
+	int nTemp2 = strEdit.ReverseFind(L'*');
+	int nTemp3 = strEdit.ReverseFind(L'?');
+	if ((nTemp2 != -1 && nTemp1 < nTemp2) || (nTemp3 != -1 && nTemp1 < nTemp3))
+	{
+		strPath = strEdit.Left(nTemp1);
+		if ((nTemp1 + 1) < strEdit.GetLength()) strFilter = strEdit.Mid(nTemp1 + 1);
+	}
+	else
+	{
+		strPath = strEdit;
+		strFilter.Empty();
+	}
+	TCHAR path_with_filter[MAX_PATH] = {};
+	strPath = GetActualPath(strPath);
+	PathCombine(path_with_filter, strPath, strFilter);
+	SetDlgItemText(IDC_EDIT_PATH, strPath);
+	pList->DisplayFolder_Start(path_with_filter);
 	strName = GetPathName(strPath);
 	SetTabTitle(m_nCurrentTab, strName);
-	//pList->SetRedraw(TRUE);
 }
 
 void CDlgTabView::SetTabTitle(int nTab, CString strTitle)
 {
-	if (!strTitle.IsEmpty() && nTab < m_tabPath.GetItemCount())
+	if (nTab < m_tabPath.GetItemCount())
 	{
 		TCITEM item;
 		item.mask = TCIF_TEXT;

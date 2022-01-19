@@ -38,7 +38,7 @@ public:
 	void OpenParentFolder();
 	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
-	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE);
+	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
 	void UpdateItemByPath(CString strOldPath, CString strNewPath);
 	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
@@ -55,6 +55,7 @@ public:
 	void ClipBoardImport();
 	HGLOBAL GetOleDataForClipboard();
 	CString m_strFolder;
+	CString m_strPrevFolder; //폴더간 이동시 하위 폴더에서 상위폴더로 이동하는 경우 자동으로 해당 하위폴더를 목록 중에서 선택하기 위해 이용
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
 	CString m_strBarMsg;
