@@ -816,11 +816,13 @@ struct HANDLETOMAPPINGS
 
 void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 {
+	if (m_strFolder.IsEmpty()) return;
 	if (aOldPath.GetSize() == 0) return;
 
 	BOOL bIsSamePath = FALSE;
 	CString strOldFolder = Get_Folder(aOldPath[0], TRUE);
 	CString strNewFolder = m_strFolder;
+	if (strNewFolder.GetAt(strNewFolder.GetLength() - 1) != L'\\') strNewFolder += L'\\';
 	if (strOldFolder.CompareNoCase(strNewFolder) == 0) bIsSamePath = TRUE;
 
 	CStringArray aNewPath;
@@ -860,7 +862,7 @@ void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 	}*/
 	delete[] pszzBuf_OldPath;
 	delete[] pszzBuf_NewPath;
-	//AddItemByPath(szNewPath, TRUE);
+	for (int i=0; i<aNewPath.GetSize(); i++) AddItemByPath(aNewPath[i], TRUE); 
 }
 
 
@@ -954,11 +956,10 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 			BOOL bExist = FALSE;
 			if (bCheckExist == TRUE)
 			{
-				//CPathSet::iterator it = m_setPath.find(fd.cFileName);
-				//if (it == m_setPath.end()) m_setPath.insert(fd.cFileName);
-				//else bExist = TRUE; // Set을 이용해도 7000개 수준에서도 속도에 큰 차이가 없음
-
-				if (bExist == TRUE) // 존재하는 경우 인덱스 찾기
+				/*CPathSet::iterator it = m_setPath.find(fd.cFileName);
+				if (it == m_setPath.end()) m_setPath.insert(fd.cFileName);
+				else bExist = TRUE; // Set을 이용해도 7000개 수준에서도 속도에 큰 차이가 없음
+				if (bExist == TRUE) // 존재하는 경우 인덱스 찾기*/
 				{
 					for (int i = 0; i < GetItemCount(); i++)
 					{
@@ -1036,7 +1037,7 @@ BOOL CFileListCtrl::DeleteInvalidItem(int nItem)
 	if (IsItemExist(nItem) == FALSE)
 	{
 		bDeleted = DeleteItem(nItem);
-		//if (bDeleted == TRUE) m_setPath.erase(GetItemText(nItem, COL_NAME));
+//		if (bDeleted == TRUE) m_setPath.erase(GetItemText(nItem, COL_NAME));
 	}
 	return bDeleted;
 }
@@ -1051,7 +1052,7 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 			if (PathFileExists(strPath) == FALSE)
 			{
 				DeleteItem(i);
-				//m_setPath.erase(GetItemText(i, COL_NAME));
+//				m_setPath.erase(GetItemText(i, COL_NAME));
 			}
 			return;
 		}
@@ -1387,7 +1388,7 @@ void CFileListCtrl::ClearThread()
 void CFileListCtrl::OnDestroy()
 { 
 	ClearThread();
-	//m_setPath.clear();
+//	m_setPath.clear();
 	CMFCListCtrl::OnDestroy();
 }
 

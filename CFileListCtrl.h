@@ -2,9 +2,9 @@
 #include <afxlistctrl.h>
 #include "CMyDropTarget.h"
 
-//using namespace std;
-//#include <set>
-//typedef set<CString> CPathSet; //중복이름 체크용 맵 해당하는 이미지맵의 번호를 기억
+/*using namespace std;
+#include <set>
+typedef set<CString> CPathSet; //중복이름 체크용 맵 해당하는 이미지맵의 번호를 기억*/
 
 class CDirectoryChangeWatcher;
 class CFileListCtrl;
@@ -67,7 +67,7 @@ public:
 	BOOL IsFirstPath();
 	BOOL IsLastPath();
 	BOOL IsRootPath();
-	//CPathSet m_setPath;
+//	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
 	int m_nSortCol;
