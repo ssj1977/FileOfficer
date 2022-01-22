@@ -107,6 +107,8 @@ public:
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed1;
 	int m_nLayoutSizeFixed2;
+	BOOL m_bUseFileType;
+
 public:
 	void INISave(CString strFile);
 	void INILoad(CString strFile);

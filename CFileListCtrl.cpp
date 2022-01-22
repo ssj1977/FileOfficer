@@ -119,6 +119,38 @@ CString GetPathName(CString strPath)
 	return strReturn;
 }
 
+CString GetPathType(CString strPath)
+{
+	CString strReturn;
+	SHFILEINFO sfi = { 0 };
+	LPITEMIDLIST pidl = NULL;
+	if (strPath.IsEmpty()) SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl);
+	else pidl = ILCreateFromPath(strPath);
+
+	if (SHGetFileInfo((LPCTSTR)pidl, -1, &sfi, sizeof(sfi), SHGFI_PIDL | SHGFI_TYPENAME))
+	{
+		strReturn = sfi.szTypeName;
+	}
+	ILFree(pidl);
+	return strReturn;
+}
+
+void GetPathInfo(CString strPath, CString& strDisplayName, CString& strTypeName)
+{
+	SHFILEINFO sfi = { 0 };
+	LPITEMIDLIST pidl = NULL;
+	if (strPath.IsEmpty()) SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl);
+	else pidl = ILCreateFromPath(strPath);
+	if (SHGetFileInfo((LPCTSTR)pidl, -1, &sfi, sizeof(sfi), SHGFI_PIDL | SHGFI_DISPLAYNAME | SHGFI_TYPENAME))
+	{
+		strDisplayName = sfi.szDisplayName;
+		strTypeName = sfi.szTypeName;
+	}
+	ILFree(pidl);
+
+}
+
+
 void StringArray2szzBuffer(CStringArray& aPath, TCHAR*& pszzBuf)
 {
 	if (aPath.GetSize() == 0)
@@ -182,6 +214,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_ALIAS 1
 #define COL_SIZE 2
 #define COL_FREESPACE 2
+#define COL_TYPE 3
 #define COL_TOTALSPACE 3
 
 #define ITEM_TYPE_DOTS 0
@@ -252,6 +285,7 @@ CFileListCtrl::CFileListCtrl()
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
 	m_bMenuOn = FALSE;
+	m_bUseFileType = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -311,6 +345,7 @@ void CFileListCtrl::InitColumns(int nType)
 		InsertColumn(COL_NAME, _T("Name"), LVCFMT_LEFT, nIconWidth + 300);
 		InsertColumn(COL_DATE, _T("Date"), LVCFMT_RIGHT, 200);
 		InsertColumn(COL_SIZE, _T("Size"), LVCFMT_RIGHT, 150);
+		InsertColumn(COL_TYPE, _T("Type"), LVCFMT_LEFT, 150);
 	}
 	else if (nType == LIST_TYPE_UNCSERVER)
 	{
@@ -665,7 +700,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 		}
 		AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder);
 		//if (IsLoading(this) == TRUE) 
-		Sort(m_nSortCol, m_bAsc);
+		SortCurrentList();
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
@@ -843,26 +878,30 @@ void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 	FileOp.wFunc = bMove ? FO_MOVE : FO_COPY;
 	FileOp.pFrom = pszzBuf_OldPath;
 	FileOp.pTo = pszzBuf_NewPath;
-	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_ALLOWUNDO; //| FOF_WANTMAPPINGHANDLE 
+	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_ALLOWUNDO | FOF_WANTMAPPINGHANDLE;
 	if (bIsSamePath == TRUE) FileOp.fFlags = FileOp.fFlags | FOF_RENAMEONCOLLISION;
 	FileOp.fAnyOperationsAborted = false;
 	FileOp.hNameMappings = NULL;
 	FileOp.lpszProgressTitle = NULL;
+	WatchCurrentDirectory(FALSE);
 	int nRet = SHFileOperation(&FileOp);
-/*	if (FileOp.hNameMappings)
+	if (FileOp.hNameMappings)
 	{
 		HANDLETOMAPPINGS* phtm = (HANDLETOMAPPINGS*)FileOp.hNameMappings;
-		if (phtm->uNumberOfMappings > 0)
-		+ 
+		SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
+		aNewPath.RemoveAll();
+		int nCount = (int)phtm->uNumberOfMappings;
+		for (int i = 0; i < nCount; i++)
 		{
-			SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
-			lstrcpy(pszzBuf_NewPath, pnm->pszNewPath);
+			aNewPath.Add(pnm->pszNewPath);
+			pnm++;
 		}
 		SHFreeNameMappings(FileOp.hNameMappings);
-	}*/
+	}
 	delete[] pszzBuf_OldPath;
 	delete[] pszzBuf_NewPath;
-	for (int i=0; i<aNewPath.GetSize(); i++) AddItemByPath(aNewPath[i], TRUE); 
+	for (int i=0; i<aNewPath.GetSize(); i++) AddItemByPath(aNewPath[i], TRUE, FALSE); 
+	WatchCurrentDirectory(TRUE);
 }
 
 
@@ -958,7 +997,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 			{
 				/*CPathSet::iterator it = m_setPath.find(fd.cFileName);
 				if (it == m_setPath.end()) m_setPath.insert(fd.cFileName);
-				else bExist = TRUE; // Set을 이용해도 7000개 수준에서도 속도에 큰 차이가 없음
+				else bExist = TRUE; // 7000개 수준에서도 set을 쓰나 안쓰나 속도에 큰 차이가 없음
 				if (bExist == TRUE) // 존재하는 경우 인덱스 찾기*/
 				{
 					for (int i = 0; i < GetItemCount(); i++)
@@ -972,7 +1011,10 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 					}
 				}
 			}
-			if (bExist == FALSE) nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+			if (bExist == FALSE)
+			{
+ 				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+			}
 			if (nItem != -1)
 			{
 				if (bSelect == TRUE)
@@ -986,6 +1028,8 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 				SetItemData(nItem, itemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				SetItemText(nItem, COL_SIZE, strSize);
+				if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathType(fullpath));
+				else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
 			}
 		}
 		b = FindNextFileW(hFind, &fd);
@@ -1103,6 +1147,7 @@ int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_PATH);
 		else if (iColumn == COL_DATE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 		else if (iColumn == COL_SIZE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
+		else if (iColumn == COL_TYPE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 	}
 	else if (m_nType == LIST_TYPE_DRIVE)
 	{
@@ -1119,8 +1164,14 @@ int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 	return nRet;
 }
 
+void CFileListCtrl::SortCurrentList()
+{
+	Sort(m_nSortCol, m_bAsc);
+}
+
 void CFileListCtrl::Sort(int iColumn, BOOL bAscending, BOOL bAdd)
 {
+	//virtual 함수, 컬럼 클릭 시에도 호출된다.
 	/*if (iColumn == 1) // Using Item Data : File size
 	{
 		CMFCListCtrl::Sort(iColumn, bAscending, bAdd);
@@ -1351,6 +1402,7 @@ BOOL CFileListCtrl::RenameSelectedItem()
 		FileOp.fAnyOperationsAborted = false;
 		FileOp.hNameMappings = NULL;
 		FileOp.lpszProgressTitle = NULL;
+		WatchCurrentDirectory(FALSE);
 		int nRet = SHFileOperation(&FileOp);
 		if (FileOp.hNameMappings)
 		{
@@ -1362,6 +1414,8 @@ BOOL CFileListCtrl::RenameSelectedItem()
 			}
 			SHFreeNameMappings(FileOp.hNameMappings);
 		}
+		SetItemText(nItem, 0, Get_Name(szNewPath));
+		WatchCurrentDirectory(TRUE);
 	}
 	return TRUE;
 }

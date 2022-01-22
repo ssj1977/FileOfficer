@@ -41,7 +41,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed1 = 600;
 	m_nLayoutSizeFixed2 = 600;
-
+	m_bUseFileType = FALSE;
 	m_hIcon = NULL;
 }
 
