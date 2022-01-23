@@ -26,6 +26,7 @@
 #define IDB_TABICON                     142
 #define IDD_INPUT                       143
 #define IDD_CFG_LAYOUT                  145
+#define IDR_MENU1                       147
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -62,13 +63,15 @@
 #define IDM_CFG_LAYOUT                  32780
 #define IDM_OPEN_PREV                   32784
 #define IDM_OPEN_NEXT                   32785
+#define ID_POPUP_32788                  32788
+#define IDM_PASTE_FILE                  32789
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        147
-#define _APS_NEXT_COMMAND_VALUE         32788
+#define _APS_NEXT_RESOURCE_VALUE        148
+#define _APS_NEXT_COMMAND_VALUE         32790
 #define _APS_NEXT_CONTROL_VALUE         1025
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

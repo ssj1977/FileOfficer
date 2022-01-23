@@ -804,17 +804,19 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 
 void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 {
+	CString strDirectory = m_strFolder;
+	if (strDirectory.GetAt(strDirectory.GetLength() - 1) != L'\\') strDirectory += L'\\';
 	if (bOn == FALSE)
 	{
-		m_DirWatcher.UnwatchDirectory(m_strFolder);
+		m_DirWatcher.UnwatchDirectory(strDirectory);
 	}
 	else
 	{
 		DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
 			FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
 			FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
-		if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
-		m_DirWatcher.WatchDirectory(m_strFolder, dwNotifyFilter, &m_DirHandler, FALSE, m_strFilterInclude, m_strFilterExclude);
+		if (m_DirWatcher.IsWatchingDirectory(strDirectory)) m_DirWatcher.UnwatchDirectory(strDirectory);
+		m_DirWatcher.WatchDirectory(strDirectory, dwNotifyFilter, &m_DirHandler, FALSE, m_strFilterInclude, m_strFilterExclude);
 	}
 }
 
@@ -1329,6 +1331,7 @@ void CFileListCtrl::ClipBoardImport()
 			ProcessDropFiles(hDropInfo, bMove);
 			GlobalUnlock(hGlobal);
 		}
+		EmptyClipboard();
 		CloseClipboard();
 	}
 }
@@ -1498,4 +1501,16 @@ BOOL CFileListCtrl::IsLastPath()
 BOOL CFileListCtrl::IsRootPath()
 {
 	return m_strFolder.IsEmpty();
+}
+
+COLORREF CFileListCtrl::OnGetCellTextColor(int nRow, int nColumn)
+{
+	//if (nColumn == COL_SIZE) return RGB(255, 0, 0);
+	return GetTextColor();
+}
+
+COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
+{
+	//if (nColumn == COL_SIZE) return RGB(50, 22, 22);
+	return GetBkColor();
 }

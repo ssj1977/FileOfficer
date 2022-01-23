@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CFileListContextMenu.h"
+#include "resource.h"
 #include <Shlobj.h>
 #include <Objbase.h>
 
@@ -99,7 +100,6 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		m_pMenu = new CMenu;
 		m_pMenu->CreatePopupMenu();
 	}
-
 	if (!GetContextMenu((void**)&pContextMenu)) return 0;
 
 	// lets fill the our popupmenu  
@@ -116,6 +116,26 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 	{
 		g_oldWndProc = NULL;
 	}
+	
+	//BOOL b = IsClipboardFormatAvailable(CF_HDROP); 
+	if (m_paPath->GetSize() == 0 && IsClipboardFormatAvailable(CF_HDROP) != FALSE)
+	{
+		CString strMenuString = L"붙여넣기";
+		MENUITEMINFO mi;
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
+		mi.fType = MFT_STRING;
+		mi.fState = MFS_ENABLED;
+		mi.wID = IDM_PASTE_FILE;
+		mi.dwTypeData = strMenuString.GetBuffer();
+		m_pMenu->InsertMenuItem(0, &mi, TRUE);
+		strMenuString.ReleaseBuffer();
+
+		mi.fMask = MIIM_FTYPE;
+		mi.fType = MFT_SEPARATOR;
+		m_pMenu->InsertMenuItem(1, &mi, TRUE);
+	}
+
 
 	UINT idCommand = m_pMenu->TrackPopupMenuEx(TPM_RETURNCMD | TPM_LEFTALIGN, pt.x, pt.y, pWnd, NULL);
 	//test//
@@ -139,15 +159,6 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 
 	if (idCommand >= MIN_ID && idCommand <= MAX_ID)	// see if returned idCommand belongs to shell menu entries
 	{
-		/*int iCmdTemp = idCommand - MIN_ID;
-		CMINVOKECOMMANDINFOEX info = { 0 };
-		info.cbSize = sizeof(info);
-		info.fMask = 0x00004000;
-		info.hwnd = m_pParent->GetSafeHwnd();
-		info.lpVerb = MAKEINTRESOURCEA(iCmdTemp);
-		info.lpVerbW = MAKEINTRESOURCEW(iCmdTemp);
-		info.nShow = SW_SHOWNORMAL;
-		pContextMenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&info);*/
 		InvokeCommand(pContextMenu, idCommand - MIN_ID);	// execute related command
 		idCommand = 0;
 	}

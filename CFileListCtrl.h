@@ -109,6 +109,8 @@ public:
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 	afx_msg void OnDestroy();
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	virtual COLORREF OnGetCellTextColor(int nRow, int nColumn);
+	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
 };
 
 

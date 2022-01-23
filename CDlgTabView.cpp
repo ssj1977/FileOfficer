@@ -94,6 +94,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
+	case IDM_PASTE_FILE: ((CFileListCtrl*)CurrentList())->ClipBoardImport(); break;
 	case IDM_OPEN_PREV: ((CFileListCtrl*)CurrentList())->BrowsePathHistory(TRUE); break;
 	case IDM_OPEN_NEXT:((CFileListCtrl*)CurrentList())->BrowsePathHistory(FALSE); break;
 	case IDM_PLAY_ITEM: ((CFileListCtrl*)CurrentList())->OpenSelectedItem(); break;
