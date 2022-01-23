@@ -58,7 +58,7 @@ BOOL CFileOfficerApp::InitInstance()
 	TCHAR szBuff[MAX_PATH];
 	GetModuleFileName(m_hInstance, szBuff, MAX_PATH);
 	CString strExePath = szBuff;
-	m_strINIPath = Get_Folder(strExePath) + L"\\" + Get_Name(strExePath, FALSE) + L".ini";
+	m_strINIPath = Get_Folder(strExePath, TRUE) + Get_Name(strExePath, FALSE) + L".ini";
 	INILoad(m_strINIPath);
 	m_hIcon = LoadIcon(IDR_MAINFRAME);
 	//if (m_bEnglishUI == TRUE) SetLocale(LANG_ENGLISH);
@@ -237,8 +237,8 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("LayoutSizeType")) == 0) m_nLayoutSizeType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizePercent")) == 0) m_nLayoutSizePercent = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed1")) == 0) m_nLayoutSizeFixed1 = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0) nTabCount = (int)m_aTab1.Add(PathTabInfo(str2, 0, TRUE));
+		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2); 
+		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0)	nTabCount = (int)m_aTab1.Add(PathTabInfo(PathBackSlash(str2, FALSE), 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount != -1) m_aTab1[nTabCount].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount != -1) m_aTab1[nTabCount].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));

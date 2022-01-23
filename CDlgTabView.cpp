@@ -290,13 +290,14 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
 				TCHAR path[MAX_PATH];
-				PathCombineW(path, pList->m_strFolder, pList->m_strFilterInclude);
+				PathCombine(path, pList->m_strFolder, pList->m_strFilterInclude);
 				m_editPath.SetWindowText(path);
 			}
 			else
 			{
 				m_editPath.SetWindowText(pti.strPath);
 			}
+			m_editPath.SetSel(-1); //커서를 끝으로
 			break;
 		}
 	}
@@ -337,7 +338,6 @@ CString GetActualPath(CString strPath)
 	}
 	else
 	{
-		//strReturn = GetActualPath(strParent) + L"\\" + fd.cFileName;
 		PathCombine(path, GetActualPath(strParent), fd.cFileName);
 		strReturn = path;
 	}
@@ -349,7 +349,7 @@ void CDlgTabView::UpdateTabByPathEdit()
 {
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	CString strEdit, strPath, strName, strFilter;
-	GetDlgItemText(IDC_EDIT_PATH, strEdit);
+	m_editPath.GetWindowText(strEdit);
 	//검색필터가 들어가 있는 경우 해당 필터를 잘라낸다
 	int nTemp1 = strEdit.ReverseFind(L'\\');
 	int nTemp2 = strEdit.ReverseFind(L'*');
@@ -364,11 +364,18 @@ void CDlgTabView::UpdateTabByPathEdit()
 		strPath = strEdit;
 		strFilter.Empty();
 	}
-	TCHAR path_with_filter[MAX_PATH] = {};
 	strPath = GetActualPath(strPath);
-	PathCombine(path_with_filter, strPath, strFilter);
-	SetDlgItemText(IDC_EDIT_PATH, strPath);
-	pList->DisplayFolder_Start(path_with_filter);
+	if (strFilter.IsEmpty() == FALSE)
+	{
+		TCHAR path_with_filter[MAX_PATH] = {};
+		PathCombine(path_with_filter, strPath, strFilter);
+		pList->DisplayFolder_Start(path_with_filter);
+	}
+	else
+	{
+		pList->DisplayFolder_Start(strPath);
+	}
+	// m_editPath.SetWindowTextW(strPath); 리스트 갱신과 함께 UpdateTabByWnd()가 호출되면서 처리된다
 	strName = GetPathName(strPath);
 	SetTabTitle(m_nCurrentTab, strName);
 }

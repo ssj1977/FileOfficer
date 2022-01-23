@@ -199,3 +199,18 @@ CString Get_Ext(CString strFile, BOOL bIsDirectory, BOOL bIncludeDot)
 	strReturn = strFile.Right(strFile.GetLength() - n);
 	return strReturn;
 }
+
+CString PathBackSlash(CString strPath, BOOL bUseBackSlash)
+{
+	if (strPath.IsEmpty()) return strPath;
+	int nPos = strPath.GetLength() - 1;
+	if (strPath.GetAt(nPos) == _T('\\')) //끝이 '\' 일때
+	{
+		if (bUseBackSlash == FALSE) strPath = strPath.Left(nPos);
+	}
+	else // 끝이 '\'가 아닐때
+	{
+		if (bUseBackSlash == TRUE) strPath += _T('\\');
+	}
+	return strPath;
+}

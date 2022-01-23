@@ -356,10 +356,6 @@ void CFileListCtrl::InitColumns(int nType)
 
 CString CFileListCtrl::GetItemFullPath(int nItem)
 {
-/*	CPath path = CPath(m_strFolder);
-	path.AddBackslash();
-	path.Append(GetItemText(nItem, COL_NAME));
-	return CString(path);*/
 	if (m_nType == LIST_TYPE_FOLDER || m_nType == LIST_TYPE_UNCSERVER)
 	{
 		TCHAR path[MAX_PATH] = {};
@@ -404,15 +400,12 @@ void CFileListCtrl::OpenSelectedItem()
 	}
 }
 
+
 CString GetParentFolder(CString strFolder)
 {
 	if (strFolder.IsEmpty()) return strFolder;
-	int nPos = strFolder.GetLength() - 1;
-	if (strFolder.GetAt(nPos) == '\\')
-	{	//끝에 있는 '\' 제거
-		strFolder = strFolder.Left(nPos);
-	}
-	nPos = strFolder.ReverseFind(_T('\\'));
+	strFolder = PathBackSlash(strFolder, FALSE);
+	int nPos = strFolder.ReverseFind(_T('\\'));
 	if (nPos <= 0) return _T("");
 	return strFolder.Left(nPos);
 }
@@ -425,21 +418,8 @@ void CFileListCtrl::OpenParentFolder()
 	{
 		return;
 	}
-/*	else if (path.IsRoot())
-	{
-		DisplayFolder_Start(_T(""));
-	}*/
 	else
 	{
-		/*CString strParent = m_strFolder;
-		int nPos = strParent.ReverseFind(_T('\\'));
-		if (nPos == strParent.GetLength() - 1)
-		{
-			strParent = strParent.Left(nPos);
-			nPos = strParent.ReverseFind(_T('\\'));
-		}
-		if (nPos <= 0) return;
-		strParent = strParent.Left(nPos);*/
 		m_strFilterExclude.Empty();
 		m_strFilterInclude.Empty();
 		DisplayFolder_Start(GetParentFolder(m_strFolder));
@@ -804,8 +784,7 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 
 void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 {
-	CString strDirectory = m_strFolder;
-	if (strDirectory.GetAt(strDirectory.GetLength() - 1) != L'\\') strDirectory += L'\\';
+	CString strDirectory = PathBackSlash(m_strFolder, TRUE); // "D:" 의 경우 오동작, "D:\"로 하여야 함
 	if (bOn == FALSE)
 	{
 		m_DirWatcher.UnwatchDirectory(strDirectory);
@@ -857,9 +836,9 @@ void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 	if (aOldPath.GetSize() == 0) return;
 
 	BOOL bIsSamePath = FALSE;
-	CString strOldFolder = Get_Folder(aOldPath[0], TRUE);
+	CString strOldFolder = Get_Folder(aOldPath[0], TRUE); //'\'를 붙여서 추출
 	CString strNewFolder = m_strFolder;
-	if (strNewFolder.GetAt(strNewFolder.GetLength() - 1) != L'\\') strNewFolder += L'\\';
+	strNewFolder = PathBackSlash(strNewFolder, TRUE); //뒤에 '\'를 붙여 준다.
 	if (strOldFolder.CompareNoCase(strNewFolder) == 0) bIsSamePath = TRUE;
 
 	CStringArray aNewPath;
