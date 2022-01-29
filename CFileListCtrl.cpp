@@ -8,6 +8,7 @@
 #include "CFileListContextMenu.h"
 #include "CDlgInput.h"
 #include "EtcFunctions.h"
+#include "resource.h"
 
 #pragma comment(lib, "Netapi32.lib")
 
@@ -320,36 +321,65 @@ CString CFileListCtrl::GetCurrentItemPath()
 	return GetItemFullPath(nItem);
 }
 
+void CFileListCtrl::SetColTexts(int* pStringId, int* pColFmt, int size)
+{
+	CString strText;
+	LVCOLUMN col;
+	col.mask = LVCF_TEXT | LVCF_FMT;
+	for (int i = 0; i < size; i++)
+	{
+		strText.LoadString(*(pStringId+i));
+		col.pszText = strText.GetBuffer();
+		col.fmt = *(pColFmt+i);
+		SetColumn(i, &col);
+		strText.ReleaseBuffer();
+	}
+}
+
 
 void CFileListCtrl::InitColumns(int nType)
 {
-	int nCount = GetHeaderCtrl().GetItemCount();
-	for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
 	int nIconWidth = 0;
 	switch (m_nIconType)
 	{
-		case SHIL_SMALL: nIconWidth = 16; break;
-		case SHIL_LARGE: nIconWidth = 32; break;
-		case SHIL_EXTRALARGE: nIconWidth = 48; break;
-		case SHIL_JUMBO: nIconWidth = 256; break;
+	case SHIL_SMALL: nIconWidth = 16; break;
+	case SHIL_LARGE: nIconWidth = 32; break;
+	case SHIL_EXTRALARGE: nIconWidth = 48; break;
+	case SHIL_JUMBO: nIconWidth = 256; break;
 	}
+	int nCount = GetHeaderCtrl().GetItemCount();
+	if (nCount == 0)
+	{
+		int nWidth = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			if (m_aColWidth.GetSize() > i) nWidth = m_aColWidth[i];
+			else
+			{
+				if (i == 0) nWidth = nIconWidth + 400;
+				else nWidth = 200;
+			}
+			InsertColumn(i, _T(""), LVCFMT_LEFT, nWidth);
+		}
+	}
+	//for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
 	if (nType == LIST_TYPE_DRIVE)
 	{
-		InsertColumn(COL_NAME, _T("Drive"), LVCFMT_LEFT, nIconWidth + 150);
-		InsertColumn(COL_ALIAS, _T("Description"), LVCFMT_LEFT, 300);
-		InsertColumn(COL_FREESPACE, _T("Free"), LVCFMT_LEFT, 150);
-		InsertColumn(COL_TOTALSPACE, _T("Total"), LVCFMT_LEFT, 150);
+		int string_id[] = { IDS_COL_NAME_DRIVE, IDS_COL_ALIAS_DRIVE, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT };
+		SetColTexts(string_id, col_fmt, 4);
 	}
 	else if (nType == LIST_TYPE_FOLDER)
 	{
-		InsertColumn(COL_NAME, _T("Name"), LVCFMT_LEFT, nIconWidth + 300);
-		InsertColumn(COL_DATE, _T("Date"), LVCFMT_RIGHT, 200);
-		InsertColumn(COL_SIZE, _T("Size"), LVCFMT_RIGHT, 150);
-		InsertColumn(COL_TYPE, _T("Type"), LVCFMT_LEFT, 150);
+		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, 4);
 	}
 	else if (nType == LIST_TYPE_UNCSERVER)
 	{
-		InsertColumn(COL_NAME, _T("Folder"), LVCFMT_LEFT, nIconWidth + 300);
+		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, 4);
 	}
 	m_nType = nType;
 }

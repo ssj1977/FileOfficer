@@ -138,51 +138,6 @@ int CFileOfficerApp::ExitInstance()
 	return CWinApp::ExitInstance();
 }
 
-
-void CFileOfficerApp::INISave(CString strFile)
-{
-	CString strData, strLine, str1, str2;
-	if (m_rcMain.IsRectEmpty() == FALSE)
-	{
-		strLine.Format(_T("RectMain=%d,%d,%d,%d\r\n"), m_rcMain.left, m_rcMain.top, m_rcMain.right, m_rcMain.bottom);
-		strData += strLine;;
-	}
-	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
-	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
-	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
-	strLine.Format(_T("LayoutType=%d\r\n"), m_nLayoutType); strData += strLine;
-	strLine.Format(_T("LayoutSizeType=%d\r\n"), m_nLayoutSizeType); strData += strLine;
-	strLine.Format(_T("LayoutSizePercent=%d\r\n"), m_nLayoutSizePercent); strData += strLine;
-	strLine.Format(_T("LayoutSizeFixed1=%d\r\n"), m_nLayoutSizeFixed1); strData += strLine;
-	strLine.Format(_T("LayoutSizeFixed2=%d\r\n"), m_nLayoutSizeFixed2); strData += strLine;
-	strLine.Format(_T("DefaultViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"), 
-		m_DefaultViewOption.clrText, m_DefaultViewOption.clrBk,
-		m_DefaultViewOption.nIconType,
-		m_DefaultViewOption.nFontSize, m_DefaultViewOption.bBold,
-		m_DefaultViewOption.bUseDefaultColor, m_DefaultViewOption.bUseDefaultFont); strData += strLine;
-	for (int i = 0; i < m_aTabViewOption.GetSize(); i++)
-	{
-		TabViewOption& tvo = m_aTabViewOption.GetAt(i);
-		strLine.Format(_T("TabViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"),
-			tvo.clrText, tvo.clrBk,	tvo.nIconType, tvo.nFontSize, tvo.bBold,
-			tvo.bUseDefaultColor, tvo.bUseDefaultFont); 
-		strData += strLine;
-	}
-	for (int i = 0; i < m_aTab1.GetSize(); i++)
-	{
-		strLine.Format(_T("Tab1_Path=%s\r\n"), m_aTab1[i].strPath);	strData += strLine;
-		strLine.Format(_T("Tab1_SortCol=%d\r\n"), m_aTab1[i].iSortColumn);	strData += strLine;
-		strLine.Format(_T("Tab1_SortAscend=%d\r\n"), m_aTab1[i].bSortAscend);	strData += strLine;
-	}
-	for (int i = 0; i < m_aTab2.GetSize(); i++)
-	{
-		strLine.Format(_T("Tab2_Path=%s\r\n"), m_aTab2[i].strPath);	strData += strLine;
-		strLine.Format(_T("Tab2_SortCol=%d\r\n"), m_aTab2[i].iSortColumn);	strData += strLine;
-		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
-	}
-	WriteCStringToFile(strFile, strData);
-}
-
 static CRect ConvertString2Rect(CString& str)
 {
 	CRect rc;
@@ -218,13 +173,84 @@ static void ConvertString2ViewOption(CString& str, TabViewOption& tvo)
 	}
 }
 
+static CString UIntArray2String(CUIntArray& array)
+{
+	CString str;
+	for (int i = 0; i < array.GetSize(); i++)
+	{
+		if (str.IsEmpty() == FALSE) str += L',';
+		str += INTtoSTR((int)array[i]);
+	}
+	return str;
+}
+
+static void String2UIntArray(CString& str, CUIntArray& array)
+{
+	array.RemoveAll();
+	if (str.IsEmpty()) return;
+	CString strToken;
+	int i = 0;
+	while (AfxExtractSubString(strToken, str, i, L','))
+	{
+		array.Add((UINT)_ttoi(strToken));
+		i++;
+	}
+}
+
+void CFileOfficerApp::INISave(CString strFile)
+{
+	CString strData, strLine, str1, str2;
+	if (m_rcMain.IsRectEmpty() == FALSE)
+	{
+		strLine.Format(_T("RectMain=%d,%d,%d,%d\r\n"), m_rcMain.left, m_rcMain.top, m_rcMain.right, m_rcMain.bottom);
+		strData += strLine;;
+	}
+	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
+	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
+	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
+	strLine.Format(_T("LayoutType=%d\r\n"), m_nLayoutType); strData += strLine;
+	strLine.Format(_T("LayoutSizeType=%d\r\n"), m_nLayoutSizeType); strData += strLine;
+	strLine.Format(_T("LayoutSizePercent=%d\r\n"), m_nLayoutSizePercent); strData += strLine;
+	strLine.Format(_T("LayoutSizeFixed1=%d\r\n"), m_nLayoutSizeFixed1); strData += strLine;
+	strLine.Format(_T("LayoutSizeFixed2=%d\r\n"), m_nLayoutSizeFixed2); strData += strLine;
+	strLine.Format(_T("DefaultViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"), 
+		m_DefaultViewOption.clrText, m_DefaultViewOption.clrBk,
+		m_DefaultViewOption.nIconType,
+		m_DefaultViewOption.nFontSize, m_DefaultViewOption.bBold,
+		m_DefaultViewOption.bUseDefaultColor, m_DefaultViewOption.bUseDefaultFont); strData += strLine;
+	for (int i = 0; i < m_aTabViewOption.GetSize(); i++)
+	{
+		TabViewOption& tvo = m_aTabViewOption.GetAt(i);
+		strLine.Format(_T("TabViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"),
+			tvo.clrText, tvo.clrBk,	tvo.nIconType, tvo.nFontSize, tvo.bBold,
+			tvo.bUseDefaultColor, tvo.bUseDefaultFont); 
+		strData += strLine;
+	}
+	for (int i = 0; i < m_aTab1.GetSize(); i++)
+	{
+		strLine.Format(_T("Tab1_Path=%s\r\n"), (LPCTSTR)m_aTab1[i].strPath);	strData += strLine;
+		strLine.Format(_T("Tab1_SortCol=%d\r\n"), m_aTab1[i].iSortColumn);	strData += strLine;
+		strLine.Format(_T("Tab1_SortAscend=%d\r\n"), m_aTab1[i].bSortAscend); strData += strLine;
+		strLine.Format(_T("Tab1_ColWidths=%s\r\n"), UIntArray2String(m_aTab1[i].aColWidth)); strData += strLine;
+	}
+	for (int i = 0; i < m_aTab2.GetSize(); i++)
+	{
+		strLine.Format(_T("Tab2_Path=%s\r\n"), (LPCTSTR)m_aTab2[i].strPath);	strData += strLine;
+		strLine.Format(_T("Tab2_SortCol=%d\r\n"), m_aTab2[i].iSortColumn);	strData += strLine;
+		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
+		strLine.Format(_T("Tab2_ColWidths=%s\r\n"), UIntArray2String(m_aTab2[i].aColWidth)); strData += strLine;
+	}
+	WriteCStringToFile(strFile, strData);
+}
+
+
 void CFileOfficerApp::INILoad(CString strFile)
 {
 	CString strData, strLine, str1, str2, strTemp;
 	m_aTabViewOption.RemoveAll();
 	ReadFileToCString(strFile, strData);
 	int nPos = 0;
-	int nTabCount = -1;
+	int nTabCount1 = -1, nTabCount2 = -1;
 	while (nPos != -1)
 	{
 		nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
@@ -237,13 +263,15 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("LayoutSizeType")) == 0) m_nLayoutSizeType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizePercent")) == 0) m_nLayoutSizePercent = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed1")) == 0) m_nLayoutSizeFixed1 = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2); 
-		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0)	nTabCount = (int)m_aTab1.Add(PathTabInfo(PathBackSlash(str2, FALSE), 0, TRUE));
-		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount != -1) m_aTab1[nTabCount].iSortColumn = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount != -1) m_aTab1[nTabCount].bSortAscend = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
-		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount != -1) m_aTab2[nTabCount].iSortColumn = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount != -1) m_aTab2[nTabCount].bSortAscend = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0)	nTabCount1 = (int)m_aTab1.Add(PathTabInfo(PathBackSlash(str2, FALSE), 0, TRUE));
+		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].iSortColumn = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].bSortAscend = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab1_ColWidths")) == 0 && nTabCount1 != -1) String2UIntArray(str2, m_aTab1[nTabCount1].aColWidth);
+		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount2 = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
+		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].iSortColumn = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].bSortAscend = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);
 		else if (str1.CompareNoCase(_T("DefaultViewOption")) == 0)
 		{
 			ConvertString2ViewOption(str2, m_DefaultViewOption);

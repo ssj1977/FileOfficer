@@ -43,6 +43,7 @@ public:
 	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void InitColumns(int nType);
+	void SetColTexts(int* pStringId, int* pColFmt, int size);
 	void ShowContextMenu(CPoint pt);
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
@@ -71,6 +72,7 @@ public:
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
+	CUIntArray m_aColWidth;
 	int m_nSortCol;
 	int m_nType;
 	int m_nIconType;

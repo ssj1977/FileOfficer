@@ -43,7 +43,7 @@ public:
 	void UpdateChildFont();
 	void ConfigViewOption();
 	void UpdateToolBar();
-
+	void UpdateColWidths();
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };

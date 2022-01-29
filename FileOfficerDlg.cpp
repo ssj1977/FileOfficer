@@ -314,6 +314,8 @@ void CFileOfficerDlg::OnCancel()
 
 	ShowWindow(SW_SHOWNORMAL);
 	GetWindowRect(APP()->m_rcMain);
+	m_tv1.UpdateColWidths();
+	m_tv2.UpdateColWidths();
 	APP()->m_nCurrentTab1 = m_tv1.m_nCurrentTab;
 	APP()->m_nCurrentTab2 = m_tv2.m_nCurrentTab;
 	APP()->m_aTab1.Copy(m_tv1.m_aTabInfo);

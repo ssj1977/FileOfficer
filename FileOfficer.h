@@ -17,6 +17,7 @@ struct PathTabInfo
 	CString strPath;
 	int iSortColumn;
 	BOOL bSortAscend;
+	CUIntArray aColWidth;
 	PathTabInfo()
 	{
 		pWnd = NULL;
@@ -25,14 +26,30 @@ struct PathTabInfo
 	};
 	PathTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
 	{
-		SetTabInfo(strPath, iSortColumn, bSortAscend);
-		pWnd = NULL;
-	};
-	void SetTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
-	{
 		this->strPath = strPath;
 		this->iSortColumn = iSortColumn;
 		this->bSortAscend = bSortAscend;
+		pWnd = NULL;
+	};
+	void UpdateColWidth()
+	{
+		if (pWnd == NULL) return;
+		CListCtrl* pList = (CListCtrl*)pWnd;
+		aColWidth.RemoveAll();
+		int nCount = pList->GetHeaderCtrl()->GetItemCount();
+		for (int i = 0; i < nCount; i++)
+		{
+			aColWidth.Add((UINT)pList->GetColumnWidth(i));
+		}
+	};
+	void operator= (const PathTabInfo& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		this->strPath = pti.strPath;
+		this->iSortColumn = pti.iSortColumn;
+		this->bSortAscend = pti.bSortAscend;
+		this->pWnd = pti.pWnd;
+		this->aColWidth.RemoveAll();
+		this->aColWidth.Copy(pti.aColWidth);
 	};
 };
 typedef CArray<PathTabInfo> PathTabInfoArray;

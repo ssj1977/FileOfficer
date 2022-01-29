@@ -18,6 +18,16 @@
 #define IDS_ICON_SMALL                  58
 #define IDS_ICON_EXLARGE                59
 #define IDS_ICON_JUMBO                  60
+#define IDS_COL_NAME_DRIVE              61
+#define IDS_COL_ALIAS_DRIVE             62
+#define IDS_COL_FREESPACE_DRIVE         63
+#define IDS_COL_TOTALSPACE_DRIVE        64
+#define IDS_COL_NAME_FOLDER             65
+#define IDS_COL_DATE_FOLDER             66
+#define IDS_COL_SIZE_FOLDER             67
+#define IDS_COL_TYPE_FOLDER             68
+#define IDS_COL_NAME_UNC                69
+#define IDS_COL_EMPTY                   70
 #define IDD_FILEOFFICER_DIALOG          102
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133

@@ -180,6 +180,7 @@ BOOL CDlgTabView::OnInitDialog()
 	{
 		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath), 1);
 	}
+	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
 	SetCurrentTab(m_nCurrentTab);
 	ArrangeCtrl();
 	return TRUE;
@@ -252,6 +253,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->CMD_UpdateBar = IDM_UPDATE_BAR;
 		pList->m_nSortCol = pti.iSortColumn;
 		pList->m_bAsc = pti.bSortAscend;
+		pList->m_aColWidth.Copy(pti.aColWidth);
 		pList->m_bUseFileType = APP()->m_bUseFileType;
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(pList->m_nIconType) , LVSIL_SMALL);
@@ -641,4 +643,13 @@ void CDlgTabView::UpdateToolBar()
 	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, !(pList->IsFirstPath()));
 	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, !(pList->IsLastPath()));
 	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, !(pList->IsRootPath()));
+}
+
+
+void CDlgTabView::UpdateColWidths()
+{
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		m_aTabInfo[i].UpdateColWidth();
+	}
 }
