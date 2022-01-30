@@ -149,7 +149,7 @@ void CDlgTabView::InitToolBar()
 		nStyle = m_tool.GetButtonStyle(i);
 		if (!(nStyle & TBBS_SEPARATOR))
 		{
-			m_tool.SetButtonText(i, IDSTR(IDS_TB_00 + nTextIndex));
+			//m_tool.SetButtonText(i, IDSTR(IDS_TB_00 + nTextIndex));
 			nTextIndex += 1;
 		}
 	}
