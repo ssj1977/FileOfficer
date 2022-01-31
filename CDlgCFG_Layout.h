@@ -26,6 +26,7 @@ public:
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed1;
 	int m_nLayoutSizeFixed2;
+	BOOL m_bToolBarText;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME

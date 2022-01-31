@@ -125,7 +125,7 @@ public:
 	int m_nLayoutSizeFixed1;
 	int m_nLayoutSizeFixed2;
 	BOOL m_bUseFileType;
-
+	BOOL m_bToolBarText;
 public:
 	void INISave(CString strFile);
 	void INILoad(CString strFile);

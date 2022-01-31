@@ -29,6 +29,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_nCurrentTab = 0;
 	m_bSelected = FALSE;
 	m_nViewOptionIndex = -1;
+	m_pTool = NULL;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -140,17 +141,20 @@ void CDlgTabView::OnOK()
 
 void CDlgTabView::InitToolBar()
 {
-	m_tool.LoadToolBar(IDR_TB_TAB);
+	//툴바를 두개 만든다 텍스트 있는것/없는것
+	//텍스트를 동적으로 넣었다 빼는 경우 빼더라도 버튼 크기가 완전히 줄어들지 않음(MFC의 버그)
+	m_toolIcon.LoadToolBar(IDR_TB_TAB);
+	m_toolText.LoadToolBar(IDR_TB_TAB);
 	UINT nStyle;
-	int nCount = m_tool.GetCount();
+	int nCount = m_toolText.GetCount();
 	int nTextIndex = 0;
 	for (int i = 0; i < nCount; i++)
 	{
-		nStyle = m_tool.GetButtonStyle(i);
+		nStyle = m_toolText.GetButtonStyle(i);
 		if (!(nStyle & TBBS_SEPARATOR))
 		{
-			//m_tool.SetButtonText(i, IDSTR(IDS_TB_00 + nTextIndex));
-			nTextIndex += 1;
+			m_toolText.SetButtonText(i, IDSTR(IDS_TB_00 + nTextIndex));
+			nTextIndex++;
 		}
 	}
 }
@@ -159,7 +163,8 @@ BOOL CDlgTabView::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 	InitFont();
-	m_tool.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
+	m_toolIcon.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
+	m_toolText.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	UpdateChildFont();
 	InitToolBar();
 	m_editPath.EnableFolderBrowseButton();
@@ -182,6 +187,7 @@ BOOL CDlgTabView::OnInitDialog()
 	}
 	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
 	SetCurrentTab(m_nCurrentTab);
+	UpdateToolBar();
 	ArrangeCtrl();
 	return TRUE;
 }
@@ -396,6 +402,7 @@ void CDlgTabView::SetTabTitle(int nTab, CString strTitle)
 
 void CDlgTabView::ArrangeCtrl()
 {
+	if (m_pTool == NULL) return;
 	CRect rc;
 	GetClientRect(rc);
 	rc.DeflateRect(3, 3, 3, 3);
@@ -406,17 +413,17 @@ void CDlgTabView::ArrangeCtrl()
 	rc.top += BH;
 	rc.top += 2;
 	//Toolbar
-	DWORD btnsize = m_tool.GetToolBarCtrl().GetButtonSize();
+	DWORD btnsize = m_pTool->GetToolBarCtrl().GetButtonSize();
 	int nHP = 0, nVP = 0; //Horizontal / Vertical
-	m_tool.GetToolBarCtrl().GetPadding(nHP, nVP);
+	m_pTool->GetToolBarCtrl().GetPadding(nHP, nVP);
 	int nBtnW = (LOWORD(btnsize) + nHP);
 	int nBtnH = (HIWORD(btnsize) + nVP);
 	int nBtnLineCount = TW / nBtnW; if (nBtnLineCount == 0) nBtnLineCount = 1;
-	int nBtnTotalCount = m_tool.GetToolBarCtrl().GetButtonCount() / 2;
+	int nBtnTotalCount = m_pTool->GetToolBarCtrl().GetButtonCount() / 2;
 	int nRow = (nBtnTotalCount / nBtnLineCount) + 1;
 	int nH = nBtnH * nRow;
-	m_tool.MoveWindow(rc.left, rc.top, TW, nH);
-	m_tool.Invalidate();
+	m_pTool->MoveWindow(rc.left, rc.top, TW, nH);
+	m_pTool->Invalidate();
 	rc.top += nH;
 	rc.top += 2;
 	//Tab Part
@@ -431,8 +438,6 @@ void CDlgTabView::ArrangeCtrl()
 	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH + 2, TW, BH - 2);
 	GetDlgItem(IDC_ST_BAR)->Invalidate();
 }
-
-
 
 
 BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
@@ -618,12 +623,7 @@ void CDlgTabView::InitFont()
 
 void CDlgTabView::UpdateChildFont()
 {
-	if (::IsWindow(m_tool.GetSafeHwnd()))
-	{
-		m_tool.SetFont(&m_font);
-		InitToolBar();
-		//m_tool.GetToolBarCtrl().AutoSize();
-	}
+	if (::IsWindow(m_toolText.GetSafeHwnd())) m_toolText.SetFont(&m_font);
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) m_tabPath.SetFont(&m_font);
 	if (::IsWindow(m_editPath.GetSafeHwnd())) m_editPath.SetFont(&m_font);
 	GetDlgItem(IDC_ST_BAR)->SetFont(&m_font);
@@ -639,10 +639,16 @@ void CDlgTabView::UpdateChildFont()
 
 void CDlgTabView::UpdateToolBar()
 {
+	m_pTool = (APP()->m_bToolBarText) ? &m_toolText : &m_toolIcon;
+	m_toolText.ShowWindow((APP()->m_bToolBarText) ? SW_SHOW : SW_HIDE);
+	m_toolIcon.ShowWindow((APP()->m_bToolBarText) ? SW_HIDE : SW_SHOW);
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, !(pList->IsFirstPath()));
-	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, !(pList->IsLastPath()));
-	m_tool.GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, !(pList->IsRootPath()));
+	if (pList)
+	{
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, !(pList->IsFirstPath()));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, !(pList->IsLastPath()));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, !(pList->IsRootPath()));
+	}
 }
 
 

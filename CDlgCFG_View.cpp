@@ -48,14 +48,14 @@ BOOL CDlgCFG_View::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->SetCheck(m_bUseDefaultColor);
+	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->SetCheck(m_bUseDefaultColor ? BST_CHECKED : BST_UNCHECKED);
 	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
 	pColorBk->SetColor(m_clrBk);
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
 	pColorText->SetColor(m_clrText);
 
-	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->SetCheck(m_bUseDefaultFont);
-	((CButton*)GetDlgItem(IDC_CHK_BOLD))->SetCheck(m_bBold);
+	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->SetCheck(m_bUseDefaultFont ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_BOLD))->SetCheck(m_bBold ? BST_CHECKED : BST_UNCHECKED);
 	CString strTemp;
 	strTemp.Format(_T("%d"), m_nFontSize);
 	GetDlgItem(IDC_EDIT_FONTSIZE)->SetWindowText(strTemp);
@@ -102,9 +102,9 @@ void CDlgCFG_View::OnOK()
 	m_clrBk = pColorBk->GetColor();
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
 	m_clrText = pColorText->GetColor();
-	m_bUseDefaultColor = ((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->GetCheck();
-	m_bUseDefaultFont = ((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->GetCheck();
-	m_bBold = ((CButton*)GetDlgItem(IDC_CHK_BOLD))->GetCheck();
+	m_bUseDefaultColor = (((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bUseDefaultFont = (((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bBold = (((CButton*)GetDlgItem(IDC_CHK_BOLD))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	CString strTemp;
 	GetDlgItem(IDC_EDIT_FONTSIZE)->GetWindowText(strTemp);
 	m_nFontSize = _ttoi(strTemp);

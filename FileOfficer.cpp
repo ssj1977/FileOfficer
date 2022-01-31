@@ -42,6 +42,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizeFixed1 = 600;
 	m_nLayoutSizeFixed2 = 600;
 	m_bUseFileType = FALSE;
+	m_bToolBarText = TRUE;
 	m_hIcon = NULL;
 }
 
@@ -213,6 +214,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("LayoutSizePercent=%d\r\n"), m_nLayoutSizePercent); strData += strLine;
 	strLine.Format(_T("LayoutSizeFixed1=%d\r\n"), m_nLayoutSizeFixed1); strData += strLine;
 	strLine.Format(_T("LayoutSizeFixed2=%d\r\n"), m_nLayoutSizeFixed2); strData += strLine;
+	strLine.Format(_T("ToolBarText=%d\r\n"), m_bToolBarText); strData += strLine;
 	strLine.Format(_T("DefaultViewOption=%d,%d,%d,%d,%d,%d,%d\r\n"), 
 		m_DefaultViewOption.clrText, m_DefaultViewOption.clrBk,
 		m_DefaultViewOption.nIconType,
@@ -264,6 +266,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("LayoutSizePercent")) == 0) m_nLayoutSizePercent = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed1")) == 0) m_nLayoutSizeFixed1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ToolBarText")) == 0) m_bToolBarText = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0)	nTabCount1 = (int)m_aTab1.Add(PathTabInfo(PathBackSlash(str2, FALSE), 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].bSortAscend = _ttoi(str2);

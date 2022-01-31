@@ -61,6 +61,7 @@
 #define IDC_EDIT_LAYOUT_PERCENT         1022
 #define IDC_EDIT_LAYOUT_FIXED_1         1023
 #define IDC_EDIT_LAYOUT_FIXED_2         1024
+#define IDC_CHECK_TOOLBARTEXT           1025
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -82,7 +83,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         32790
-#define _APS_NEXT_CONTROL_VALUE         1025
+#define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

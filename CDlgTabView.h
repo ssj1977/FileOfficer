@@ -16,7 +16,9 @@ public:
 	int m_nCurrentTab;
 	int m_nViewOptionIndex;
 	int m_lfHeight;
-	CToolBar m_tool;
+	CToolBar* m_pTool;
+	CToolBar m_toolIcon;
+	CToolBar m_toolText;
 	CFont m_font;
 	BOOL m_bSelected;
 	void ArrangeCtrl();

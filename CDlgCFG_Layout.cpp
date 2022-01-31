@@ -19,6 +19,7 @@ CDlgCFG_Layout::CDlgCFG_Layout(CWnd* pParent /*=nullptr*/)
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed1 = 600;
 	m_nLayoutSizeFixed2 = 600;
+	m_bToolBarText = TRUE;
 }
 
 CDlgCFG_Layout::~CDlgCFG_Layout()
@@ -75,6 +76,7 @@ BOOL CDlgCFG_Layout::OnInitDialog()
 	strTemp.Format(L"%d", m_nLayoutSizeFixed2);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2))->SetWindowText(strTemp);
 	// TODO:  여기에 추가 초기화 작업을 추가합니다.
+	((CButton*)GetDlgItem(IDC_CHECK_TOOLBARTEXT))->SetCheck(m_bToolBarText ? BST_CHECKED : BST_UNCHECKED);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
@@ -97,6 +99,7 @@ void CDlgCFG_Layout::OnOK()
 	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_1, strTemp); m_nLayoutSizeFixed1 = _ttoi(strTemp);
 	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_2, strTemp); m_nLayoutSizeFixed2 = _ttoi(strTemp);
 
+	m_bToolBarText = (((CButton*)GetDlgItem(IDC_CHECK_TOOLBARTEXT))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	CDialogEx::OnOK();
 }
 
