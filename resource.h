@@ -5,6 +5,7 @@
 #define IDS_CONFIRM_EXIT                10
 #define IDS_CONFIRM_TRASH               11
 #define IDS_CONFIRM_DELETE              12
+#define IDS_BKIMG_PATH                  13
 #define IDS_TB_00                       20
 #define IDS_TB_01                       21
 #define IDS_TB_02                       22
@@ -52,6 +53,7 @@
 #define IDC_ST_FONTSIZE                 1013
 #define IDC_CHK_BOLD                    1014
 #define IDC_RADIO_LAYOUT_HORIZONTAL     1015
+#define IDC_ST_COLOR_RULE_TITLE         1015
 #define IDC_RADIO_LAYOUT_VERTICAL       1016
 #define IDC_RADIO_LAYOUT_SINGLE_1       1017
 #define IDC_RADIO_LAYOUT_SINGLE_2       1018
@@ -62,6 +64,15 @@
 #define IDC_EDIT_LAYOUT_FIXED_1         1023
 #define IDC_EDIT_LAYOUT_FIXED_2         1024
 #define IDC_CHECK_TOOLBARTEXT           1025
+#define IDC_LIST_COLOR_RULE             1026
+#define IDC_BTN_COLOR_RULE_ADD          1027
+#define IDC_BTN_COLOR_RULE_EDIT         1028
+#define IDC_BTN_COLOR_RULE_DEL          1029
+#define IDC_BTN_COLOR_RULE_DOWN         1030
+#define IDC_BTN_COLOR_RULE_UP           1031
+#define IDC_EDIT_BKIMG_PATH             1032
+#define IDC_BTN_BKIMG_PATH              1033
+#define IDC_CHK_BKIMG                   1034
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -83,7 +94,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        148
 #define _APS_NEXT_COMMAND_VALUE         32790
-#define _APS_NEXT_CONTROL_VALUE         1026
+#define _APS_NEXT_CONTROL_VALUE         1035
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

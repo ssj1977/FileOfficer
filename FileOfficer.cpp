@@ -43,6 +43,8 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizeFixed2 = 600;
 	//m_bUseFileType = FALSE;
 	m_bToolBarText = TRUE;
+	m_bBkImg1 = FALSE;
+	m_bBkImg2 = FALSE;
 	m_hIcon = NULL;
 }
 
@@ -235,6 +237,8 @@ void CFileOfficerApp::INISave(CString strFile)
 		strLine.Format(_T("Tab1_SortAscend=%d\r\n"), m_aTab1[i].bSortAscend); strData += strLine;
 		strLine.Format(_T("Tab1_ColWidths=%s\r\n"), UIntArray2String(m_aTab1[i].aColWidth)); strData += strLine;
 	}
+	strLine.Format(_T("Tab1_BkImg=%d\r\n"), m_bBkImg1); strData += strLine;
+	strLine.Format(_T("Tab1_BkImgPath=%s\r\n"), m_strBkImgPath1); strData += strLine;
 	for (int i = 0; i < m_aTab2.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab2_Path=%s\r\n"), (LPCTSTR)m_aTab2[i].strPath);	strData += strLine;
@@ -242,6 +246,8 @@ void CFileOfficerApp::INISave(CString strFile)
 		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
 		strLine.Format(_T("Tab2_ColWidths=%s\r\n"), UIntArray2String(m_aTab2[i].aColWidth)); strData += strLine;
 	}
+	strLine.Format(_T("Tab2_BkImg=%d\r\n"), m_bBkImg2); strData += strLine;
+	strLine.Format(_T("Tab2_BkImgPath=%s\r\n"), m_strBkImgPath2); strData += strLine;
 	WriteCStringToFile(strFile, strData);
 }
 
@@ -271,10 +277,14 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_ColWidths")) == 0 && nTabCount1 != -1) String2UIntArray(str2, m_aTab1[nTabCount1].aColWidth);
+		else if (str1.CompareNoCase(_T("Tab1_BkImg")) == 0 && nTabCount1 != -1) m_bBkImg1 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab1_BkImgPath")) == 0 && nTabCount1 != -1) m_strBkImgPath1 = str2;
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount2 = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);
+		else if (str1.CompareNoCase(_T("Tab2_BkImg")) == 0 && nTabCount1 != -1) m_bBkImg2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("Tab2_BkImgPath")) == 0 && nTabCount1 != -1) m_strBkImgPath2 = str2;
 		else if (str1.CompareNoCase(_T("DefaultViewOption")) == 0)
 		{
 			ConvertString2ViewOption(str2, m_DefaultViewOption);

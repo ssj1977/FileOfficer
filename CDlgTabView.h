@@ -16,6 +16,8 @@ public:
 	int m_nCurrentTab;
 	int m_nViewOptionIndex;
 	int m_lfHeight;
+	BOOL m_bBkImg;
+	CString m_strBkImgPath;
 	CToolBar* m_pTool;
 	CToolBar m_toolIcon;
 	CToolBar m_toolText;
@@ -46,6 +48,8 @@ public:
 	void ConfigViewOption();
 	void UpdateToolBar();
 	void UpdateColWidths();
+	void UpdateBkImg(CWnd* pWnd);
+	void UpdateBkImgAll();
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };

@@ -23,6 +23,7 @@ CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	m_bUseDefaultFont = TRUE;
 	m_nIconType = SHIL_SMALL;
 	m_bBold = FALSE;
+	m_bBkImg = FALSE;
 }
 
 CDlgCFG_View::~CDlgCFG_View()
@@ -32,12 +33,20 @@ CDlgCFG_View::~CDlgCFG_View()
 void CDlgCFG_View::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_LIST_COLOR_RULE, m_listColorRule);
 }
 
 
 BEGIN_MESSAGE_MAP(CDlgCFG_View, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_DEFAULT_COLOR, &CDlgCFG_View::OnBnClickedCheckDefaultColor)
 	ON_BN_CLICKED(IDC_CHECK_DEFAULT_FONT, &CDlgCFG_View::OnBnClickedCheckDefaultFont)
+	ON_BN_CLICKED(IDC_BTN_COLOR_RULE_ADD, &CDlgCFG_View::OnBnClickedBtnColorRuleAdd)
+	ON_BN_CLICKED(IDC_BTN_COLOR_RULE_EDIT, &CDlgCFG_View::OnBnClickedBtnColorRuleEdit)
+	ON_BN_CLICKED(IDC_BTN_COLOR_RULE_DEL, &CDlgCFG_View::OnBnClickedBtnColorRuleDel)
+	ON_BN_CLICKED(IDC_BTN_COLOR_RULE_UP, &CDlgCFG_View::OnBnClickedBtnColorRuleUp)
+	ON_BN_CLICKED(IDC_BTN_COLOR_RULE_DOWN, &CDlgCFG_View::OnBnClickedBtnColorRuleDown)
+	ON_BN_CLICKED(IDC_BTN_BKIMG_PATH, &CDlgCFG_View::OnBnClickedBtnBkimgPath)
+	ON_BN_CLICKED(IDC_CHK_BKIMG, &CDlgCFG_View::OnBnClickedChkBkimg)
 END_MESSAGE_MAP()
 
 
@@ -80,6 +89,8 @@ BOOL CDlgCFG_View::OnInitDialog()
 		}
 	}
 
+	((CButton*)GetDlgItem(IDC_CHK_BKIMG))->SetCheck(m_bBkImg ? BST_CHECKED : BST_UNCHECKED);
+	SetDlgItemText(IDC_EDIT_BKIMG_PATH, m_strBkImgPath);
 	UpdateControl();
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
@@ -93,6 +104,8 @@ void CDlgCFG_View::UpdateControl()
 	GetDlgItem(IDC_ST_COLOR_TEXT)->EnableWindow(!m_bUseDefaultColor);
 	GetDlgItem(IDC_EDIT_FONTSIZE)->EnableWindow(!m_bUseDefaultFont);
 	GetDlgItem(IDC_ST_FONTSIZE)->EnableWindow(!m_bUseDefaultFont);
+	GetDlgItem(IDC_EDIT_BKIMG_PATH)->EnableWindow(m_bBkImg);
+	GetDlgItem(IDC_BTN_BKIMG_PATH)->EnableWindow(m_bBkImg);
 }
 
 
@@ -115,6 +128,9 @@ void CDlgCFG_View::OnOK()
 	}
 	CComboBox* pCB = (CComboBox*)GetDlgItem(IDC_CB_ICONSIZE);
 	m_nIconType = (int)pCB->GetItemData(pCB->GetCurSel());
+	m_bBkImg = (((CButton*)GetDlgItem(IDC_CHK_BKIMG))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	GetDlgItemText(IDC_EDIT_BKIMG_PATH, m_strBkImgPath);
+
 	CDialogEx::OnOK();
 }
 
@@ -125,7 +141,6 @@ void CDlgCFG_View::OnCancel()
 
 	CDialogEx::OnCancel();
 }
-
 
 
 void CDlgCFG_View::OnBnClickedCheckDefaultColor()
@@ -141,3 +156,54 @@ void CDlgCFG_View::OnBnClickedCheckDefaultFont()
 	UpdateControl();
 }
 
+
+void CDlgCFG_View::OnBnClickedBtnColorRuleAdd()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnColorRuleEdit()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnColorRuleDel()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnColorRuleUp()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnColorRuleDown()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnBkimgPath()
+{
+	CFileDialog dlg(TRUE, NULL, NULL, OFN_ENABLESIZING | OFN_LONGNAMES | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY
+		,_T("Image Files|*.BMP;*.GIF;*.JPG;*.JPEG;*.PNG|All Files(*.*)|*.*||"), this);
+	CString strTitle;
+	strTitle.LoadString(IDS_BKIMG_PATH);
+	dlg.GetOFN().lpstrTitle = strTitle;
+	dlg.GetOFN().hwndOwner = this->GetSafeHwnd();
+	if (dlg.DoModal() == IDOK)
+	{
+		SetDlgItemText(IDC_EDIT_BKIMG_PATH, dlg.GetPathName());
+	}
+}
+
+
+void CDlgCFG_View::OnBnClickedChkBkimg()
+{
+	m_bBkImg = (((CButton*)GetDlgItem(IDC_CHK_BKIMG))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	UpdateControl();
+}

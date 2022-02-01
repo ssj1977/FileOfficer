@@ -30,6 +30,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_bSelected = FALSE;
 	m_nViewOptionIndex = -1;
 	m_pTool = NULL;
+	m_bBkImg = FALSE;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -268,7 +269,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	}
 	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
-	//pList->SetBkImage(_T("d:\\test.jpg"), FALSE, 100, 10);
+	UpdateBkImg(pList);
 	pList->ShowWindow(SW_SHOW);
 	m_nCurrentTab = nTab;
 	m_tabPath.SetCurSel(nTab);
@@ -552,6 +553,8 @@ void CDlgTabView::ConfigViewOption()
 	dlg.m_bBold = tvo.bBold;
 	dlg.m_bUseDefaultColor = tvo.bUseDefaultColor;
 	dlg.m_bUseDefaultFont = tvo.bUseDefaultFont;
+	dlg.m_bBkImg = m_bBkImg;
+	dlg.m_strBkImgPath = m_strBkImgPath;
 	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
 	if (dlg.DoModal() == IDOK)
 	{
@@ -604,7 +607,45 @@ void CDlgTabView::ConfigViewOption()
 		{
 			SetIconType(dlg.m_nIconType);
 		}
+		//Background Image Path
+		if (dlg.m_bBkImg != m_bBkImg || dlg.m_strBkImgPath != m_strBkImgPath)
+		{
+			m_bBkImg = dlg.m_bBkImg;
+			m_strBkImgPath = dlg.m_strBkImgPath;
+			UpdateBkImgAll();
+		}
 		RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
+	}
+}
+
+void CDlgTabView::UpdateBkImgAll()
+{
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;;
+			if (IsWindow(pList->GetSafeHwnd()))
+			{
+				UpdateBkImg(pList);
+			}
+		}
+	}
+}
+
+void CDlgTabView::UpdateBkImg(CWnd* pWnd)
+{
+	CFileListCtrl* pList = (CFileListCtrl*)pWnd;;
+	if (m_bBkImg)
+	{
+		pList->SetBkImage(m_strBkImgPath.GetBuffer(), TRUE, 0, 0);
+		m_strBkImgPath.ReleaseBuffer();
+	}
+	else
+	{
+		LVBKIMAGE li;
+		li.ulFlags = LVBKIF_SOURCE_NONE;
+		pList->SetBkImage(&li);
 	}
 }
 

@@ -75,6 +75,10 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
 	m_tv1.m_nCurrentTab = APP()->m_nCurrentTab1;
 	m_tv2.m_nCurrentTab = APP()->m_nCurrentTab2;
+	m_tv1.m_bBkImg = APP()->m_bBkImg1;
+	m_tv2.m_bBkImg = APP()->m_bBkImg2;
+	m_tv1.m_strBkImgPath = APP()->m_strBkImgPath1;
+	m_tv2.m_strBkImgPath = APP()->m_strBkImgPath2;
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
@@ -327,6 +331,12 @@ void CFileOfficerDlg::OnCancel()
 	m_tv2.UpdateColWidths();
 	APP()->m_nCurrentTab1 = m_tv1.m_nCurrentTab;
 	APP()->m_nCurrentTab2 = m_tv2.m_nCurrentTab;
+
+	APP()->m_bBkImg1 = m_tv1.m_bBkImg;
+	APP()->m_bBkImg2 = m_tv2.m_bBkImg;
+	APP()->m_strBkImgPath1 = m_tv1.m_strBkImgPath;
+	APP()->m_strBkImgPath2 = m_tv2.m_strBkImgPath;
+
 	APP()->m_aTab1.Copy(m_tv1.m_aTabInfo);
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
 	if (m_tv1.BreakThreads() == TRUE)
