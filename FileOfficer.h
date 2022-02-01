@@ -124,7 +124,7 @@ public:
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed1;
 	int m_nLayoutSizeFixed2;
-	BOOL m_bUseFileType;
+	//BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요
 	BOOL m_bToolBarText;
 public:
 	void INISave(CString strFile);

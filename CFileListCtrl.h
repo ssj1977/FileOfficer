@@ -71,7 +71,7 @@ public:
 //	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
-	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
+	//BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	CUIntArray m_aColWidth;
 	int m_nSortCol;
 	int m_nType;

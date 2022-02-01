@@ -17,6 +17,8 @@
 #include <map>
 typedef std::map<CString, int> CExtMap; //확장자에 해당하는 이미지맵의 번호를 기억
 static CExtMap mapExt;
+typedef std::map<CString, CString> CTypeMap;
+static CTypeMap mapType;
 
 //기본 이미지맵 번호
 #define SI_UNKNOWN 0 //Unknown File Type
@@ -87,8 +89,9 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 		//return GetFileImageIndex(_T(""));
 		return 3;		// SI_FOLDER_CLOSE
 	}
-	CPath path = CPath(strPath);
-	CString strExt = path.GetExtension();
+	//CPath path = CPath(strPath);
+	//CString strExt = path.GetExtension();
+	CString strExt = Get_Ext(strPath, bIsDirectory, TRUE);
 	if (strExt.CompareNoCase(_T(".exe")) == 0
 		|| strExt.CompareNoCase(_T(".ico")) == 0
 		|| strExt.CompareNoCase(_T(".lnk")) == 0
@@ -135,6 +138,22 @@ CString GetPathType(CString strPath)
 	ILFree(pidl);
 	return strReturn;
 }
+
+CString GetPathTypeFromMap(CString strPath, BOOL bIsDirectory)
+{
+	if (bIsDirectory) return _T("");
+	CString strType;
+	CString strExt = Get_Ext(strPath, FALSE, FALSE);
+	CTypeMap::iterator it = mapType.find(strExt);
+	if (it == mapType.end())
+	{
+		strType = GetPathType(strPath);
+		mapType.insert(CTypeMap::value_type(strExt, strType));
+		return strType;
+	}
+	return (*it).second;
+}
+
 
 void GetPathInfo(CString strPath, CString& strDisplayName, CString& strTypeName)
 {
@@ -286,7 +305,7 @@ CFileListCtrl::CFileListCtrl()
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
 	m_bMenuOn = FALSE;
-	m_bUseFileType = FALSE;
+	//m_bUseFileType = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -1039,8 +1058,9 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 				SetItemData(nItem, itemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				SetItemText(nItem, COL_SIZE, strSize);
-				if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathType(fullpath));
-				else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
+				//if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathType(fullpath));
+				//else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
+				SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
 			}
 		}
 		b = FindNextFileW(hFind, &fd);

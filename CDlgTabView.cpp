@@ -260,7 +260,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->m_nSortCol = pti.iSortColumn;
 		pList->m_bAsc = pti.bSortAscend;
 		pList->m_aColWidth.Copy(pti.aColWidth);
-		pList->m_bUseFileType = APP()->m_bUseFileType;
+		//pList->m_bUseFileType = APP()->m_bUseFileType;
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(pList->m_nIconType) , LVSIL_SMALL);
 		pti.pWnd = (CWnd*)pList;
@@ -268,6 +268,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	}
 	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
+	//pList->SetBkImage(_T("d:\\test.jpg"), FALSE, 100, 10);
 	pList->ShowWindow(SW_SHOW);
 	m_nCurrentTab = nTab;
 	m_tabPath.SetCurSel(nTab);
