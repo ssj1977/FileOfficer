@@ -638,7 +638,7 @@ void CDlgTabView::UpdateBkImg(CWnd* pWnd)
 	CFileListCtrl* pList = (CFileListCtrl*)pWnd;;
 	if (m_bBkImg)
 	{
-		pList->SetBkImage(m_strBkImgPath.GetBuffer(), TRUE, 0, 0);
+		pList->SetBkImage(m_strBkImgPath.GetBuffer(), FALSE, 0, 0);
 		m_strBkImgPath.ReleaseBuffer();
 	}
 	else
