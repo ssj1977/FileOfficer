@@ -279,6 +279,13 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 
 BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 {
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_ESCAPE)
+		{
+			return TRUE;
+		}
+	}
 /*	CWnd* pWnd = GetFocus();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
@@ -318,7 +325,7 @@ void CFileOfficerDlg::OnSize(UINT nType, int cx, int cy)
 
 void CFileOfficerDlg::OnCancel()
 {
-	if (AfxMessageBox(IDSTR(IDS_CONFIRM_EXIT), MB_OKCANCEL) == IDCANCEL) return;
+//	if (AfxMessageBox(IDSTR(IDS_CONFIRM_EXIT), MB_OKCANCEL) == IDCANCEL) return;
 
 	CWnd* pWnd = GetFocus();
 	if (pWnd == m_tv1.CurrentList() || pWnd == &m_tv1) APP()->m_nFocus = 1;

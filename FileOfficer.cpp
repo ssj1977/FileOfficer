@@ -17,7 +17,7 @@
 // CFileOfficerApp
 
 BEGIN_MESSAGE_MAP(CFileOfficerApp, CWinApp)
-	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
+	//ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
 
@@ -58,8 +58,8 @@ CFileOfficerApp theApp;
 
 BOOL CFileOfficerApp::InitInstance()
 {
-	TCHAR szBuff[MAX_PATH];
-	GetModuleFileName(m_hInstance, szBuff, MAX_PATH);
+	TCHAR szBuff[MY_MAX_PATH];
+	GetModuleFileName(m_hInstance, szBuff, MY_MAX_PATH);
 	CString strExePath = szBuff;
 	m_strINIPath = Get_Folder(strExePath, TRUE) + Get_Name(strExePath, FALSE) + L".ini";
 	INILoad(m_strINIPath);

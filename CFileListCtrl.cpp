@@ -1,4 +1,5 @@
 ﻿#include "pch.h"
+#include "FileOfficer.h"
 #include "CFileListCtrl.h"
 #include <shlwapi.h>
 #include <shellapi.h>
@@ -407,7 +408,7 @@ CString CFileListCtrl::GetItemFullPath(int nItem)
 {
 	if (m_nType == LIST_TYPE_FOLDER || m_nType == LIST_TYPE_UNCSERVER)
 	{
-		TCHAR path[MAX_PATH] = {};
+		TCHAR path[MY_MAX_PATH] = {};
 		PathCombineW(path, m_strFolder, GetItemText(nItem, COL_NAME));
 		return path;
 	}
@@ -851,15 +852,15 @@ void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
-	TCHAR szFilePath[MAX_PATH];
-	size_t bufsize = sizeof(TCHAR) * MAX_PATH;
+	TCHAR szFilePath[MY_MAX_PATH];
+	size_t bufsize = sizeof(TCHAR) * MY_MAX_PATH;
 	memset(szFilePath, 0, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	int nStart = GetItemCount();
 	CStringArray aPath;
 	for (int i = 0; i < cFiles; i++)
 	{
-		DragQueryFile(hDropInfo, i, szFilePath, MAX_PATH);
+		DragQueryFile(hDropInfo, i, szFilePath, MY_MAX_PATH);
 		aPath.Add(szFilePath);
 	}
 	PasteFiles(aPath, bMove);
@@ -991,7 +992,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 	ULARGE_INTEGER filesize;
 	CTime tTemp;
 	BOOL b = TRUE, bIsDir = FALSE;
-	TCHAR fullpath[MAX_PATH];
+	TCHAR fullpath[MY_MAX_PATH];
 	CString strDir = Get_Folder(strPath);
 	BOOL bSelect = !(strSelectByName.IsEmpty());
 	while (b)
@@ -1415,10 +1416,10 @@ BOOL CFileListCtrl::RenameSelectedItem()
 	if (dlg.DoModal() == IDOK)
 	{
 		CString strPath = GetItemFullPath(nItem);
-		TCHAR szOldPath[MAX_PATH];
-		TCHAR szNewPath[MAX_PATH];
-		memset(szOldPath, 0, MAX_PATH * sizeof(TCHAR));
-		memset(szNewPath, 0, MAX_PATH * sizeof(TCHAR));
+		TCHAR szOldPath[MY_MAX_PATH];
+		TCHAR szNewPath[MY_MAX_PATH];
+		memset(szOldPath, 0, MY_MAX_PATH * sizeof(TCHAR));
+		memset(szNewPath, 0, MY_MAX_PATH * sizeof(TCHAR));
 		lstrcpy(szOldPath, (LPCTSTR)strPath);
 		PathCombineW(szNewPath, m_strFolder, dlg.m_strInput);
 

@@ -31,6 +31,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_nViewOptionIndex = -1;
 	m_pTool = NULL;
 	m_bBkImg = FALSE;
+	m_bFindMode = FALSE;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -48,6 +49,7 @@ void CDlgTabView::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_WM_SIZE()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_PATH, &CDlgTabView::OnTcnSelchangeTabPath)
+	ON_BN_CLICKED(IDC_BTN_FIND, &CDlgTabView::OnBnClickedBtnFind)
 END_MESSAGE_MAP()
 
 
@@ -96,7 +98,19 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
-	case IDM_PASTE_FILE: ((CFileListCtrl*)CurrentList())->ClipBoardImport(); break;
+	case IDM_FILE_DELETE:
+		((CFileListCtrl*)CurrentList())->DeleteSelected(((GetKeyState(VK_SHIFT) & 0xFF00) != 0) ? FALSE : TRUE);
+		break;
+	case IDM_FILE_COPY:
+		((CFileListCtrl*)CurrentList())->ClipBoardExport(FALSE);
+		break;
+	case IDM_FILE_CUT:
+		((CFileListCtrl*)CurrentList())->ClipBoardExport(TRUE);
+		break;
+	case IDM_FILE_PASTE: //툴바에서 오는 경우
+	case IDM_PASTE_FILE:  //메뉴에서 오는 경우
+		((CFileListCtrl*)CurrentList())->ClipBoardImport(); 
+		break; 
 	case IDM_OPEN_PREV: ((CFileListCtrl*)CurrentList())->BrowsePathHistory(TRUE); break;
 	case IDM_OPEN_NEXT:((CFileListCtrl*)CurrentList())->BrowsePathHistory(FALSE); break;
 	case IDM_PLAY_ITEM: ((CFileListCtrl*)CurrentList())->OpenSelectedItem(); break;
@@ -123,6 +137,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_CLOSE_LIST: CloseFileListTab(m_nCurrentTab); break;
 	case IDM_CFG_LAYOUT: GetParent()->PostMessage(WM_COMMAND, wParam, lParam); break;
 	case IDM_CONFIG: ConfigViewOption(); break;
+	case IDM_TOGGLE_FIND: ToggleFindMode(); break;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
@@ -188,8 +203,7 @@ BOOL CDlgTabView::OnInitDialog()
 	}
 	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
 	SetCurrentTab(m_nCurrentTab);
-	UpdateToolBar();
-	ArrangeCtrl();
+	//ArrangeCtrl(); //SetCurrentTab 안에 포함되어 있음
 	return TRUE;
 }
 
@@ -276,6 +290,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	pList->SetFocus();
 	m_editPath.SetWindowText(pti.strPath);
 	SetDlgItemText(IDC_ST_BAR, pList->m_strBarMsg);
+	UpdateToolBar();
 	ArrangeCtrl();
 }
 
@@ -299,7 +314,7 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 			SetTabTitle(i, GetPathName(pti.strPath));
 			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
-				TCHAR path[MAX_PATH];
+				TCHAR path[MY_MAX_PATH];
 				PathCombine(path, pList->m_strFolder, pList->m_strFilterInclude);
 				m_editPath.SetWindowText(path);
 			}
@@ -336,7 +351,7 @@ CString GetActualPath(CString strPath)
 {
 	if (strPath.IsEmpty()) return strPath;
 	if (strPath.GetAt(0) == L'\\') return strPath;
-	TCHAR path[MAX_PATH] = {};
+	TCHAR path[MY_MAX_PATH] = {};
 	CString strParent = GetParentFolder(strPath);
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
@@ -377,7 +392,7 @@ void CDlgTabView::UpdateTabByPathEdit()
 	strPath = GetActualPath(strPath);
 	if (strFilter.IsEmpty() == FALSE)
 	{
-		TCHAR path_with_filter[MAX_PATH] = {};
+		TCHAR path_with_filter[MY_MAX_PATH] = {};
 		PathCombine(path_with_filter, strPath, strFilter);
 		pList->DisplayFolder_Start(path_with_filter);
 	}
@@ -418,16 +433,32 @@ void CDlgTabView::ArrangeCtrl()
 	DWORD btnsize = m_pTool->GetToolBarCtrl().GetButtonSize();
 	int nHP = 0, nVP = 0; //Horizontal / Vertical
 	m_pTool->GetToolBarCtrl().GetPadding(nHP, nVP);
-	int nBtnW = (LOWORD(btnsize) + nHP);
-	int nBtnH = (HIWORD(btnsize) + nVP);
+	int nBtnW = LOWORD(btnsize);
+	int nBtnH = HIWORD(btnsize);
 	int nBtnLineCount = TW / nBtnW; if (nBtnLineCount == 0) nBtnLineCount = 1;
-	int nBtnTotalCount = m_pTool->GetToolBarCtrl().GetButtonCount() / 2;
-	int nRow = (nBtnTotalCount / nBtnLineCount) + 1;
-	int nH = nBtnH * nRow;
-	m_pTool->MoveWindow(rc.left, rc.top, TW, nH);
-	m_pTool->Invalidate();
-	rc.top += nH;
+	int nBtnTotalCount = m_pTool->GetToolBarCtrl().GetButtonCount(); //Separator를 쓰지 않아야 함
+	int nRow = (nBtnTotalCount % nBtnLineCount == 0) ? nBtnTotalCount / nBtnLineCount : (nBtnTotalCount / nBtnLineCount) + 1;
+	int nToolH = nBtnH * nRow + nVP;
+	m_pTool->MoveWindow(rc.left, rc.top, TW, nToolH);
+ 	m_pTool->Invalidate();
+	rc.top += nToolH;
 	rc.top += 2;
+	//찾기 기능 
+	if (m_bFindMode == FALSE)
+	{
+		GetDlgItem(IDC_EDIT_FIND)->ShowWindow(SW_HIDE);
+		GetDlgItem(IDC_BTN_FIND)->ShowWindow(SW_HIDE);
+	}
+	else
+	{
+		int nFindBtnW = BH * 3;
+		GetDlgItem(IDC_EDIT_FIND)->ShowWindow(SW_SHOW);
+		GetDlgItem(IDC_BTN_FIND)->ShowWindow(SW_SHOW);
+		GetDlgItem(IDC_EDIT_FIND)->MoveWindow(rc.left, rc.top, TW - nFindBtnW, BH);
+		GetDlgItem(IDC_BTN_FIND)->MoveWindow(rc.left + TW - nFindBtnW + 1, rc.top, nFindBtnW - 1, BH);
+		rc.top += BH;
+		rc.top += 2;
+	}
 	//Tab Part
 	m_tabPath.MoveWindow(rc.left, rc.top, TW, BH);
 	rc.top += BH;
@@ -446,11 +477,34 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 {
 	if (pMsg->message == WM_KEYDOWN)
 	{
-		if (pMsg->wParam == VK_RETURN && GetFocus() == &m_editPath)
+		if (pMsg->wParam == VK_RETURN)
 		{
-			UpdateTabByPathEdit();
+			CWnd* pWnd = GetFocus();
+			if (pWnd == &m_editPath)
+			{
+				UpdateTabByPathEdit();
+				return TRUE;
+			}
+			else if (pWnd == GetDlgItem(IDC_EDIT_FIND) || pWnd == GetDlgItem(IDC_BTN_FIND))
+			{
+				FindNext();
+				return TRUE;
+			}
+		}
+		if (pMsg->wParam == VK_F3)
+		{
+			ToggleFindMode();
 			return TRUE;
 		}
+		if (pMsg->wParam == VK_ESCAPE)
+		{
+			return TRUE;
+		}
+
+	}
+	if (pMsg->message == WM_LBUTTONDOWN)
+	{
+		CurrentList()->SetFocus();
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
@@ -465,8 +519,14 @@ void CDlgTabView::OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult)
 void CDlgTabView::SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText)
 {
 	if (bSetBk == FALSE && bSetText == FALSE) return;
-	if (bSetBk)	m_editPath.SetBkColor(crBk);
-	if (bSetText) m_editPath.SetTextColor(crText);
+	if (bSetBk)
+	{
+		m_editPath.SetBkColor(crBk);
+	}
+	if (bSetText)
+	{
+		m_editPath.SetTextColor(crText);
+	}
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		if (m_aTabInfo[i].pWnd != NULL)
@@ -669,6 +729,8 @@ void CDlgTabView::UpdateChildFont()
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) m_tabPath.SetFont(&m_font);
 	if (::IsWindow(m_editPath.GetSafeHwnd())) m_editPath.SetFont(&m_font);
 	GetDlgItem(IDC_ST_BAR)->SetFont(&m_font);
+	GetDlgItem(IDC_EDIT_FIND)->SetFont(&m_font);
+	GetDlgItem(IDC_BTN_FIND)->SetFont(&m_font);
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		if (m_aTabInfo[i].pWnd != NULL)
@@ -693,11 +755,56 @@ void CDlgTabView::UpdateToolBar()
 	}
 }
 
-
 void CDlgTabView::UpdateColWidths()
 {
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		m_aTabInfo[i].UpdateColWidth();
 	}
+}
+
+void CDlgTabView::OnBnClickedBtnFind()
+{
+	FindNext();
+}
+
+void CDlgTabView::ToggleFindMode()
+{
+	m_bFindMode = !m_bFindMode; 
+	if (m_bFindMode == TRUE)
+	{
+		GetDlgItem(IDC_EDIT_FIND)->SetFocus();
+	}
+	else
+	{
+		CurrentList()->SetFocus();
+	}
+	ArrangeCtrl();
+}
+
+void CDlgTabView::FindNext()
+{
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	int nStart = pList->GetNextItem(-1, LVNI_SELECTED);
+	int nEnd = pList->GetItemCount() - 1;
+	CString strFind, strName;
+	GetDlgItemText(IDC_EDIT_FIND, strFind);
+	strFind.MakeLower();
+
+	int i = nStart;
+	if (i == nEnd) i = -1;
+	do
+	{
+		i++;
+		strName = pList->GetItemText(i, 0); //COL_NAME = 0
+		if (strName.MakeLower().Find(strFind.MakeLower()) != -1)
+		{
+			pList->SetItemState(nStart, 0, LVIS_SELECTED | LVIS_FOCUSED);
+			pList->SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+			pList->EnsureVisible(i, FALSE);
+			break;// 다 찾았으므로 
+		}
+		if (i == nEnd) i = 0; //끝을 넘어가면 맨 앞으로
+	} 	
+	while (i != nStart); //출발점으로 돌아오면 종료 
 }

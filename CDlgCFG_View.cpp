@@ -5,6 +5,7 @@
 #include "framework.h"
 #include "FileOfficer.h"
 #include "CDlgCFG_View.h"
+#include "CDlgColorRule.h"
 #include "EtcFunctions.h"
 #include <afxdialogex.h>
 #include <afxcolorbutton.h>
@@ -16,7 +17,7 @@ IMPLEMENT_DYNAMIC(CDlgCFG_View, CDialogEx)
 CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_CFG_VIEW, pParent)
 {
-	m_clrText = RGB(130, 180, 255);;
+	m_clrText = RGB(130, 180, 255);
 	m_clrBk = RGB(0, 0, 0);
 	m_bUseDefaultColor = TRUE;
 	m_nFontSize = 12;
@@ -47,6 +48,7 @@ BEGIN_MESSAGE_MAP(CDlgCFG_View, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_COLOR_RULE_DOWN, &CDlgCFG_View::OnBnClickedBtnColorRuleDown)
 	ON_BN_CLICKED(IDC_BTN_BKIMG_PATH, &CDlgCFG_View::OnBnClickedBtnBkimgPath)
 	ON_BN_CLICKED(IDC_CHK_BKIMG, &CDlgCFG_View::OnBnClickedChkBkimg)
+	ON_NOTIFY(NM_DBLCLK, IDC_LIST_COLOR_RULE, &CDlgCFG_View::OnDblclkListColorRule)
 END_MESSAGE_MAP()
 
 
@@ -56,13 +58,10 @@ END_MESSAGE_MAP()
 BOOL CDlgCFG_View::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
-
+	m_listColorRule.SetExtendedStyle(LVS_EX_FULLROWSELECT);
 	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->SetCheck(m_bUseDefaultColor ? BST_CHECKED : BST_UNCHECKED);
-	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	pColorBk->SetColor(m_clrBk);
-	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
-	pColorText->SetColor(m_clrText);
-
+	((CMFCColorButton*)GetDlgItem(IDC_COLOR_BK))->SetColor(m_clrBk);
+	((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->SetColor(m_clrText);
 	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->SetCheck(m_bUseDefaultFont ? BST_CHECKED : BST_UNCHECKED);
 	((CButton*)GetDlgItem(IDC_CHK_BOLD))->SetCheck(m_bBold ? BST_CHECKED : BST_UNCHECKED);
 	CString strTemp;
@@ -88,6 +87,11 @@ BOOL CDlgCFG_View::OnInitDialog()
 			break;
 		}
 	}
+	//추가 컬러 설정 목록 초기화
+	m_listColorRule.InsertColumn(0, IDSTR(IDS_COL_CLR_RULETYPE), LVCFMT_LEFT, 190);
+	m_listColorRule.InsertColumn(1, IDSTR(IDS_COL_CLR_RULETEXT), LVCFMT_RIGHT, 90);
+	m_listColorRule.InsertColumn(2, IDSTR(IDS_COL_CLR_RULEBK), LVCFMT_RIGHT, 90);
+	m_listColorRule.InsertColumn(3, IDSTR(IDS_COL_CLR_RULEOPTION), LVCFMT_LEFT, 130);
 
 	((CButton*)GetDlgItem(IDC_CHK_BKIMG))->SetCheck(m_bBkImg ? BST_CHECKED : BST_UNCHECKED);
 	SetDlgItemText(IDC_EDIT_BKIMG_PATH, m_strBkImgPath);
@@ -111,10 +115,8 @@ void CDlgCFG_View::UpdateControl()
 
 void CDlgCFG_View::OnOK()
 {
-	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	m_clrBk = pColorBk->GetColor();
-	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
-	m_clrText = pColorText->GetColor();
+	m_clrBk = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_BK))->GetColor();
+	m_clrText = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->GetColor();
 	m_bUseDefaultColor = (((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	m_bUseDefaultFont = (((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	m_bBold = (((CButton*)GetDlgItem(IDC_CHK_BOLD))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
@@ -157,47 +159,136 @@ void CDlgCFG_View::OnBnClickedCheckDefaultFont()
 }
 
 
+CString RGB2String(COLORREF cr)
+{
+	DWORD dwR = GetRValue(cr);
+	DWORD dwG = GetGValue(cr);
+	DWORD dwB = GetBValue(cr);
+	CString str;
+	str.Format(_T("#%02X%02X%02X"), dwR, dwG, dwB);
+	return str;
+}
+
 void CDlgCFG_View::OnBnClickedBtnColorRuleAdd()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	CDlgColorRule dlg;
+	dlg.m_clrBk = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_BK))->GetColor();
+	dlg.m_clrText = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->GetColor();
+	if (dlg.DoModal() == IDOK)
+	{
+		ColorRule cr;
+		cr.m_nRuleType = dlg.m_nRuleType;
+		cr.m_strRuleOption = dlg.m_strRuleOption;
+		cr.m_clrText = dlg.m_clrText;
+		cr.m_clrBk = dlg.m_clrBk;
+		APP()->m_aColorRules.Add(cr);
+		int nItem = m_listColorRule.InsertItem(m_listColorRule.GetItemCount(), GetColorRuleName(cr.m_nRuleType));
+		m_listColorRule.SetItemText(nItem, 1, RGB2String(cr.m_clrText));
+		m_listColorRule.SetItemText(nItem, 2, RGB2String(cr.m_clrBk));
+		m_listColorRule.SetItemText(nItem, 3, cr.m_strRuleOption);
+		m_listColorRule.EnsureVisible(nItem, FALSE);
+	}
 }
 
 
 void CDlgCFG_View::OnBnClickedBtnColorRuleEdit()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	CDlgColorRule dlg;
+	int nItem = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	ColorRule& cr = APP()->m_aColorRules[nItem];
+	dlg.m_nRuleType = cr.m_nRuleType;
+	dlg.m_strRuleOption = cr.m_strRuleOption;
+	dlg.m_clrText = cr.m_clrText;
+	dlg.m_clrBk = cr.m_clrBk;
+	if (dlg.DoModal() == IDOK)
+	{
+		cr.m_nRuleType = dlg.m_nRuleType;
+		cr.m_strRuleOption = dlg.m_strRuleOption;
+		cr.m_clrText = dlg.m_clrText;
+		cr.m_clrBk = dlg.m_clrBk;
+		m_listColorRule.SetItemText(nItem, 0, GetColorRuleName(cr.m_nRuleType));
+		m_listColorRule.SetItemText(nItem, 1, RGB2String(cr.m_clrText));
+		m_listColorRule.SetItemText(nItem, 2, RGB2String(cr.m_clrBk));
+		m_listColorRule.SetItemText(nItem, 3, cr.m_strRuleOption);
+		m_listColorRule.EnsureVisible(nItem, FALSE);
+	}
 }
 
 
 void CDlgCFG_View::OnBnClickedBtnColorRuleDel()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	if (AfxMessageBox(IDSTR(IDS_CONFIRM_DELETE), MB_OKCANCEL) == IDCANCEL) return;
+
+	int nItem = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
+	while (nItem != -1)
+	{
+		m_listColorRule.DeleteItem(nItem);
+		APP()->m_aColorRules.RemoveAt(nItem);
+		nItem = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
+	}
 }
 
 
 void CDlgCFG_View::OnBnClickedBtnColorRuleUp()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	int n1 = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
+	if (n1 <= 0) return;
+	int n2 = n1 - 1;
+	ColorRule crTemp = APP()->m_aColorRules.GetAt(n1);
+	APP()->m_aColorRules.SetAt(n1, APP()->m_aColorRules.GetAt(n2));
+	APP()->m_aColorRules.SetAt(n2, crTemp);
+	CString strTemp;
+	for (int i=0; i<m_listColorRule.GetHeaderCtrl()->GetItemCount(); i++)
+	{ 
+		strTemp = m_listColorRule.GetItemText(n1, i);
+		m_listColorRule.SetItemText(n1, i, m_listColorRule.GetItemText(n2, i));
+		m_listColorRule.SetItemText(n2, i, strTemp);
+	}
+	m_listColorRule.SetItemState(n1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	m_listColorRule.SetItemState(n2, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	m_listColorRule.EnsureVisible(n2, FALSE);
 }
 
 
 void CDlgCFG_View::OnBnClickedBtnColorRuleDown()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	int n1 = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
+	if (n1 >= (m_listColorRule.GetItemCount() - 1)) return;
+	int n2 = n1 + 1;
+	ColorRule crTemp = APP()->m_aColorRules.GetAt(n1);
+	APP()->m_aColorRules.SetAt(n1, APP()->m_aColorRules.GetAt(n2));
+	APP()->m_aColorRules.SetAt(n2, crTemp);
+	CString strTemp;
+	for (int i = 0; i < m_listColorRule.GetHeaderCtrl()->GetItemCount(); i++)
+	{
+		strTemp = m_listColorRule.GetItemText(n1, i);
+		m_listColorRule.SetItemText(n1, i, m_listColorRule.GetItemText(n2, i));
+		m_listColorRule.SetItemText(n2, i, strTemp);
+	}
+	m_listColorRule.SetItemState(n1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	m_listColorRule.SetItemState(n2, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	m_listColorRule.EnsureVisible(n2, FALSE);
 }
 
 
 void CDlgCFG_View::OnBnClickedBtnBkimgPath()
 {
-	CFileDialog dlg(TRUE, NULL, NULL, OFN_ENABLESIZING | OFN_LONGNAMES | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY
-		,_T("Image Files|*.BMP;*.GIF;*.JPG;*.JPEG;*.PNG|All Files(*.*)|*.*||"), this);
+	OPENFILENAME ofn = { 0 };
 	CString strTitle;
-	strTitle.LoadString(IDS_BKIMG_PATH);
-	dlg.GetOFN().lpstrTitle = strTitle;
-	dlg.GetOFN().hwndOwner = this->GetSafeHwnd();
-	if (dlg.DoModal() == IDOK)
+	if (strTitle.LoadString(IDS_BKIMG_PATH) == FALSE) strTitle.Empty();
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = this->GetSafeHwnd();
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_ENABLESIZING;
+	ofn.lpstrTitle = strTitle;
+	ofn.lpstrFilter = _T("Image Files(BMP,GIF,JPG,PNG)\0*.BMP;*.GIF;*.JPG;*.JPEG;*.PNG\0All Files(*.*)\0*.*\0\0");
+	ofn.nMaxFile = MY_MAX_PATH;
+	TCHAR* pBuf = new TCHAR[ofn.nMaxFile];
+	memset(pBuf, 0, sizeof(TCHAR) * ofn.nMaxFile);
+	ofn.lpstrFile = pBuf;
+	if (GetOpenFileName(&ofn) != FALSE)
 	{
-		SetDlgItemText(IDC_EDIT_BKIMG_PATH, dlg.GetPathName());
+		SetDlgItemText(IDC_EDIT_BKIMG_PATH, ofn.lpstrFile);
 	}
 }
 
@@ -206,4 +297,12 @@ void CDlgCFG_View::OnBnClickedChkBkimg()
 {
 	m_bBkImg = (((CButton*)GetDlgItem(IDC_CHK_BKIMG))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	UpdateControl();
+}
+
+
+void CDlgCFG_View::OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	OnBnClickedBtnColorRuleEdit();
+	*pResult = 0;
 }

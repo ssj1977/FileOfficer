@@ -23,6 +23,7 @@ public:
 	CToolBar m_toolText;
 	CFont m_font;
 	BOOL m_bSelected;
+	BOOL m_bFindMode;
 	void ArrangeCtrl();
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
@@ -50,6 +51,8 @@ public:
 	void UpdateColWidths();
 	void UpdateBkImg(CWnd* pWnd);
 	void UpdateBkImgAll();
+	void ToggleFindMode();
+	void FindNext();
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };
@@ -67,4 +70,5 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBnClickedBtnFind();
 };

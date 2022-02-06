@@ -10,6 +10,10 @@
 
 #include "resource.h"		// 주 기호입니다.
 
+#ifndef MY_MAX_PATH
+#define MY_MAX_PATH 2048
+#endif
+
 #ifndef PathTabInfo
 struct PathTabInfo
 {
@@ -91,6 +95,58 @@ struct TabViewOption
 typedef CArray<TabViewOption> TabViewOptionArray;
 #endif
 
+#ifndef ColorRule
+struct ColorRule
+{
+	int m_nRuleType;
+	CString m_strRuleOption;
+	COLORREF m_clrText;
+	COLORREF m_clrBk;
+	CStringArray m_aRuleOptions;
+
+	ColorRule()
+	{
+		m_nRuleType = 0;
+		m_clrText = RGB(130, 180, 255);
+		m_clrBk = RGB(0, 0, 0);
+	};
+	ColorRule(const ColorRule& cr)
+	{
+		this->m_nRuleType = cr.m_nRuleType;
+		this->m_strRuleOption = cr.m_strRuleOption;
+		this->m_clrText = cr.m_clrText;
+		this->m_clrBk = cr.m_clrBk;
+		this->m_aRuleOptions.RemoveAll();
+		this->m_aRuleOptions.Copy(cr.m_aRuleOptions);
+	};
+	void operator= (const ColorRule& cr) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		this->m_nRuleType = cr.m_nRuleType;
+		this->m_strRuleOption = cr.m_strRuleOption;
+		this->m_clrText = cr.m_clrText;
+		this->m_clrBk = cr.m_clrBk;
+		this->m_aRuleOptions.RemoveAll();
+		this->m_aRuleOptions.Copy(cr.m_aRuleOptions);
+	};
+	void ParseRuleOption()
+	{
+		m_aRuleOptions.RemoveAll();
+		CString strToken;
+		int nPos = 0, nNextPos = 0;
+		int nCount = m_strRuleOption.GetLength();
+		while (nPos >= nCount)
+ 		{
+			nNextPos = m_strRuleOption.Find(L"/", nPos);
+			if (nNextPos == -1) nNextPos = m_strRuleOption.GetLength();
+			strToken = m_strRuleOption.Mid(nPos, nNextPos - nPos);
+			strToken.Trim();
+			nPos = nNextPos + 1;
+			m_aRuleOptions.Add(strToken);
+		}
+	};
+};
+typedef CArray<ColorRule> ColorRuleArray;
+#endif 
 
 // CFileOfficerApp:
 // 이 클래스의 구현에 대해서는 FileOfficer.cpp을(를) 참조하세요.
@@ -130,6 +186,8 @@ public:
 	BOOL m_bBkImg2;
 	CString m_strBkImgPath1;
 	CString m_strBkImgPath2;
+	ColorRuleArray m_aColorRules;
+
 public:
 	void INISave(CString strFile);
 	void INILoad(CString strFile);

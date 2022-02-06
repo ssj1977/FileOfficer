@@ -44,4 +44,5 @@ public:
 	afx_msg void OnBnClickedBtnBkimgPath();
 	afx_msg void OnBnClickedChkBkimg();
 	CListCtrl m_listColorRule;
+	afx_msg void OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult);
 };
