@@ -562,8 +562,8 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 	m_strPrevFolder = m_strFolder;
 	m_strFolder = strFolder;
 	m_bUpdatePathHistory = bUpdatePathHistory;
-	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
-		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+//	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
+//		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 	AfxBeginThread(DisplayFolder_Thread, this);
 }
 
@@ -620,7 +620,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	if (m_strPrevFolder.GetLength() > m_strFolder.GetLength()) //예) c:\test\temp => c:\test
 	{
 		if (m_strPrevFolder.MakeLower().Find(m_strFolder.MakeLower()) != -1) //새로운 폴더 경로가 기존 폴더에 포함
-		{	//기본 선택할 항목 찾기 = 
+		{	//기본 선택할 항목 찾기 
 			strSelectedFolder = m_strPrevFolder;
 			CString strParent = GetParentFolder(m_strPrevFolder);
 			//여러 단계 상위 폴더로 바로 이동하는 경우에도 찾을 수 있도록 탐색
@@ -636,8 +636,14 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			}
 		}
 	}
+	//필터 초기화
+	m_strFilterInclude = L"";
+	m_strFilterExclude = L"";
 	if (strFolder.IsEmpty()) //strFolder가 빈 값 = 루트이므로 모든 드라이브 표시
 	{
+		m_strFolder = (CString)path;
+		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+
 		InitColumns(LIST_TYPE_DRIVE);
 		DWORD drives = GetLogicalDrives();
 		DWORD flag = 1;
@@ -675,10 +681,12 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			}
 			flag = flag * 2;
 		}
-		m_strFolder = (CString)path;
 	}
 	else if (path.IsUNCServer())
 	{
+		m_strFolder = (CString)path;
+		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+		
 		InitColumns(LIST_TYPE_UNCSERVER);
 		PSHARE_INFO_0 pBuffer, pTemp;
 		NET_API_STATUS res;
@@ -705,7 +713,6 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			}
 		} while (res == ERROR_MORE_DATA);
 		strFolder.ReleaseBuffer();
-		m_strFolder = (CString)path;
 	}
 	else
 	{
@@ -725,11 +732,10 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			m_strFolder = Get_Folder(strFolder, TRUE);
 			m_strFilterInclude = Get_Name(strFolder);
 			m_strFilterExclude = L"";
-			if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
-				GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 		}
+		//AddItemByPath으로 로딩 시작 전에 경로 에디트 박스 갱신
+		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
 		AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder);
-		//if (IsLoading(this) == TRUE) 
 		SortCurrentList();
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);

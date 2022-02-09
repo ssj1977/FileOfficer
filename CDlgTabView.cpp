@@ -375,17 +375,37 @@ void CDlgTabView::UpdateTabByPathEdit()
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	CString strEdit, strPath, strName, strFilter;
 	m_editPath.GetWindowText(strEdit);
+	//끝 글자가 '\\' 인경우 잘라낸다
+	while (strEdit.IsEmpty() == FALSE)
+	{
+		int nLast = strEdit.GetLength() - 1;
+		if (strEdit.GetAt(nLast) == L'\\') strEdit.Delete(nLast);
+		else break;
+	}
+	 
 	//검색필터가 들어가 있는 경우 해당 필터를 잘라낸다
+	int nTemp0 = strEdit.ReverseFind(L':');
 	int nTemp1 = strEdit.ReverseFind(L'\\');
 	int nTemp2 = strEdit.ReverseFind(L'*');
 	int nTemp3 = strEdit.ReverseFind(L'?');
-	if ((nTemp2 != -1 && nTemp1 < nTemp2) || (nTemp3 != -1 && nTemp1 < nTemp3))
-	{
+	if (nTemp0 == -1 && nTemp1 == -1)
+	{	//경로에 '\\' 또는 ':'이 없다면  잘못된 입력이므로 빈 경로로 처리한다. 
+		strPath.Empty();
+		strFilter.Empty();
+	}
+	else if (nTemp1 != -1 && ((nTemp2 != -1 && nTemp1 < nTemp2) || (nTemp3 != -1 && nTemp1 < nTemp3)))
+	{	//'\\' 뒤에 와일드카드가 붙어있는 모양인 경우 필터로 추출한다.
 		strPath = strEdit.Left(nTemp1);
 		if ((nTemp1 + 1) < strEdit.GetLength()) strFilter = strEdit.Mid(nTemp1 + 1);
+		else strFilter.Empty();
+	}
+	else if (nTemp0 != -1 && nTemp1 == -1 && (nTemp2 != -1 || nTemp3 != -1))
+	{	// D:*.jpg 처럼 ':'는 있는데 '\\'를 빼먹은 경우는 빈 경로로 처리
+		strPath.Empty();
+		strFilter.Empty();
 	}
 	else
-	{
+	{	//와일드카드가 없다면 그냥 처리
 		strPath = strEdit;
 		strFilter.Empty();
 	}
@@ -398,6 +418,8 @@ void CDlgTabView::UpdateTabByPathEdit()
 	}
 	else
 	{
+		pList->m_strFilterInclude.Empty();
+		pList->m_strFilterExclude.Empty();
 		pList->DisplayFolder_Start(strPath);
 	}
 	// m_editPath.SetWindowTextW(strPath); 리스트 갱신과 함께 UpdateTabByWnd()가 호출되면서 처리된다
