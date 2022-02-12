@@ -200,6 +200,23 @@ static void String2UIntArray(CString& str, CUIntArray& array)
 	}
 }
 
+ColorRule String2ColorRule(CString& str)
+{
+	ColorRule cr;
+	CString strValue;
+	int i = 0, nVal = 0;
+	while (AfxExtractSubString(strValue, str, i, L','))
+	{
+		nVal = _ttoi(strValue);
+		if (i == 0) cr.m_nRuleType = nVal;
+		else if (i == 1) cr.m_clrText = nVal;
+		else if (i == 2) cr.m_clrBk = nVal;
+		i++;
+	}
+
+	return cr;
+}
+
 void CFileOfficerApp::INISave(CString strFile)
 {
 	CString strData, strLine, str1, str2;
@@ -230,6 +247,13 @@ void CFileOfficerApp::INISave(CString strFile)
 			tvo.bUseDefaultColor, tvo.bUseDefaultFont); 
 		strData += strLine;
 	}
+	for (int i = 0; i < m_aCR_Tab1.GetSize(); i++)
+	{
+		ColorRule& cr = m_aCR_Tab1[i];
+		cr.m_nRuleType, cr.m_clrText, cr.m_clrBk, cr.m_strRuleOption;
+		strLine.Format(_T("Tab1_ColorRule=%d,%d,%d\r\n"), cr.m_nRuleType, cr.m_clrText, cr.m_clrBk); strData += strLine;
+		strLine.Format(_T("Tab1_ColorRule_Option=%s\r\n"), (LPCTSTR)cr.m_strRuleOption);	strData += strLine;
+	}
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab1_Path=%s\r\n"), (LPCTSTR)m_aTab1[i].strPath);	strData += strLine;
@@ -239,6 +263,13 @@ void CFileOfficerApp::INISave(CString strFile)
 	}
 	strLine.Format(_T("Tab1_BkImg=%d\r\n"), m_bBkImg1); strData += strLine;
 	strLine.Format(_T("Tab1_BkImgPath=%s\r\n"), m_strBkImgPath1); strData += strLine;
+	for (int i = 0; i < m_aCR_Tab2.GetSize(); i++)
+	{
+		ColorRule& cr = m_aCR_Tab2[i];
+		cr.m_nRuleType, cr.m_clrText, cr.m_clrBk, cr.m_strRuleOption;
+		strLine.Format(_T("Tab2_ColorRule=%d,%d,%d\r\n"), cr.m_nRuleType, cr.m_clrText, cr.m_clrBk); strData += strLine;
+		strLine.Format(_T("Tab2_ColorRule_Option=%s\r\n"), (LPCTSTR)cr.m_strRuleOption);	strData += strLine;
+	}
 	for (int i = 0; i < m_aTab2.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab2_Path=%s\r\n"), (LPCTSTR)m_aTab2[i].strPath);	strData += strLine;
@@ -258,7 +289,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 	m_aTabViewOption.RemoveAll();
 	ReadFileToCString(strFile, strData);
 	int nPos = 0;
-	int nTabCount1 = -1, nTabCount2 = -1;
+	int nTabCount1 = -1, nTabCount2 = -1, nCRCount1 = -1, nCRCount2 = -1;
 	while (nPos != -1)
 	{
 		nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
@@ -279,12 +310,24 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("Tab1_ColWidths")) == 0 && nTabCount1 != -1) String2UIntArray(str2, m_aTab1[nTabCount1].aColWidth);
 		else if (str1.CompareNoCase(_T("Tab1_BkImg")) == 0 && nTabCount1 != -1) m_bBkImg1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_BkImgPath")) == 0 && nTabCount1 != -1) m_strBkImgPath1 = str2;
+		else if (str1.CompareNoCase(_T("Tab1_ColorRule")) == 0)	nCRCount1 = (int)m_aCR_Tab1.Add(String2ColorRule(str2));
+		else if (str1.CompareNoCase(_T("Tab1_ColorRule_Option")) == 0 && nCRCount1 != -1)
+		{
+			m_aCR_Tab1[nCRCount1].m_strRuleOption = str2;
+			m_aCR_Tab1[nCRCount1].ParseRuleOption();
+		}
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount2 = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);
 		else if (str1.CompareNoCase(_T("Tab2_BkImg")) == 0 && nTabCount1 != -1) m_bBkImg2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_BkImgPath")) == 0 && nTabCount1 != -1) m_strBkImgPath2 = str2;
+		else if (str1.CompareNoCase(_T("Tab2_ColorRule")) == 0)	nCRCount2 = (int)m_aCR_Tab2.Add(String2ColorRule(str2));
+		else if (str1.CompareNoCase(_T("Tab2_ColorRule_Option")) == 0 && nCRCount2 != -1) 
+		{
+			m_aCR_Tab2[nCRCount2].m_strRuleOption = str2; 
+			m_aCR_Tab2[nCRCount2].ParseRuleOption();
+		}
 		else if (str1.CompareNoCase(_T("DefaultViewOption")) == 0)
 		{
 			ConvertString2ViewOption(str2, m_DefaultViewOption);

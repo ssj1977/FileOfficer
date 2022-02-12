@@ -1,19 +1,6 @@
 ﻿#pragma once
 
-#ifndef COLOR_RULE_TOTAL
-#define COLOR_RULE_TOTAL 8
-#define COLOR_RULE_EXT 0
-#define COLOR_RULE_FOLDER 1
-#define COLOR_RULE_NAME 2
-#define COLOR_RULE_DATE 3
-#define COLOR_RULE_COLNAME 4
-#define COLOR_RULE_COLDATE 5
-#define COLOR_RULE_COLSIZE 6
-#define COLOR_RULE_COLTYPE 7
-#endif
-
 CString GetColorRuleName(int nRuleType);
-
 // CDlgColorRule 대화 상자
 
 class CDlgColorRule : public CDialogEx
@@ -25,10 +12,7 @@ public:
 	virtual ~CDlgColorRule();
 	void UpdateRuleType();
 
-	COLORREF m_clrBk;
-	COLORREF m_clrText;
-	int m_nRuleType;
-	CString m_strRuleOption;
+	ColorRule m_cr;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME

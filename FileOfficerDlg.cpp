@@ -24,7 +24,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_FILEOFFICER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	//m_pWndFocus = NULL;
+	m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
 	m_nDefault_FontSize = -1;
 }
@@ -79,6 +79,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.m_bBkImg = APP()->m_bBkImg2;
 	m_tv1.m_strBkImgPath = APP()->m_strBkImgPath1;
 	m_tv2.m_strBkImgPath = APP()->m_strBkImgPath2;
+	m_tv1.m_pColorRuleArray = &(APP()->m_aCR_Tab1);
+	m_tv2.m_pColorRuleArray = &(APP()->m_aCR_Tab2);
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
@@ -286,7 +288,7 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 		}
 	}
-/*	CWnd* pWnd = GetFocus();
+	CWnd* pWnd = GetFocus();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
 		if (pWnd == &m_tv1 || pWnd->GetParent() == &m_tv1)
@@ -296,8 +298,8 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 				m_pWndFocus = m_tv1.CurrentList();
 				m_tv1.SetSelected(TRUE);
 				m_tv2.SetSelected(FALSE);
-				m_tv1.RedrawWindow();
-				m_tv2.RedrawWindow();
+				//m_tv1.RedrawWindow();
+				//m_tv2.RedrawWindow();
 			}
 		}
 		else if (pWnd == &m_tv2 || pWnd->GetParent() == &m_tv2)
@@ -307,11 +309,11 @@ BOOL CFileOfficerDlg::PreTranslateMessage(MSG* pMsg)
 				m_pWndFocus = m_tv2.CurrentList();
 				m_tv1.SetSelected(FALSE);
 				m_tv2.SetSelected(TRUE);
-				m_tv1.RedrawWindow();
-				m_tv2.RedrawWindow();
+				//m_tv1.RedrawWindow();
+				//m_tv2.RedrawWindow();
 			}
 		}
-	}*/
+	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 

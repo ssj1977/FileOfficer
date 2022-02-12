@@ -25,6 +25,7 @@ CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	m_nIconType = SHIL_SMALL;
 	m_bBold = FALSE;
 	m_bBkImg = FALSE;
+	m_pColorRuleArray = NULL;
 }
 
 CDlgCFG_View::~CDlgCFG_View()
@@ -92,6 +93,13 @@ BOOL CDlgCFG_View::OnInitDialog()
 	m_listColorRule.InsertColumn(1, IDSTR(IDS_COL_CLR_RULETEXT), LVCFMT_RIGHT, 90);
 	m_listColorRule.InsertColumn(2, IDSTR(IDS_COL_CLR_RULEBK), LVCFMT_RIGHT, 90);
 	m_listColorRule.InsertColumn(3, IDSTR(IDS_COL_CLR_RULEOPTION), LVCFMT_LEFT, 130);
+	if (m_pColorRuleArray != NULL)
+	{
+		for (int i = 0; i < m_pColorRuleArray->GetSize(); i++)
+		{
+			DisplayColorRule(i, m_pColorRuleArray->GetAt(i), TRUE);
+		}
+	}
 
 	((CButton*)GetDlgItem(IDC_CHK_BKIMG))->SetCheck(m_bBkImg ? BST_CHECKED : BST_UNCHECKED);
 	SetDlgItemText(IDC_EDIT_BKIMG_PATH, m_strBkImgPath);
@@ -169,23 +177,33 @@ CString RGB2String(COLORREF cr)
 	return str;
 }
 
+int CDlgCFG_View::DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd)
+{
+	if (bAdd == FALSE && nItem < m_listColorRule.GetItemCount())
+	{
+		m_listColorRule.SetItemText(nItem, 0, GetColorRuleName(cr.m_nRuleType));
+	}
+	else
+	{
+		nItem = m_listColorRule.InsertItem(nItem, GetColorRuleName(cr.m_nRuleType));
+	}
+	m_listColorRule.SetItemText(nItem, 1, RGB2String(cr.m_clrText));
+	m_listColorRule.SetItemText(nItem, 2, RGB2String(cr.m_clrBk));
+	m_listColorRule.SetItemText(nItem, 3, cr.m_strRuleOption);
+	return nItem;
+}
+
 void CDlgCFG_View::OnBnClickedBtnColorRuleAdd()
 {
 	CDlgColorRule dlg;
-	dlg.m_clrBk = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_BK))->GetColor();
-	dlg.m_clrText = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->GetColor();
+	dlg.m_cr.m_clrBk = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_BK))->GetColor();
+	dlg.m_cr.m_clrText = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->GetColor();
 	if (dlg.DoModal() == IDOK)
 	{
-		ColorRule cr;
-		cr.m_nRuleType = dlg.m_nRuleType;
-		cr.m_strRuleOption = dlg.m_strRuleOption;
-		cr.m_clrText = dlg.m_clrText;
-		cr.m_clrBk = dlg.m_clrBk;
-		APP()->m_aColorRules.Add(cr);
-		int nItem = m_listColorRule.InsertItem(m_listColorRule.GetItemCount(), GetColorRuleName(cr.m_nRuleType));
-		m_listColorRule.SetItemText(nItem, 1, RGB2String(cr.m_clrText));
-		m_listColorRule.SetItemText(nItem, 2, RGB2String(cr.m_clrBk));
-		m_listColorRule.SetItemText(nItem, 3, cr.m_strRuleOption);
+		ColorRule cr = dlg.m_cr;
+		cr.ParseRuleOption();
+		m_pColorRuleArray->Add(cr);
+		int nItem = DisplayColorRule(m_listColorRule.GetItemCount(), cr, TRUE);
 		m_listColorRule.EnsureVisible(nItem, FALSE);
 	}
 }
@@ -196,21 +214,14 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleEdit()
 	CDlgColorRule dlg;
 	int nItem = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
-	ColorRule& cr = APP()->m_aColorRules[nItem];
-	dlg.m_nRuleType = cr.m_nRuleType;
-	dlg.m_strRuleOption = cr.m_strRuleOption;
-	dlg.m_clrText = cr.m_clrText;
-	dlg.m_clrBk = cr.m_clrBk;
+	ColorRule& cr = m_pColorRuleArray->GetAt(nItem);
+	dlg.m_cr = cr;
 	if (dlg.DoModal() == IDOK)
 	{
-		cr.m_nRuleType = dlg.m_nRuleType;
-		cr.m_strRuleOption = dlg.m_strRuleOption;
-		cr.m_clrText = dlg.m_clrText;
-		cr.m_clrBk = dlg.m_clrBk;
-		m_listColorRule.SetItemText(nItem, 0, GetColorRuleName(cr.m_nRuleType));
-		m_listColorRule.SetItemText(nItem, 1, RGB2String(cr.m_clrText));
-		m_listColorRule.SetItemText(nItem, 2, RGB2String(cr.m_clrBk));
-		m_listColorRule.SetItemText(nItem, 3, cr.m_strRuleOption);
+		cr = dlg.m_cr;
+		cr.ParseRuleOption();
+		//참조형으로 가져와서 해당 값이 바로 m_pColorRuleArray에 적용됨
+		int nItem = DisplayColorRule(m_listColorRule.GetItemCount(), cr, FALSE);
 		m_listColorRule.EnsureVisible(nItem, FALSE);
 	}
 }
@@ -224,7 +235,7 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleDel()
 	while (nItem != -1)
 	{
 		m_listColorRule.DeleteItem(nItem);
-		APP()->m_aColorRules.RemoveAt(nItem);
+		if (m_pColorRuleArray) m_pColorRuleArray->RemoveAt(nItem);
 		nItem = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
 	}
 }
@@ -233,11 +244,11 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleDel()
 void CDlgCFG_View::OnBnClickedBtnColorRuleUp()
 {
 	int n1 = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
-	if (n1 <= 0) return;
+	if (n1 <= 0 || m_pColorRuleArray == NULL) return;
 	int n2 = n1 - 1;
-	ColorRule crTemp = APP()->m_aColorRules.GetAt(n1);
-	APP()->m_aColorRules.SetAt(n1, APP()->m_aColorRules.GetAt(n2));
-	APP()->m_aColorRules.SetAt(n2, crTemp);
+	ColorRule crTemp = m_pColorRuleArray->GetAt(n1);
+	m_pColorRuleArray->SetAt(n1, m_pColorRuleArray->GetAt(n2));
+	m_pColorRuleArray->SetAt(n2, crTemp);
 	CString strTemp;
 	for (int i=0; i<m_listColorRule.GetHeaderCtrl()->GetItemCount(); i++)
 	{ 
@@ -256,9 +267,9 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleDown()
 	int n1 = m_listColorRule.GetNextItem(-1, LVNI_SELECTED);
 	if (n1 >= (m_listColorRule.GetItemCount() - 1)) return;
 	int n2 = n1 + 1;
-	ColorRule crTemp = APP()->m_aColorRules.GetAt(n1);
-	APP()->m_aColorRules.SetAt(n1, APP()->m_aColorRules.GetAt(n2));
-	APP()->m_aColorRules.SetAt(n2, crTemp);
+	ColorRule crTemp = m_pColorRuleArray->GetAt(n1);
+	m_pColorRuleArray->SetAt(n1, m_pColorRuleArray->GetAt(n2));
+	m_pColorRuleArray->SetAt(n2, crTemp);
 	CString strTemp;
 	for (int i = 0; i < m_listColorRule.GetHeaderCtrl()->GetItemCount(); i++)
 	{

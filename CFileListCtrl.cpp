@@ -306,6 +306,7 @@ CFileListCtrl::CFileListCtrl()
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
 	m_bMenuOn = FALSE;
+	m_pColorRuleArray = NULL;
 	//m_bUseFileType = FALSE;
 }
 
@@ -974,7 +975,7 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 	CString strWriteTime;
 	if (GetFileTime(hFile, NULL, NULL, &ftWrite))
 	{
-		CTime tTemp = CTime(ftWrite);
+		COleDateTime tTemp = COleDateTime(ftWrite);
 		strWriteTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
 	}
 	int nImage = GetFileImageIndexFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY) );
@@ -996,7 +997,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 	int nItem = -1;
 	size_t nLen = 0;
 	ULARGE_INTEGER filesize;
-	CTime tTemp;
+	COleDateTime tTemp;
 	BOOL b = TRUE, bIsDir = FALSE;
 	TCHAR fullpath[MY_MAX_PATH];
 	CString strDir = Get_Folder(strPath);
@@ -1013,7 +1014,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 		else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
 		if (itemData != ITEM_TYPE_DOTS)
 		{
-			tTemp = CTime(fd.ftLastWriteTime);
+			tTemp = COleDateTime(fd.ftLastWriteTime);
 			strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
@@ -1539,14 +1540,116 @@ BOOL CFileListCtrl::IsRootPath()
 	return m_strFolder.IsEmpty();
 }
 
+COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
+{
+	COLORREF color = bBk ? GetBkColor() : GetTextColor();
+//	return color;
+	if (m_pColorRuleArray)
+	{
+		int nCount = (int)((ColorRuleArray*)m_pColorRuleArray)->GetSize();
+		BOOL bMatch = FALSE;
+		BOOL bSetName = FALSE, bSetExt = FALSE, bSetDate = FALSE; // 처음 한번만 값을 세팅하기 위해 사용
+		BOOL bValidDate = FALSE; //날짜값 검증결과 기억용
+		CString strName, strExt, strDate;
+		COleDateTime dt;
+		COleDateTime today = COleDateTime::GetCurrentTime();
+		COleDateTimeSpan differ;
+		BOOL bIsDir = (GetItemData(nRow) == ITEM_TYPE_FILE) ? FALSE : TRUE;
+		//속도를 감안하여 한번만 처리하도록 관련 값은 미리 세팅
+		for (int i = 0; i < nCount; i++)
+		{
+			ColorRule& cr = ((ColorRuleArray*)m_pColorRuleArray)->GetAt(i);
+			bMatch = FALSE;
+			switch (cr.m_nRuleType)
+			{
+			case COLOR_RULE_EXT: //확장자 조건 (대소문자 구분 없음)
+				if (bIsDir == FALSE)
+				{
+					if (bSetExt == FALSE)
+					{
+						strName = GetItemText(nRow, COL_NAME);
+						if (strName.IsEmpty() == FALSE)	strExt = Get_Ext(strName, bIsDir, FALSE);
+						bSetExt = TRUE;
+					}
+					if (strExt.IsEmpty() == FALSE)
+					{
+						for (int j = 0; j < cr.m_aRuleOptions.GetSize(); j++)
+						{
+							if (strExt.CompareNoCase(cr.m_aRuleOptions.GetAt(j)) == 0)
+							{
+								bMatch = TRUE;
+								break;
+							}
+						}
+					}
+				}
+				break;
+			case COLOR_RULE_FOLDER: //폴더일때
+				if (bIsDir != FALSE) bMatch = TRUE;
+				break;
+			case COLOR_RULE_NAME: //이름에 포함된 문자열(확장자도 포함, 대소문자 구분 있음)
+				if (bSetName == FALSE)
+				{
+					strName = GetItemText(nRow, COL_NAME);
+					bSetName = TRUE;
+				}
+				if (strName.IsEmpty() == FALSE)
+				{
+					for (int j = 0; j < cr.m_aRuleOptions.GetSize(); j++)
+					{
+						if (strName.Find(cr.m_aRuleOptions.GetAt(j)) != -1)
+						{
+							bMatch = TRUE;
+							break;
+						}
+					}
+				}
+				break;
+			case COLOR_RULE_DATE: //날짜 범위
+				if (bSetDate == FALSE)
+				{
+					strDate = GetItemText(nRow, COL_DATE);
+					if (strDate.IsEmpty() == FALSE)
+					{
+						if (dt.ParseDateTime(strDate) != FALSE)
+						{
+							differ = today - dt;
+							bValidDate = TRUE;
+						}
+					}
+					bSetDate = TRUE;
+				}
+				if (bValidDate != FALSE)
+				{
+					if (differ.GetDays() <= _ttoi(cr.m_strRuleOption)) bMatch = TRUE;
+				}
+				break;
+			case COLOR_RULE_COLNAME: //이를 컬럼 전체 
+				if (nColumn == COL_NAME) bMatch = TRUE;
+				break;
+			case COLOR_RULE_COLDATE: //변경일시 컬럼 전체 
+				if (nColumn == COL_DATE) bMatch = TRUE;
+				break;
+			case COLOR_RULE_COLSIZE: //크기 컬럼 전체 
+				if (nColumn == COL_SIZE) bMatch = TRUE;
+				break;
+			case COLOR_RULE_COLTYPE: //파일 종류 컬럼 전체 
+				if (nColumn == COL_TYPE) bMatch = TRUE;
+				break;
+			}
+			if (bMatch != FALSE) color = bBk ? cr.m_clrBk : cr.m_clrText;
+		}
+	}
+	return color;
+}
+
+
 COLORREF CFileListCtrl::OnGetCellTextColor(int nRow, int nColumn)
 {
-	//if (nColumn == COL_SIZE) return RGB(255, 0, 0);
-	return GetTextColor();
+	return ApplyColorRule(nRow, nColumn, FALSE);
 }
 
 COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
 {
-	//if (nColumn == COL_SIZE) return RGB(50, 22, 22);
-	return GetBkColor();
+	return ApplyColorRule(nRow, nColumn, TRUE);
 }

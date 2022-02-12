@@ -95,6 +95,18 @@ struct TabViewOption
 typedef CArray<TabViewOption> TabViewOptionArray;
 #endif
 
+#ifndef COLOR_RULE_TOTAL
+#define COLOR_RULE_TOTAL 8
+#define COLOR_RULE_EXT 0
+#define COLOR_RULE_FOLDER 1
+#define COLOR_RULE_NAME 2
+#define COLOR_RULE_DATE 3
+#define COLOR_RULE_COLNAME 4
+#define COLOR_RULE_COLDATE 5
+#define COLOR_RULE_COLSIZE 6
+#define COLOR_RULE_COLTYPE 7
+#endif
+
 #ifndef ColorRule
 struct ColorRule
 {
@@ -134,7 +146,7 @@ struct ColorRule
 		CString strToken;
 		int nPos = 0, nNextPos = 0;
 		int nCount = m_strRuleOption.GetLength();
-		while (nPos >= nCount)
+		while (nPos < nCount)
  		{
 			nNextPos = m_strRuleOption.Find(L"/", nPos);
 			if (nNextPos == -1) nNextPos = m_strRuleOption.GetLength();
@@ -162,7 +174,7 @@ public:
 	CFont m_fontDefault;
 	TabViewOption m_DefaultViewOption;
 	TabViewOptionArray m_aTabViewOption;
-
+	 
 	HICON m_hIcon;
 	CRect m_rcMain;
 	CString m_strINIPath;
@@ -186,7 +198,8 @@ public:
 	BOOL m_bBkImg2;
 	CString m_strBkImgPath1;
 	CString m_strBkImgPath2;
-	ColorRuleArray m_aColorRules;
+	ColorRuleArray m_aCR_Tab1;
+	ColorRuleArray m_aCR_Tab2;
 
 public:
 	void INISave(CString strFile);

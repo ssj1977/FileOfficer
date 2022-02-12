@@ -13,9 +13,11 @@ public:
 	CTabCtrl m_tabPath;
 	CImageList m_tabImgList;
 	PathTabInfoArray m_aTabInfo;
+	ColorRuleArray* m_pColorRuleArray;
 	int m_nCurrentTab;
 	int m_nViewOptionIndex;
 	int m_lfHeight;
+	int m_nFocusedImage;
 	BOOL m_bBkImg;
 	CString m_strBkImgPath;
 	CToolBar* m_pTool;
@@ -31,7 +33,7 @@ public:
 	void UpdateSortInfo(CWnd* pWnd);
 	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);
-//	void SetSelected(BOOL bSelected);
+	void SetSelected(BOOL bSelected);
 	void AddFileListTab(CString strFolder);
 	void CloseFileListTab(int nTab);
 	void Clear();
@@ -71,4 +73,5 @@ public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedBtnFind();
+//	afx_msg void OnSetFocus(CWnd* pOldWnd);
 };

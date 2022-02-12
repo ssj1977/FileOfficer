@@ -30,7 +30,10 @@ public:
 	int m_nIconType;
 	BOOL m_bBkImg;
 	CString m_strBkImgPath;
+	ColorRuleArray* m_pColorRuleArray;
+
 	void UpdateControl();
+	int DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd);
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();

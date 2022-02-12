@@ -63,6 +63,7 @@ public:
 	CList<CString> m_aPathHistory;
 	POSITION m_posPathHistory;
 	BOOL m_bUpdatePathHistory;
+	void* m_pColorRuleArray;
 	void BrowsePathHistory(BOOL bPrevious);
 	void AddPathHistory(CString strPath);
 	BOOL IsFirstPath();
@@ -96,6 +97,7 @@ public:
 	CMyDirectoryChangeHandler m_DirHandler;
 	void WatchCurrentDirectory(BOOL bOn);
 	void SortCurrentList();
+	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
 protected:
 	DECLARE_MESSAGE_MAP()
 

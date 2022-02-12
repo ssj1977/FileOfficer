@@ -32,6 +32,8 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_pTool = NULL;
 	m_bBkImg = FALSE;
 	m_bFindMode = FALSE;
+	m_nFocusedImage = 1;
+	m_pColorRuleArray = NULL;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -50,6 +52,7 @@ BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_WM_SIZE()
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_PATH, &CDlgTabView::OnTcnSelchangeTabPath)
 	ON_BN_CLICKED(IDC_BTN_FIND, &CDlgTabView::OnBnClickedBtnFind)
+//	ON_WM_SETFOCUS()
 END_MESSAGE_MAP()
 
 
@@ -239,6 +242,21 @@ void CDlgTabView::OnSize(UINT nType, int cx, int cy)
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) ArrangeCtrl();
 }
 
+void CDlgTabView::SetSelected(BOOL bSelected)
+{
+	if (bSelected == TRUE)
+	{
+		m_nFocusedImage = 0;
+	}
+	else
+	{
+		m_nFocusedImage = 1;
+	}
+	TCITEM ti;
+	ti.mask = TCIF_IMAGE;
+	ti.iImage = m_nFocusedImage;
+	m_tabPath.SetItem(m_nCurrentTab, &ti);
+}
 
 void CDlgTabView::SetCurrentTab(int nTab)
 {
@@ -246,10 +264,10 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	ti.mask = TCIF_IMAGE;
 	if (m_nCurrentTab != nTab)
 	{
-		ti.iImage = 1;
+		ti.iImage = 1; //Gray Icon
 		m_tabPath.SetItem(m_nCurrentTab, &ti);
 	}
-	ti.iImage = 0;
+	ti.iImage = m_nFocusedImage; //포커스 없을땐 Gray, 있을땐 Yellow
 	m_tabPath.SetItem(nTab, &ti);
 
 	PathTabInfo& pti = m_aTabInfo[nTab];
@@ -258,6 +276,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	if (pList == NULL)
 	{
 		pList = new CFileListCtrl;
+		pList->m_pColorRuleArray = m_pColorRuleArray;
 		pList->m_nIconType = GetIconType();
 		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
 		{
@@ -637,6 +656,7 @@ void CDlgTabView::ConfigViewOption()
 	dlg.m_bUseDefaultFont = tvo.bUseDefaultFont;
 	dlg.m_bBkImg = m_bBkImg;
 	dlg.m_strBkImgPath = m_strBkImgPath;
+	dlg.m_pColorRuleArray = m_pColorRuleArray;
 	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
 	if (dlg.DoModal() == IDOK)
 	{
@@ -747,7 +767,12 @@ void CDlgTabView::InitFont()
 
 void CDlgTabView::UpdateChildFont()
 {
-	if (::IsWindow(m_toolText.GetSafeHwnd())) m_toolText.SetFont(&m_font);
+	if (::IsWindow(m_toolText.GetSafeHwnd()))
+	{
+		m_toolIcon.SetFont(&m_font);
+		m_toolText.SetFont(&m_font);
+		InitToolBar();
+	}
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) m_tabPath.SetFont(&m_font);
 	if (::IsWindow(m_editPath.GetSafeHwnd())) m_editPath.SetFont(&m_font);
 	GetDlgItem(IDC_ST_BAR)->SetFont(&m_font);
@@ -813,8 +838,8 @@ void CDlgTabView::FindNext()
 	GetDlgItemText(IDC_EDIT_FIND, strFind);
 	strFind.MakeLower();
 
-	int i = nStart;
-	if (i == nEnd) i = -1;
+	int i = nStart; //탐색 시작 위치, 바로 ++ 되므로 nStart 다음 항목부터 검색
+	if (i == nEnd) i = -1; //마지막 아이템인 경우 맨 앞부터 탐색
 	do
 	{
 		i++;
@@ -826,7 +851,15 @@ void CDlgTabView::FindNext()
 			pList->EnsureVisible(i, FALSE);
 			break;// 다 찾았으므로 
 		}
-		if (i == nEnd) i = 0; //끝을 넘어가면 맨 앞으로
+		if (i == nEnd) i = -1; //끝을 넘어가면 맨 앞으로
 	} 	
 	while (i != nStart); //출발점으로 돌아오면 종료 
 }
+
+
+//void CDlgTabView::OnSetFocus(CWnd* pOldWnd)
+//{
+//	CDialogEx::OnSetFocus(pOldWnd);
+//
+//	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
+//}
