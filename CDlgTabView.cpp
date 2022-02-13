@@ -256,6 +256,7 @@ void CDlgTabView::SetSelected(BOOL bSelected)
 	ti.mask = TCIF_IMAGE;
 	ti.iImage = m_nFocusedImage;
 	m_tabPath.SetItem(m_nCurrentTab, &ti);
+	m_tabPath.Invalidate();
 }
 
 void CDlgTabView::SetCurrentTab(int nTab)

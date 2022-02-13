@@ -575,7 +575,7 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
 	SetLoadingStatus(pList, TRUE);
 	ResetEvent(pList->m_hThreadLoad);
-	pList->SetBarMsg(_T("Now Loading..."));
+	pList->SetBarMsg(IDSTR(IDS_NOW_LOADING));
 	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
 	if (IsLoading(pList) == TRUE)
 	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우
@@ -743,7 +743,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
 	endTime = clock();
 	CString strTemp;
-	strTemp.Format(_T("%d Item(s) / Loading Time : %d"), GetItemCount(), endTime - startTime);
+	strTemp.Format(_T("%d%s / %s%d"), GetItemCount(), IDSTR(IDS_ITEM_COUNT), IDSTR(IDS_LOADING_TIME), endTime - startTime);
 	SetBarMsg(strTemp);
 	SetBkColor(clrBk);
 	SetTextColor(clrText);
@@ -1637,7 +1637,11 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 				if (nColumn == COL_TYPE) bMatch = TRUE;
 				break;
 			}
-			if (bMatch != FALSE) color = bBk ? cr.m_clrBk : cr.m_clrText;
+			if (bMatch != FALSE)
+			{
+				if (bBk == FALSE && cr.m_bClrText != FALSE) color = cr.m_clrText;
+				else if (bBk != FALSE && cr.m_bClrBk != FALSE) color = cr.m_clrBk;
+			}
 		}
 	}
 	return color;

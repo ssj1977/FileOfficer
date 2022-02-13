@@ -32,9 +32,6 @@ IMPLEMENT_DYNAMIC(CDlgColorRule, CDialogEx)
 CDlgColorRule::CDlgColorRule(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_COLOR_RULE, pParent)
 {
-	m_cr.m_clrText = RGB(130, 180, 255);
-	m_cr.m_clrBk = RGB(0, 0, 0);
-	m_cr.m_nRuleType = 0;
 }
 
 CDlgColorRule::~CDlgColorRule()
@@ -50,6 +47,8 @@ void CDlgColorRule::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CDlgColorRule, CDialogEx)
 	ON_CBN_SELCHANGE(IDC_CB_RULETYPE, &CDlgColorRule::OnSelchangeCbRuletype)
+	ON_BN_CLICKED(IDC_CHK_COLOR_BK, &CDlgColorRule::OnBnClickedChkColorBk)
+	ON_BN_CLICKED(IDC_CHK_COLOR_TEXT, &CDlgColorRule::OnBnClickedChkColorText)
 END_MESSAGE_MAP()
 
 
@@ -60,10 +59,14 @@ BOOL CDlgColorRule::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	pColorBk->SetColor(m_cr.m_clrBk);
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
 	pColorText->SetColor(m_cr.m_clrText);
+	pColorText->EnableWindow(m_cr.m_bClrText);
+	((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->SetCheck(m_cr.m_bClrText ? BST_CHECKED : BST_UNCHECKED);
+	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
+	pColorBk->SetColor(m_cr.m_clrBk);
+	pColorBk->EnableWindow(m_cr.m_bClrBk);
+	((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->SetCheck(m_cr.m_bClrBk ? BST_CHECKED : BST_UNCHECKED);
 	int nItem = 0;
 	int aType[COLOR_RULE_TOTAL] = { COLOR_RULE_EXT, COLOR_RULE_FOLDER, COLOR_RULE_NAME, COLOR_RULE_DATE
 	,COLOR_RULE_COLNAME,COLOR_RULE_COLDATE,COLOR_RULE_COLSIZE,COLOR_RULE_COLTYPE };
@@ -82,10 +85,12 @@ BOOL CDlgColorRule::OnInitDialog()
 
 void CDlgColorRule::OnOK()
 {
-	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	m_cr.m_clrBk = pColorBk->GetColor();
+	m_cr.m_bClrText = ((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
 	m_cr.m_clrText = pColorText->GetColor();
+	m_cr.m_bClrBk = ((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
+	m_cr.m_clrBk = pColorBk->GetColor();
 	int nSel = m_cbRuleType.GetCurSel();
 	if (nSel != -1)	m_cr.m_nRuleType = (int)m_cbRuleType.GetItemData(nSel);
 	GetDlgItemText(IDC_EDIT_COLOR_RULE, m_cr.m_strRuleOption);
@@ -125,15 +130,15 @@ void CDlgColorRule::UpdateRuleType()
 	switch (nType)
 	{
 	case COLOR_RULE_EXT:
-		strGuide.LoadStringW(IDS_CLR_RULE_EXT_GUIDE);
+		strGuide.LoadString(IDS_CLR_RULE_EXT_GUIDE);
 		break;
 	case COLOR_RULE_FOLDER:
 		break;
 	case COLOR_RULE_NAME:
-		strGuide.LoadStringW(IDS_CLR_RULE_NAME_GUIDE);
+		strGuide.LoadString(IDS_CLR_RULE_NAME_GUIDE);
 		break;
 	case COLOR_RULE_DATE:
-		strGuide.LoadStringW(IDS_CLR_RULE_DATE_GUIDE);
+		strGuide.LoadString(IDS_CLR_RULE_DATE_GUIDE);
 		break;
 	case COLOR_RULE_COLNAME:
 		break;
@@ -158,4 +163,20 @@ void CDlgColorRule::UpdateRuleType()
 void CDlgColorRule::OnSelchangeCbRuletype()
 {
 	UpdateRuleType();
+}
+
+
+void CDlgColorRule::OnBnClickedChkColorText()
+{
+	m_cr.m_bClrText = ((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
+	pColorText->EnableWindow(m_cr.m_bClrText);
+}
+
+
+void CDlgColorRule::OnBnClickedChkColorBk()
+{
+	m_cr.m_bClrBk = ((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
+	pColorBk->EnableWindow(m_cr.m_bClrBk);
 }

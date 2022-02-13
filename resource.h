@@ -10,6 +10,8 @@
 #define IDS_COL_CLR_RULETEXT            15
 #define IDS_COL_CLR_RULEBK              16
 #define IDS_COL_CLR_RULEOPTION          17
+#define IDS_NOCOLOR                     18
+#define IDS_ITEM_COUNT                  19
 #define IDS_TB_00                       20
 #define IDS_TB_01                       21
 #define IDS_TB_02                       22
@@ -23,6 +25,10 @@
 #define IDS_TB_10                       30
 #define IDS_TB_11                       31
 #define IDS_TB_12                       32
+#define IDS_LOADING_TIME                33
+#define IDS_NOW_LOADING                 34
+#define IDS_VIEW_CFG_EXPORT             35
+#define IDS_VIEW_CFG_IMPORT             36
 #define IDS_MSG_COLORRULE_DATEERR       55
 #define IDS_MSG_COLORRULE_EERR          55
 #define IDS_MSG_INVALIDFONTSIZE         56
@@ -97,11 +103,15 @@
 #define IDC_BTN_BKIMG_PATH              1033
 #define IDC_CHK_BKIMG                   1034
 #define IDC_EDIT_FIND                   1035
+#define IDC_BTN_VIEW_CFG_EXPORT         1035
 #define IDC_BTN_FIND                    1036
+#define IDC_BTN_VIEW_CFG_IMPORT         1036
 #define IDC_CB_RULETYPE                 1037
 #define IDC_EDIT_COLOR_RULE             1038
 #define IDC_STATIC_INPUT_GUIDE          1039
 #define IDC_STATIC_COLOR_RULE           1040
+#define IDC_CHK_COLOR_TEXT              1041
+#define IDC_CHK_COLOR_BK                1042
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -128,7 +138,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
 #define _APS_NEXT_COMMAND_VALUE         32796
-#define _APS_NEXT_CONTROL_VALUE         1041
+#define _APS_NEXT_CONTROL_VALUE         1042
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

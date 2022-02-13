@@ -34,6 +34,8 @@ public:
 
 	void UpdateControl();
 	int DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd);
+	CString GetViewConfigExportString();
+	void ParseViewConfigExportString();
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();
@@ -48,4 +50,6 @@ public:
 	afx_msg void OnBnClickedChkBkimg();
 	CListCtrl m_listColorRule;
 	afx_msg void OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnBnClickedBtnViewCfgExport();
+	afx_msg void OnBnClickedBtnViewCfgImport();
 };

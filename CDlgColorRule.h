@@ -29,4 +29,6 @@ public:
 	virtual void OnCancel();
 	CComboBox m_cbRuleType;
 	afx_msg void OnSelchangeCbRuletype();
+	afx_msg void OnBnClickedChkColorText();
+	afx_msg void OnBnClickedChkColorBk();
 };

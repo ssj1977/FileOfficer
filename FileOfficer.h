@@ -112,6 +112,8 @@ struct ColorRule
 {
 	int m_nRuleType;
 	CString m_strRuleOption;
+	BOOL m_bClrText;
+	BOOL m_bClrBk;
 	COLORREF m_clrText;
 	COLORREF m_clrBk;
 	CStringArray m_aRuleOptions;
@@ -121,25 +123,28 @@ struct ColorRule
 		m_nRuleType = 0;
 		m_clrText = RGB(130, 180, 255);
 		m_clrBk = RGB(0, 0, 0);
+		m_bClrText = TRUE;
+		m_bClrBk = FALSE;
 	};
 	ColorRule(const ColorRule& cr)
 	{
-		this->m_nRuleType = cr.m_nRuleType;
-		this->m_strRuleOption = cr.m_strRuleOption;
-		this->m_clrText = cr.m_clrText;
-		this->m_clrBk = cr.m_clrBk;
-		this->m_aRuleOptions.RemoveAll();
-		this->m_aRuleOptions.Copy(cr.m_aRuleOptions);
+		CopyColorRule(cr);
 	};
 	void operator= (const ColorRule& cr) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		CopyColorRule(cr);
+	};
+	void CopyColorRule(const ColorRule& cr)
 	{
 		this->m_nRuleType = cr.m_nRuleType;
 		this->m_strRuleOption = cr.m_strRuleOption;
 		this->m_clrText = cr.m_clrText;
 		this->m_clrBk = cr.m_clrBk;
+		this->m_bClrText = cr.m_bClrText;
+		this->m_bClrBk = cr.m_bClrBk;
 		this->m_aRuleOptions.RemoveAll();
 		this->m_aRuleOptions.Copy(cr.m_aRuleOptions);
-	};
+	}
 	void ParseRuleOption()
 	{
 		m_aRuleOptions.RemoveAll();

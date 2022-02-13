@@ -211,6 +211,8 @@ ColorRule String2ColorRule(CString& str)
 		if (i == 0) cr.m_nRuleType = nVal;
 		else if (i == 1) cr.m_clrText = nVal;
 		else if (i == 2) cr.m_clrBk = nVal;
+		else if (i == 3) cr.m_bClrText = nVal;
+		else if (i == 4) cr.m_bClrBk = nVal;
 		i++;
 	}
 
@@ -251,7 +253,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	{
 		ColorRule& cr = m_aCR_Tab1[i];
 		cr.m_nRuleType, cr.m_clrText, cr.m_clrBk, cr.m_strRuleOption;
-		strLine.Format(_T("Tab1_ColorRule=%d,%d,%d\r\n"), cr.m_nRuleType, cr.m_clrText, cr.m_clrBk); strData += strLine;
+		strLine.Format(_T("Tab1_ColorRule=%d,%d,%d,%d,%d\r\n"), cr.m_nRuleType, cr.m_clrText, cr.m_clrBk, cr.m_bClrText, cr.m_bClrBk); strData += strLine;
 		strLine.Format(_T("Tab1_ColorRule_Option=%s\r\n"), (LPCTSTR)cr.m_strRuleOption);	strData += strLine;
 	}
 	for (int i = 0; i < m_aTab1.GetSize(); i++)

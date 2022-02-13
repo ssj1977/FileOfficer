@@ -50,6 +50,8 @@ BEGIN_MESSAGE_MAP(CDlgCFG_View, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_BKIMG_PATH, &CDlgCFG_View::OnBnClickedBtnBkimgPath)
 	ON_BN_CLICKED(IDC_CHK_BKIMG, &CDlgCFG_View::OnBnClickedChkBkimg)
 	ON_NOTIFY(NM_DBLCLK, IDC_LIST_COLOR_RULE, &CDlgCFG_View::OnDblclkListColorRule)
+	ON_BN_CLICKED(IDC_BTN_VIEW_CFG_EXPORT, &CDlgCFG_View::OnBnClickedBtnViewCfgExport)
+	ON_BN_CLICKED(IDC_BTN_VIEW_CFG_IMPORT, &CDlgCFG_View::OnBnClickedBtnViewCfgImport)
 END_MESSAGE_MAP()
 
 
@@ -187,8 +189,8 @@ int CDlgCFG_View::DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd)
 	{
 		nItem = m_listColorRule.InsertItem(nItem, GetColorRuleName(cr.m_nRuleType));
 	}
-	m_listColorRule.SetItemText(nItem, 1, RGB2String(cr.m_clrText));
-	m_listColorRule.SetItemText(nItem, 2, RGB2String(cr.m_clrBk));
+	m_listColorRule.SetItemText(nItem, 1, (cr.m_bClrText == FALSE) ? IDSTR(IDS_NOCOLOR) : RGB2String(cr.m_clrText));
+	m_listColorRule.SetItemText(nItem, 2, (cr.m_bClrBk == FALSE) ? IDSTR(IDS_NOCOLOR) : RGB2String(cr.m_clrBk));
 	m_listColorRule.SetItemText(nItem, 3, cr.m_strRuleOption);
 	return nItem;
 }
@@ -221,7 +223,7 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleEdit()
 		cr = dlg.m_cr;
 		cr.ParseRuleOption();
 		//참조형으로 가져와서 해당 값이 바로 m_pColorRuleArray에 적용됨
-		int nItem = DisplayColorRule(m_listColorRule.GetItemCount(), cr, FALSE);
+		nItem = DisplayColorRule(nItem, cr, FALSE);
 		m_listColorRule.EnsureVisible(nItem, FALSE);
 	}
 }
@@ -316,4 +318,57 @@ void CDlgCFG_View::OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult)
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 	OnBnClickedBtnColorRuleEdit();
 	*pResult = 0;
+}
+
+
+CString CDlgCFG_View::GetViewConfigExportString()
+{
+
+}
+
+void CDlgCFG_View::ParseViewConfigExportString()
+{
+}
+
+void CDlgCFG_View::OnBnClickedBtnViewCfgExport()
+{
+	OPENFILENAME ofn = { 0 };
+	CString strTitle;
+	if (strTitle.LoadString(IDS_VIEW_CFG_EXPORT) == FALSE) strTitle.Empty();
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = this->GetSafeHwnd();
+	ofn.Flags = OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_ENABLESIZING;
+	ofn.lpstrTitle = strTitle;
+	ofn.lpstrFilter = _T("BatchNamer Preset(*.bnp)\0*.bnp\0All Files(*.*)\0*.*\0\0"); //모든 파일이 대상인 경우는 필터 불필요
+	ofn.nMaxFile = MY_MAX_PATH;
+	ofn.lpstrDefExt = _T("bnp");
+	TCHAR pBuf[MY_MAX_PATH] = { 0 };
+	ofn.lpstrFile = pBuf;
+	if (GetSaveFileName(&ofn) != FALSE)
+	{
+		WriteCStringToFile(ofn.lpstrFile, GetViewConfigExportString());
+	}
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
+{
+	OPENFILENAME ofn = { 0 };
+	CString strTitle;
+	if (strTitle.LoadString(IDS_VIEW_CFG_IMPORT) == FALSE) strTitle.Empty();
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = this->GetSafeHwnd();
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_ENABLESIZING;
+	ofn.lpstrTitle = strTitle;
+	ofn.lpstrFilter = _T("BatchNamer Preset(*.bnp)\0*.bnp\0All Files(*.*)\0*.*\0\0");
+	ofn.nMaxFile = MY_MAX_PATH;
+	ofn.lpstrDefExt = _T("bnp");
+	TCHAR pBuf[MY_MAX_PATH] = { 0 };
+	ofn.lpstrFile = pBuf;
+	if (GetOpenFileName(&ofn) != FALSE)
+	{
+		m_aPreset.RemoveAll();
+		m_aPreset.SetSize(5);
+		INILoad(ofn.lpstrFile);
+	}
 }
