@@ -59,41 +59,6 @@ struct PathTabInfo
 typedef CArray<PathTabInfo> PathTabInfoArray;
 #endif 
 
-#ifndef TabViewOption
-struct TabViewOption
-{
-	COLORREF clrText;
-	COLORREF clrBk;
-	int nFontSize;
-	int nIconType;
-	BOOL bBold;
-	BOOL bUseDefaultColor;
-	BOOL bUseDefaultFont;
-	TabViewOption()
-	{
-		clrText = RGB(0,0,0);
-		clrBk = RGB(255, 255, 255);
-		nFontSize = 11;
-		nIconType = SHIL_SMALL;
-		bBold = FALSE;
-		bUseDefaultColor = TRUE;
-		bUseDefaultFont = TRUE;
-	};
-	TabViewOption(COLORREF clrText, COLORREF clrBk, int nIconType, int nFontSize, BOOL bBold)
-	{
-		SetTabViewOption(clrText, clrBk, nIconType, nFontSize, bBold);
-	};
-	void SetTabViewOption(COLORREF clrText, COLORREF clrBk, int nIconType, int nFontSize, BOOL bBold)
-	{
-		this->clrText = clrText;
-		this->clrBk = clrBk;
-		this->nIconType = nIconType;
-		this->nFontSize = nFontSize;
-		this->bBold = bBold;
-	};
-};
-typedef CArray<TabViewOption> TabViewOptionArray;
-#endif
 
 #ifndef COLOR_RULE_TOTAL
 #define COLOR_RULE_TOTAL 8
@@ -164,6 +129,106 @@ struct ColorRule
 };
 typedef CArray<ColorRule> ColorRuleArray;
 #endif 
+
+#ifndef TabViewOption
+struct TabViewOption
+{
+	COLORREF clrText;
+	COLORREF clrBk;
+	int nFontSize;
+	int nIconType;
+	BOOL bBold;
+	BOOL bUseDefaultColor;
+	BOOL bUseDefaultFont;
+	BOOL bUseBkImage;
+	CString strBkImagePath;
+	ColorRuleArray aColorRules;
+	TabViewOption()
+	{
+		clrText = RGB(0, 0, 0);
+		clrBk = RGB(255, 255, 255);
+		nFontSize = 11;
+		nIconType = SHIL_SMALL;
+		bBold = FALSE;
+		bUseDefaultColor = TRUE;
+		bUseDefaultFont = TRUE;
+		bUseBkImage = FALSE;
+	};
+	TabViewOption(const TabViewOption& tvo)
+	{
+		CopyTabViewOption(tvo);
+	};
+	void operator= (const TabViewOption& tvo) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		CopyTabViewOption(tvo);
+	};
+	void CopyTabViewOption(const TabViewOption& tvo)
+	{
+		this->clrText = tvo.clrText;
+		this->clrBk = tvo.clrBk;
+		this->nIconType = tvo.nIconType;
+		this->nFontSize = tvo.nFontSize;
+		this->bBold = tvo.bBold;
+		this->bUseDefaultColor = tvo.bUseDefaultColor;
+		this->bUseDefaultFont = tvo.bUseDefaultFont;
+		this->bUseBkImage = tvo.bUseBkImage;
+		this->strBkImagePath = tvo.strBkImagePath;
+		this->aColorRules.Copy(tvo.aColorRules);
+	};
+	CString StringExport()
+	{
+		CString strData, strLine;
+		strLine.Format(_T("TabViewOption=%d,%d,%d,%d,%d,%d,%d,%d\r\n"),
+			clrText, clrBk, nIconType, nFontSize, bBold,
+			bUseDefaultColor, bUseDefaultFont, bUseBkImage);
+		strData += strLine;
+		strLine.Format(_T("TVO_BkImgPath=%s\r\n"), strBkImagePath);
+		strData += strLine;
+		for (int i = 0; i < aColorRules.GetSize(); i++)
+		{
+			ColorRule& cr = aColorRules.GetAt(i);
+			strLine.Format(_T("TVO_ColorRule=%d,%d,%d,%d,%d\r\n"), cr.m_nRuleType, cr.m_clrText, cr.m_clrBk, cr.m_bClrText, cr.m_bClrBk); strData += strLine;
+			strLine.Format(_T("TVO_ColorRule_Option=%s\r\n"), (LPCTSTR)cr.m_strRuleOption);	strData += strLine;
+		}
+		return strData;
+	};
+	void StringImport(CString strData)
+	{
+		CString strLine, str1, str2, strTemp;
+		int nPos = 0;
+		int nIndex = -1;
+		while (nPos != -1)
+		{
+			nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
+			GetToken(strLine, str1, str2, _T('='), FALSE);
+			if (str1.CompareNoCase(_T("TabViewOption")) == 0)
+			{
+				CString strValue;
+				int i = 0, nVal = 0;
+				while (AfxExtractSubString(strValue, strLine, i, L','))
+				{
+					nVal = _ttoi(strValue);
+					if (i == 0) clrText = nVal;
+					else if (i == 1) clrBk = nVal;
+					else if (i == 2) nIconType = nVal;
+					else if (i == 3) nFontSize = nVal;
+					else if (i == 4) bBold = nVal;
+					else if (i == 5) bUseDefaultColor = nVal;
+					else if (i == 6) bUseDefaultFont = nVal;
+					else if (i == 7) bUseBkImage = nVal;
+					i++;
+				}
+			}
+			else if (str1.CompareNoCase(_T("TVO_BkImgPath")) == 0)
+			{
+				strBkImagePath = str2;
+			}
+		}
+	};
+};
+typedef CArray<TabViewOption> TabViewOptionArray;
+#endif
+
 
 // CFileOfficerApp:
 // 이 클래스의 구현에 대해서는 FileOfficer.cpp을(를) 참조하세요.

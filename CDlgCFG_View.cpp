@@ -321,15 +321,6 @@ void CDlgCFG_View::OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult)
 }
 
 
-CString CDlgCFG_View::GetViewConfigExportString()
-{
-
-}
-
-void CDlgCFG_View::ParseViewConfigExportString()
-{
-}
-
 void CDlgCFG_View::OnBnClickedBtnViewCfgExport()
 {
 	OPENFILENAME ofn = { 0 };

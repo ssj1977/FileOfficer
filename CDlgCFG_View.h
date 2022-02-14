@@ -21,6 +21,7 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 public:
+	TabViewOption m_tvo;
 	COLORREF m_clrText;
 	COLORREF m_clrBk;
 	BOOL m_bUseDefaultColor;
@@ -34,8 +35,6 @@ public:
 
 	void UpdateControl();
 	int DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd);
-	CString GetViewConfigExportString();
-	void ParseViewConfigExportString();
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();
