@@ -648,47 +648,38 @@ void CDlgTabView::ConfigViewOption()
 	if (m_nViewOptionIndex < 0 || m_nViewOptionIndex >= APP()->m_aTabViewOption.GetSize())	return;
 	TabViewOption& tvo = APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex);
 	CDlgCFG_View dlg;
-	dlg.m_clrText = tvo.clrText;
-	dlg.m_clrBk = tvo.clrBk;
-	dlg.m_nIconType = tvo.nIconType;
-	dlg.m_nFontSize = tvo.nFontSize;
-	dlg.m_bBold = tvo.bBold;
-	dlg.m_bUseDefaultColor = tvo.bUseDefaultColor;
-	dlg.m_bUseDefaultFont = tvo.bUseDefaultFont;
-	dlg.m_bBkImg = m_bBkImg;
-	dlg.m_strBkImgPath = m_strBkImgPath;
-	dlg.m_pColorRuleArray = m_pColorRuleArray;
+	dlg.m_tvo = tvo;
 	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
 	if (dlg.DoModal() == IDOK)
 	{
 		//Color
-		if (tvo.bUseDefaultColor != dlg.m_bUseDefaultColor)
+		if (tvo.bUseDefaultColor != dlg.m_tvo.bUseDefaultColor)
 		{
-			tvo.bUseDefaultColor = dlg.m_bUseDefaultColor;
+			tvo.bUseDefaultColor = dlg.m_tvo.bUseDefaultColor;
 			if (tvo.bUseDefaultColor == FALSE)
 			{
-				tvo.clrText = dlg.m_clrText;
-				tvo.clrBk = dlg.m_clrBk;
+				tvo.clrText = dlg.m_tvo.clrText;
+				tvo.clrBk = dlg.m_tvo.clrBk;
 			}
 			bUpdateClrBk = TRUE;
 			bUpdateClrText = TRUE;
 		}
-		if (tvo.clrBk != dlg.m_clrBk)
+		if (tvo.clrBk != dlg.m_tvo.clrBk)
 		{
-			tvo.clrBk = dlg.m_clrBk;
+			tvo.clrBk = dlg.m_tvo.clrBk;
 			if (tvo.bUseDefaultColor == FALSE) bUpdateClrBk = TRUE;
 		}
-		if (tvo.clrText != dlg.m_clrText)
+		if (tvo.clrText != dlg.m_tvo.clrText)
 		{
-			tvo.clrText = dlg.m_clrText;
+			tvo.clrText = dlg.m_tvo.clrText;
 			if (tvo.bUseDefaultColor == FALSE) bUpdateClrText = TRUE;
 		}
 		SetListColor(GetMyClrBk(), GetMyClrText(), bUpdateClrBk, bUpdateClrText);
 		//Font
-		if (tvo.nFontSize != dlg.m_nFontSize || tvo.bBold != dlg.m_bBold)
+		if (tvo.nFontSize != dlg.m_tvo.nFontSize || tvo.bBold != dlg.m_tvo.bBold)
 		{
-			tvo.nFontSize = dlg.m_nFontSize;
-			tvo.bBold = dlg.m_bBold;
+			tvo.nFontSize = dlg.m_tvo.nFontSize;
+			tvo.bBold = dlg.m_tvo.bBold;
 			if (tvo.bUseDefaultFont == FALSE)
 			{
 				InitFont();
@@ -696,27 +687,29 @@ void CDlgTabView::ConfigViewOption()
 				ArrangeCtrl();
 			}
 		}
-		if (tvo.bUseDefaultFont != dlg.m_bUseDefaultFont)
+		if (tvo.bUseDefaultFont != dlg.m_tvo.bUseDefaultFont)
 		{
-			tvo.bUseDefaultFont = dlg.m_bUseDefaultFont;
-			tvo.bBold = dlg.m_bBold;
+			tvo.bUseDefaultFont = dlg.m_tvo.bUseDefaultFont;
+			tvo.bBold = dlg.m_tvo.bBold;
 			{
 				InitFont();
 				UpdateChildFont();
 				ArrangeCtrl();
 			}
 		}
-		if (tvo.nIconType != dlg.m_nIconType)
+		if (tvo.nIconType != dlg.m_tvo.nIconType)
 		{
-			SetIconType(dlg.m_nIconType);
+			SetIconType(dlg.m_tvo.nIconType);
 		}
 		//Background Image Path
-		if (dlg.m_bBkImg != m_bBkImg || dlg.m_strBkImgPath != m_strBkImgPath)
+		if (dlg.m_tvo.bUseBkImage != tvo.bUseBkImage || dlg.m_tvo.strBkImagePath != tvo.strBkImagePath)
 		{
-			m_bBkImg = dlg.m_bBkImg;
-			m_strBkImgPath = dlg.m_strBkImgPath;
+			tvo.bUseBkImage = dlg.m_tvo.bUseBkImage;
+			tvo.strBkImagePath = dlg.m_tvo.strBkImagePath;
 			UpdateBkImgAll();
 		}
+		//Color Rules
+		tvo.aColorRules.Copy(dlg.m_tvo.aColorRules);
 		RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
 	}
 }

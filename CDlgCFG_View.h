@@ -22,19 +22,10 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	TabViewOption m_tvo;
-	COLORREF m_clrText;
-	COLORREF m_clrBk;
-	BOOL m_bUseDefaultColor;
-	int m_nFontSize;
-	BOOL m_bBold;
-	BOOL m_bUseDefaultFont;
-	int m_nIconType;
-	BOOL m_bBkImg;
-	CString m_strBkImgPath;
-	ColorRuleArray* m_pColorRuleArray;
-
 	void UpdateControl();
 	int DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd);
+	void TVOExport();
+	void TVOImport();
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();

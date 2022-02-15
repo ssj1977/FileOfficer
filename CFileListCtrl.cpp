@@ -1560,7 +1560,7 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 		{
 			ColorRule& cr = ((ColorRuleArray*)m_pColorRuleArray)->GetAt(i);
 			bMatch = FALSE;
-			switch (cr.m_nRuleType)
+			switch (cr.nRuleType)
 			{
 			case COLOR_RULE_EXT: //확장자 조건 (대소문자 구분 없음)
 				if (bIsDir == FALSE)
@@ -1573,9 +1573,9 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 					}
 					if (strExt.IsEmpty() == FALSE)
 					{
-						for (int j = 0; j < cr.m_aRuleOptions.GetSize(); j++)
+						for (int j = 0; j < cr.aRuleOptions.GetSize(); j++)
 						{
-							if (strExt.CompareNoCase(cr.m_aRuleOptions.GetAt(j)) == 0)
+							if (strExt.CompareNoCase(cr.aRuleOptions.GetAt(j)) == 0)
 							{
 								bMatch = TRUE;
 								break;
@@ -1595,9 +1595,9 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 				}
 				if (strName.IsEmpty() == FALSE)
 				{
-					for (int j = 0; j < cr.m_aRuleOptions.GetSize(); j++)
+					for (int j = 0; j < cr.aRuleOptions.GetSize(); j++)
 					{
-						if (strName.Find(cr.m_aRuleOptions.GetAt(j)) != -1)
+						if (strName.Find(cr.aRuleOptions.GetAt(j)) != -1)
 						{
 							bMatch = TRUE;
 							break;
@@ -1621,7 +1621,7 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 				}
 				if (bValidDate != FALSE)
 				{
-					if (differ.GetDays() <= _ttoi(cr.m_strRuleOption)) bMatch = TRUE;
+					if (differ.GetDays() <= _ttoi(cr.strRuleOption)) bMatch = TRUE;
 				}
 				break;
 			case COLOR_RULE_COLNAME: //이를 컬럼 전체 
@@ -1639,8 +1639,8 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 			}
 			if (bMatch != FALSE)
 			{
-				if (bBk == FALSE && cr.m_bClrText != FALSE) color = cr.m_clrText;
-				else if (bBk != FALSE && cr.m_bClrBk != FALSE) color = cr.m_clrBk;
+				if (bBk == FALSE && cr.bClrText != FALSE) color = cr.clrText;
+				else if (bBk != FALSE && cr.bClrBk != FALSE) color = cr.clrBk;
 			}
 		}
 	}
