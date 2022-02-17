@@ -101,6 +101,7 @@ void CDlgCFG_View::TVOImport()
 			break;
 		}
 	}
+	m_listColorRule.DeleteAllItems();
 	for (int i = 0; i < m_tvo.aColorRules.GetSize(); i++)
 	{
 		DisplayColorRule(i, m_tvo.aColorRules.GetAt(i), TRUE);
@@ -193,7 +194,7 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleAdd()
 	dlg.m_cr.clrText = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->GetColor();
 	if (dlg.DoModal() == IDOK)
 	{
-		ColorRule cr = dlg.m_cr;
+		ColorRule& cr = dlg.m_cr;
 		cr.ParseRuleOption();
 		m_tvo.aColorRules.Add(cr);
 		int nItem = DisplayColorRule(m_listColorRule.GetItemCount(), cr, TRUE);
@@ -261,7 +262,7 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleDown()
 	if (n1 >= (m_listColorRule.GetItemCount() - 1)) return;
 	int n2 = n1 + 1;
 	ColorRule crTemp = m_tvo.aColorRules.GetAt(n1);
-	m_tvo.aColorRules.SetAt(n1, m_tvo.aColorRules.(n2));
+	m_tvo.aColorRules.SetAt(n1, m_tvo.aColorRules.GetAt(n2));
 	m_tvo.aColorRules.SetAt(n2, crTemp);
 	CString strTemp;
 	for (int i = 0; i < m_listColorRule.GetHeaderCtrl()->GetItemCount(); i++)
@@ -353,5 +354,6 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
 		CString strData;
 		ReadFileToCString(ofn.lpstrFile, strData);
 		m_tvo.StringImport(strData);
+		TVOImport();
 	}
 }

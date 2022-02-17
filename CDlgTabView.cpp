@@ -28,12 +28,9 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 {
 	m_nCurrentTab = 0;
 	m_bSelected = FALSE;
-	m_nViewOptionIndex = -1;
 	m_pTool = NULL;
-	m_bBkImg = FALSE;
 	m_bFindMode = FALSE;
 	m_nFocusedImage = 1;
-	m_pColorRuleArray = NULL;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -277,7 +274,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	if (pList == NULL)
 	{
 		pList = new CFileListCtrl;
-		pList->m_pColorRuleArray = m_pColorRuleArray;
+		pList->m_pColorRuleArray = &m_tvo.aColorRules;
 		pList->m_nIconType = GetIconType();
 		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
 		{
@@ -583,45 +580,29 @@ void CDlgTabView::SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL
 
 COLORREF CDlgTabView::GetMyClrText()
 {
-	if (m_nViewOptionIndex < 0 || m_nViewOptionIndex >= APP()->m_aTabViewOption.GetSize())
-		return APP()->m_DefaultViewOption.clrText;
-	TabViewOption& tvo = APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex);
-	return tvo.bUseDefaultColor ? APP()->m_DefaultViewOption.clrText : tvo.clrText;
+	return m_tvo.bUseDefaultColor ? APP()->m_DefaultViewOption.clrText : m_tvo.clrText;
 }
 
 COLORREF CDlgTabView::GetMyClrBk()
 {
-	if (m_nViewOptionIndex < 0 || m_nViewOptionIndex >= APP()->m_aTabViewOption.GetSize())
-		return APP()->m_DefaultViewOption.clrBk;
-	TabViewOption& tvo = APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex);
-	return tvo.bUseDefaultColor ? APP()->m_DefaultViewOption.clrBk : tvo.clrBk;
+	return m_tvo.bUseDefaultColor ? APP()->m_DefaultViewOption.clrBk : m_tvo.clrBk;
 }
 
 
 int CDlgTabView::GetIconType()
 {
-	if (m_nViewOptionIndex >= 0 && m_nViewOptionIndex < APP()->m_aTabViewOption.GetSize())
-	{
-		return APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex).nIconType;
-	}
-	return SHIL_SMALL;
+	return m_tvo.nIconType;
 }
 
 
 int CDlgTabView::GetFontSize()
 {
-	if (m_nViewOptionIndex < 0 || m_nViewOptionIndex >= APP()->m_aTabViewOption.GetSize())
-		return APP()->m_DefaultViewOption.nFontSize;
-	TabViewOption& tvo = APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex);
-	return tvo.bUseDefaultFont ? APP()->m_DefaultViewOption.nFontSize : tvo.nFontSize;
+	return m_tvo.bUseDefaultFont ? APP()->m_DefaultViewOption.nFontSize : m_tvo.nFontSize;
 }
 
 BOOL CDlgTabView::GetIsBold()
 {
-	if (m_nViewOptionIndex < 0 || m_nViewOptionIndex >= APP()->m_aTabViewOption.GetSize())
-		return APP()->m_DefaultViewOption.bBold;
-	TabViewOption& tvo = APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex);
-	return tvo.bUseDefaultFont ? APP()->m_DefaultViewOption.bBold : tvo.bBold;
+	return m_tvo.bUseDefaultFont ? APP()->m_DefaultViewOption.bBold : m_tvo.bBold;
 }
 
 
@@ -636,17 +617,13 @@ void CDlgTabView::SetIconType(int nIconType)
 			ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(nIconType), LVSIL_SMALL);
 		}
 	}
-	if (m_nViewOptionIndex >= 0 && m_nViewOptionIndex < APP()->m_aTabViewOption.GetSize())
-	{
-		APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex).nIconType = nIconType;
-	}
+	m_tvo.nIconType = nIconType;
 }
 
 
 void CDlgTabView::ConfigViewOption()
 {
-	if (m_nViewOptionIndex < 0 || m_nViewOptionIndex >= APP()->m_aTabViewOption.GetSize())	return;
-	TabViewOption& tvo = APP()->m_aTabViewOption.GetAt(m_nViewOptionIndex);
+	TabViewOption& tvo = m_tvo;
 	CDlgCFG_View dlg;
 	dlg.m_tvo = tvo;
 	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
@@ -732,10 +709,10 @@ void CDlgTabView::UpdateBkImgAll()
 void CDlgTabView::UpdateBkImg(CWnd* pWnd)
 {
 	CFileListCtrl* pList = (CFileListCtrl*)pWnd;;
-	if (m_bBkImg)
+	if (m_tvo.bUseBkImage)
 	{
-		pList->SetBkImage(m_strBkImgPath.GetBuffer(), FALSE, 0, 0);
-		m_strBkImgPath.ReleaseBuffer();
+		pList->SetBkImage(m_tvo.strBkImagePath.GetBuffer(), FALSE, 0, 0);
+		m_tvo.strBkImagePath.ReleaseBuffer();
 	}
 	else
 	{

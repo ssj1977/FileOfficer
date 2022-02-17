@@ -60,13 +60,13 @@ BOOL CDlgColorRule::OnInitDialog()
 	CDialogEx::OnInitDialog();
 
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
-	pColorText->SetColor(m_cr.m_clrText);
-	pColorText->EnableWindow(m_cr.m_bClrText);
-	((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->SetCheck(m_cr.m_bClrText ? BST_CHECKED : BST_UNCHECKED);
+	pColorText->SetColor(m_cr.clrText);
+	pColorText->EnableWindow(m_cr.bClrText);
+	((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->SetCheck(m_cr.bClrText ? BST_CHECKED : BST_UNCHECKED);
 	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	pColorBk->SetColor(m_cr.m_clrBk);
-	pColorBk->EnableWindow(m_cr.m_bClrBk);
-	((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->SetCheck(m_cr.m_bClrBk ? BST_CHECKED : BST_UNCHECKED);
+	pColorBk->SetColor(m_cr.clrBk);
+	pColorBk->EnableWindow(m_cr.bClrBk);
+	((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->SetCheck(m_cr.bClrBk ? BST_CHECKED : BST_UNCHECKED);
 	int nItem = 0;
 	int aType[COLOR_RULE_TOTAL] = { COLOR_RULE_EXT, COLOR_RULE_FOLDER, COLOR_RULE_NAME, COLOR_RULE_DATE
 	,COLOR_RULE_COLNAME,COLOR_RULE_COLDATE,COLOR_RULE_COLSIZE,COLOR_RULE_COLTYPE };
@@ -75,8 +75,8 @@ BOOL CDlgColorRule::OnInitDialog()
 		nItem = m_cbRuleType.AddString(GetColorRuleName(aType[i]));
 		m_cbRuleType.SetItemData(nItem, (DWORD_PTR)(aType[i]));
 	}
-	SetDlgItemText(IDC_EDIT_COLOR_RULE, m_cr.m_strRuleOption);
-	m_cbRuleType.SetCurSel(m_cr.m_nRuleType);
+	SetDlgItemText(IDC_EDIT_COLOR_RULE, m_cr.strRuleOption);
+	m_cbRuleType.SetCurSel(m_cr.nRuleType);
 	UpdateRuleType();
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
@@ -85,25 +85,25 @@ BOOL CDlgColorRule::OnInitDialog()
 
 void CDlgColorRule::OnOK()
 {
-	m_cr.m_bClrText = ((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	m_cr.bClrText = ((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
-	m_cr.m_clrText = pColorText->GetColor();
-	m_cr.m_bClrBk = ((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	m_cr.clrText = pColorText->GetColor();
+	m_cr.bClrBk = ((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
 	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	m_cr.m_clrBk = pColorBk->GetColor();
+	m_cr.clrBk = pColorBk->GetColor();
 	int nSel = m_cbRuleType.GetCurSel();
-	if (nSel != -1)	m_cr.m_nRuleType = (int)m_cbRuleType.GetItemData(nSel);
-	GetDlgItemText(IDC_EDIT_COLOR_RULE, m_cr.m_strRuleOption);
+	if (nSel != -1)	m_cr.nRuleType = (int)m_cbRuleType.GetItemData(nSel);
+	GetDlgItemText(IDC_EDIT_COLOR_RULE, m_cr.strRuleOption);
 
 	BOOL bError = FALSE;
-	switch (m_cr.m_nRuleType)
+	switch (m_cr.nRuleType)
 	{
 	case COLOR_RULE_DATE:
-		if (_ttoi(m_cr.m_strRuleOption) <= 0) bError = TRUE;
+		if (_ttoi(m_cr.strRuleOption) <= 0) bError = TRUE;
 		break;
 	case COLOR_RULE_EXT:
 	case COLOR_RULE_NAME:
-		if (m_cr.m_strRuleOption.IsEmpty()) bError = TRUE;
+		if (m_cr.strRuleOption.IsEmpty()) bError = TRUE;
 		break;
 	}
 	if (bError)
@@ -168,15 +168,15 @@ void CDlgColorRule::OnSelchangeCbRuletype()
 
 void CDlgColorRule::OnBnClickedChkColorText()
 {
-	m_cr.m_bClrText = ((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	m_cr.bClrText = ((CButton*)GetDlgItem(IDC_CHK_COLOR_TEXT))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
 	CMFCColorButton* pColorText = (CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT);
-	pColorText->EnableWindow(m_cr.m_bClrText);
+	pColorText->EnableWindow(m_cr.bClrText);
 }
 
 
 void CDlgColorRule::OnBnClickedChkColorBk()
 {
-	m_cr.m_bClrBk = ((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
+	m_cr.bClrBk = ((CButton*)GetDlgItem(IDC_CHK_COLOR_BK))->GetCheck() == BST_CHECKED ? TRUE : FALSE;
 	CMFCColorButton* pColorBk = (CMFCColorButton*)GetDlgItem(IDC_COLOR_BK);
-	pColorBk->EnableWindow(m_cr.m_bClrBk);
+	pColorBk->EnableWindow(m_cr.bClrBk);
 }

@@ -13,13 +13,10 @@ public:
 	CTabCtrl m_tabPath;
 	CImageList m_tabImgList;
 	PathTabInfoArray m_aTabInfo;
-	ColorRuleArray* m_pColorRuleArray;
+	TabViewOption m_tvo;
 	int m_nCurrentTab;
-	int m_nViewOptionIndex;
 	int m_lfHeight;
 	int m_nFocusedImage;
-	BOOL m_bBkImg;
-	CString m_strBkImgPath;
 	CToolBar* m_pTool;
 	CToolBar m_toolIcon;
 	CToolBar m_toolText;

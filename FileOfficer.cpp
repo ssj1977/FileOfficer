@@ -43,8 +43,6 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizeFixed2 = 600;
 	//m_bUseFileType = FALSE;
 	m_bToolBarText = TRUE;
-	m_bBkImg1 = FALSE;
-	m_bBkImg2 = FALSE;
 	m_hIcon = NULL;
 }
 
@@ -202,8 +200,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	//탭뷰설정값 저장
 	for (int i = 0; i < m_aTabViewOption.GetSize(); i++)
 	{
-		TabViewOption& tvo = m_aTabViewOption.GetAt(i);
-		strData += tvo.StringExport();;
+		strData += m_aTabViewOption.GetAt(i).StringExport();;
 	}
 	//열려있는 탭 정보1
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
@@ -221,8 +218,6 @@ void CFileOfficerApp::INISave(CString strFile)
 		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
 		strLine.Format(_T("Tab2_ColWidths=%s\r\n"), UIntArray2String(m_aTab2[i].aColWidth)); strData += strLine;
 	}
-	strLine.Format(_T("Tab2_BkImg=%d\r\n"), m_bBkImg2); strData += strLine;
-	strLine.Format(_T("Tab2_BkImgPath=%s\r\n"), m_strBkImgPath2); strData += strLine;
 	WriteCStringToFile(strFile, strData);
 }
 
@@ -258,21 +253,13 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);
-		else if (str1.CompareNoCase(_T("Tab2_BkImg")) == 0 && nTabCount1 != -1) m_bBkImg2 = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("Tab2_BkImgPath")) == 0 && nTabCount1 != -1) m_strBkImgPath2 = str2;
-		else if (str1.CompareNoCase(_T("Tab2_ColorRule")) == 0)	nCRCount2 = (int)m_aCR_Tab2.Add(String2ColorRule(str2));
-		else if (str1.CompareNoCase(_T("Tab2_ColorRule_Option")) == 0 && nCRCount2 != -1) 
-		{
-			m_aCR_Tab2[nCRCount2].m_strRuleOption = str2; 
-			m_aCR_Tab2[nCRCount2].ParseRuleOption();
-		}
 		else if (str1.CompareNoCase(_T("TabViewOption")) == 0)
 		{   //사후 처리를 위해 배열에 저장(항목추가)
-			nTabViewOptionIndex = aTabViewOptionString.Add(strLine); 
+			nTabViewOptionIndex = (int)aTabViewOptionString.Add(strLine); 
 		}
 		else if (str1.Find(_T("TVO_")) == 0 && nTabViewOptionIndex != -1) 
 		{	// TVO_로 시작하는 부분을 모두 모아서 더함
-			aTabViewOptionString.SetAt(nTabViewOptionIndex, aTabViewOptionString.GetAt(nTabViewOptionIndex) + strLine);
+			aTabViewOptionString.SetAt(nTabViewOptionIndex, aTabViewOptionString.GetAt(nTabViewOptionIndex) + _T("\r\n") + strLine);
 		}
 	}
 	//추출한 탭뷰설정값 저장 부분을 사후 처리 
@@ -282,7 +269,6 @@ void CFileOfficerApp::INILoad(CString strFile)
 		tvo.StringImport(aTabViewOptionString.GetAt(i));
 		m_aTabViewOption.Add(tvo);
 	}
-	if (m_aTabViewOption.GetSize() < 2) m_aTabViewOption.SetSize(2); //ini가 비어있거나 잘못된 경우 대비, 빈 두개의 탭 정보 생성
 }
 
 ////////////////////////////////////////////
@@ -332,7 +318,11 @@ CString ColorRule::StringExport()
 {
 	CString strData, strLine;
 	strLine.Format(_T("TVO_ColorRule=%d,%d,%d,%d,%d\r\n"), nRuleType, bClrText, clrText, bClrBk, clrBk); strData += strLine;
-	if (strRuleOption.IsEmpty() == FALSE)	strLine.Format(_T("TVO_ColorRuleOption=%s\r\n"), (LPCTSTR)strRuleOption); strData += strLine;
+	if (strRuleOption.IsEmpty() == FALSE)
+	{
+		strLine.Format(_T("TVO_ColorRuleOption=%s\r\n"), (LPCTSTR)strRuleOption); 
+		strData += strLine;
+	}
 	return strData;
 }
 
@@ -403,8 +393,11 @@ CString TabViewOption::StringExport()
 		clrText, clrBk, nIconType, nFontSize, bBold,
 		bUseDefaultColor, bUseDefaultFont, bUseBkImage);
 	strData += strLine;
-	strLine.Format(_T("TVO_BkImgPath=%s\r\n"), strBkImagePath);
-	strData += strLine;
+	if (strBkImagePath.IsEmpty() == FALSE)
+	{
+		strLine.Format(_T("TVO_BkImgPath=%s\r\n"), strBkImagePath);
+		strData += strLine;
+	}
 	for (int i = 0; i < aColorRules.GetSize(); i++)
 	{
 		strData += aColorRules.GetAt(i).StringExport();
@@ -426,7 +419,7 @@ void TabViewOption::StringImport(CString strData)
 		{
 			CString strValue;
 			int i = 0, nVal = 0;
-			while (AfxExtractSubString(strValue, strLine, i, L','))
+			while (AfxExtractSubString(strValue, str2, i, L','))
 			{
 				nVal = _ttoi(strValue);
 				if (i == 0) clrText = nVal;
@@ -441,10 +434,10 @@ void TabViewOption::StringImport(CString strData)
 			}
 		}
 		else if (str1.CompareNoCase(_T("TVO_BkImgPath")) == 0) strBkImagePath = str2;
-		else if (str1.CompareNoCase(_T("TVO_ColorRule")) == 0) nIndex = aColorRuleString.Add(strLine);
+		else if (str1.CompareNoCase(_T("TVO_ColorRule")) == 0) nIndex = (int)aColorRuleString.Add(strLine);
 		else if (str1.CompareNoCase(_T("TVO_ColorRuleOption")) == 0 && nIndex != -1 && nIndex < aColorRuleString.GetSize())
 		{
-			aColorRuleString.SetAt(nIndex, aColorRuleString.GetAt(nIndex) + strLine);
+			aColorRuleString.SetAt(nIndex, aColorRuleString.GetAt(nIndex) + _T("\r\n") + strLine);
 		}
 	}
 	for (int i = 0; i < aColorRuleString.GetSize(); i++)

@@ -153,12 +153,6 @@ public:
 	int m_nLayoutSizeFixed2;
 	//BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요
 	BOOL m_bToolBarText;
-	BOOL m_bBkImg1;
-	BOOL m_bBkImg2;
-	CString m_strBkImgPath1;
-	CString m_strBkImgPath2;
-	ColorRuleArray m_aCR_Tab1;
-	ColorRuleArray m_aCR_Tab2;
 
 public:
 	void INISave(CString strFile);

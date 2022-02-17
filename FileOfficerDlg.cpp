@@ -69,19 +69,14 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		InitDefaultListOption(&list);
 		list.DestroyWindow();
 	}
-	//
-	m_tv1.m_nViewOptionIndex = 0;
-	m_tv2.m_nViewOptionIndex = 1;
+	//ini가 비어있거나 잘못된 경우 대비, 빈 두개의 탭 정보 생성
+	if (APP()->m_aTabViewOption.GetSize() < 2) APP()->m_aTabViewOption.SetSize(2);
+	m_tv1.m_tvo = APP()->m_aTabViewOption.GetAt(0);
+	m_tv2.m_tvo = APP()->m_aTabViewOption.GetAt(1);
 	m_tv1.m_aTabInfo.Copy(APP()->m_aTab1);
 	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
 	m_tv1.m_nCurrentTab = APP()->m_nCurrentTab1;
 	m_tv2.m_nCurrentTab = APP()->m_nCurrentTab2;
-	m_tv1.m_bBkImg = APP()->m_bBkImg1;
-	m_tv2.m_bBkImg = APP()->m_bBkImg2;
-	m_tv1.m_strBkImgPath = APP()->m_strBkImgPath1;
-	m_tv2.m_strBkImgPath = APP()->m_strBkImgPath2;
-	m_tv1.m_pColorRuleArray = &(APP()->m_aCR_Tab1);
-	m_tv2.m_pColorRuleArray = &(APP()->m_aCR_Tab2);
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
@@ -341,14 +336,10 @@ void CFileOfficerDlg::OnCancel()
 	m_tv2.UpdateColWidths();
 	APP()->m_nCurrentTab1 = m_tv1.m_nCurrentTab;
 	APP()->m_nCurrentTab2 = m_tv2.m_nCurrentTab;
-
-	APP()->m_bBkImg1 = m_tv1.m_bBkImg;
-	APP()->m_bBkImg2 = m_tv2.m_bBkImg;
-	APP()->m_strBkImgPath1 = m_tv1.m_strBkImgPath;
-	APP()->m_strBkImgPath2 = m_tv2.m_strBkImgPath;
-
 	APP()->m_aTab1.Copy(m_tv1.m_aTabInfo);
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
+	APP()->m_aTabViewOption.SetAt(0, m_tv1.m_tvo);
+	APP()->m_aTabViewOption.SetAt(1, m_tv2.m_tvo);
 	if (m_tv1.BreakThreads() == TRUE)
 	{
 		Sleep(500);
