@@ -331,8 +331,10 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 			SetTabTitle(i, GetPathName(pti.strPath));
 			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
-				TCHAR path[MY_MAX_PATH];
-				PathCombine(path, pList->m_strFolder, pList->m_strFilterInclude);
+				CString path;
+				path = pList->m_strFolder + _T("\\") + pList->m_strFilterInclude;
+				//TCHAR path[MY_MAX_PATH];
+				//PathCombine(path, pList->m_strFolder, pList->m_strFilterInclude);
 				m_editPath.SetWindowText(path);
 			}
 			else

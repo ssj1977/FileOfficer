@@ -76,31 +76,36 @@ static CTypeMap mapType;
 #define IDM_START_DIRWATCH 55010
 
 //해당 파일의 아이콘 정보를 가져온다
-int GetFileImageIndex(CString strPath)
+int GetFileImageIndex(CString strPath, LPITEMIDLIST pidl = NULL)
 {
 	SHFILEINFO sfi;
 	memset(&sfi, 0x00, sizeof(sfi));
-	SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), SHGFI_SYSICONINDEX);
+	if (pidl == NULL)
+	{
+		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), SHGFI_SYSICONINDEX);
+	}
+	else
+	{
+		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), SHGFI_SYSICONINDEX | SHGFI_PIDL);
+	}
 	return sfi.iIcon;
 }
-int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
+int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory, LPITEMIDLIST pidl = NULL)
 {
-	if (bIsDirectory)
-	{
-		//return GetFileImageIndex(_T(""));
-		return 3;		// SI_FOLDER_CLOSE
-	}
-	//CPath path = CPath(strPath);
-	//CString strExt = path.GetExtension();
+	if (bIsDirectory) return 3;		// SI_FOLDER_CLOSE
 	CString strExt = Get_Ext(strPath, bIsDirectory, TRUE);
 	if (strExt.CompareNoCase(_T(".exe")) == 0
 		|| strExt.CompareNoCase(_T(".ico")) == 0
-		|| strExt.CompareNoCase(_T(".lnk")) == 0
-		) return GetFileImageIndex(strPath);
+		|| strExt.CompareNoCase(_T(".lnk")) == 0)
+	{
+		//확장자가 같아도 아이콘이 다를 수 있는 파일들은 바로 조회
+		return GetFileImageIndex(strPath, pidl);
+	}
+	//나머지 파일에 대해서는 맵에서 우선 찾아서 속도 향상
 	CExtMap::iterator it = mapExt.find(strExt);
 	if (it == mapExt.end())
 	{
-		int nImage = GetFileImageIndex(strPath);
+		int nImage = GetFileImageIndex(strPath, pidl);
 		mapExt.insert(CExtMap::value_type(strExt, nImage));
 		return nImage;
 	}
@@ -114,7 +119,7 @@ CString GetPathName(CString strPath)
 	SHFILEINFO sfi = { 0 };
 	LPITEMIDLIST pidl = NULL;
 	if (strPath.IsEmpty()) SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl);
-	else pidl = ILCreateFromPath(strPath);
+	else pidl = CFileListCtrl::GetPIDLfromPath(strPath);
 
 	if (SHGetFileInfo((LPCTSTR)pidl, -1, &sfi, sizeof(sfi), SHGFI_PIDL | SHGFI_DISPLAYNAME))
 	{
@@ -130,7 +135,7 @@ CString GetPathType(CString strPath)
 	SHFILEINFO sfi = { 0 };
 	LPITEMIDLIST pidl = NULL;
 	if (strPath.IsEmpty()) SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl);
-	else pidl = ILCreateFromPath(strPath);
+	else pidl = CFileListCtrl::GetPIDLfromPath(strPath);
 
 	if (SHGetFileInfo((LPCTSTR)pidl, -1, &sfi, sizeof(sfi), SHGFI_PIDL | SHGFI_TYPENAME))
 	{
@@ -161,7 +166,7 @@ void GetPathInfo(CString strPath, CString& strDisplayName, CString& strTypeName)
 	SHFILEINFO sfi = { 0 };
 	LPITEMIDLIST pidl = NULL;
 	if (strPath.IsEmpty()) SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl);
-	else pidl = ILCreateFromPath(strPath);
+	else pidl = CFileListCtrl::GetPIDLfromPath(strPath);
 	if (SHGetFileInfo((LPCTSTR)pidl, -1, &sfi, sizeof(sfi), SHGFI_PIDL | SHGFI_DISPLAYNAME | SHGFI_TYPENAME))
 	{
 		strDisplayName = sfi.szDisplayName;
@@ -409,8 +414,10 @@ CString CFileListCtrl::GetItemFullPath(int nItem)
 {
 	if (m_nType == LIST_TYPE_FOLDER || m_nType == LIST_TYPE_UNCSERVER)
 	{
-		TCHAR path[MY_MAX_PATH] = {};
-		PathCombineW(path, m_strFolder, GetItemText(nItem, COL_NAME));
+		CString path;
+		path = m_strFolder + _T("\\") + GetItemText(nItem, COL_NAME);
+		//TCHAR path[MY_MAX_PATH] = {};
+		//PathCombineW(path, m_strFolder, GetItemText(nItem, COL_NAME));
 		return path;
 	}
 	else if (m_nType == LIST_TYPE_DRIVE)
@@ -420,20 +427,137 @@ CString CFileListCtrl::GetItemFullPath(int nItem)
 	return _T("");
 }
 
+LPITEMIDLIST CFileListCtrl::GetPIDLfromPath(CString strPath)
+{
+	//경로 길이가 MAX_PATH 보다 짧다면 간단히 끝난다
+	if (strPath.GetLength() < MAX_PATH) return ILCreateFromPath(strPath);
+
+	LPITEMIDLIST pidl_result = NULL;
+/*	IShellFolder* pisf = NULL;
+	if ((SHGetDesktopFolder(&pisf)) != S_OK) return NULL;
+	if (strPath.GetLength() < MAX_PATH)
+	{
+		if (pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl_result, NULL) == S_OK)
+		{	
+			strPath.ReleaseBuffer();
+			pisf->Release();
+			return pidl_result;
+		}
+	}*/
+	//경로 길이가 MAX_PATH 이상인 경우
+	//상위(폴더)경로 PIDL과 상대경로 PIDL로 쪼개서 만든 후 다시 합친다.
+	//이때 상위 폴더 경로에 대해서는 재귀적 호출로 만든다
+	CString strParent = Get_Folder(strPath);
+	CString strChild = Get_Name(strPath);
+	if (strChild.GetLength() < MAX_PATH)
+	{
+		IShellFolder* pisf = NULL;
+		if ((SHGetDesktopFolder(&pisf)) == S_OK)
+		{
+			LPITEMIDLIST pidl_parent = GetPIDLfromPath(strParent);
+			LPITEMIDLIST pidl_child = NULL;
+			if (pidl_parent)
+			{
+				if (pisf->BindToObject(pidl_parent, NULL, IID_IShellFolder, (void**)&pisf) == S_OK)
+				{
+					if (pisf->ParseDisplayName(NULL, 0, strChild.GetBuffer(0), NULL, &pidl_child, NULL) == S_OK)
+					{
+						UINT cb1 = ILGetSize(pidl_parent) - sizeof(pidl_parent->mkid.cb);
+						UINT cb2 = ILGetSize(pidl_child);
+						pidl_result = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
+						if (pidl_result != NULL)
+						{
+							CopyMemory(pidl_result, pidl_parent, cb1);
+							CopyMemory(((LPSTR)pidl_result) + cb1, pidl_child, cb2);
+						}
+						CoTaskMemFree(pidl_child);
+					}
+					strChild.ReleaseBuffer();
+				}
+				CoTaskMemFree(pidl_parent);
+			}
+		}
+		pisf->Release();
+	}
+	return pidl_result;
+}
+
 void CFileListCtrl::OpenSelectedItem()
 {
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
 	BOOL bMulti = FALSE;
 	if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) bMulti = TRUE;
-	
+	HRESULT hr = S_OK;
+	IShellFolder* pisf = NULL;
+	//루트(데스크탑)의 IShellFolder 인터페이스 얻어오기
+	if (FAILED(SHGetDesktopFolder(&pisf))) return;
 	while (nItem != -1)
 	{
 		INT_PTR nType = GetItemData(nItem);
 		if (nType == ITEM_TYPE_FILE)
 		{
-			HINSTANCE hr = ShellExecute(NULL, NULL, GetItemFullPath(nItem), NULL, NULL, SW_SHOW);
-			if ((INT_PTR)hr <= 32) AfxMessageBox(L"Shell Execution Error"); //Resource
+			LPITEMIDLIST pidl = GetPIDLfromPath(GetItemFullPath(nItem));
+			SHELLEXECUTEINFO sei;
+			memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
+			sei.fMask = SEE_MASK_IDLIST;
+			sei.cbSize = sizeof(SHELLEXECUTEINFO);
+			sei.lpVerb = _T("open");
+			//sei.lpFile = (strPath.GetLength() > MAX_PATH) ? shortpath : strPath;
+			sei.lpFile = NULL;
+			sei.lpIDList = pidl;
+			sei.nShow = SW_SHOW;
+			if (ShellExecuteEx(&sei) == FALSE)
+			{
+				AfxMessageBox(L"Shell Execution Error"); //Resource
+			}
+			CoTaskMemFree(pidl);
+			//if (strPath.IsEmpty())	SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl); else
+			/*CString strFolder = m_strFolder;
+			CString strName = GetItemText(nItem, COL_NAME);
+			//IShellFolder를 이용해서 경로를 루트 기준 PIDL로 변경
+			LPITEMIDLIST pidl_folder = NULL;
+			LPITEMIDLIST pidl_file = NULL;
+			if (pisf->ParseDisplayName(NULL, 0, strFolder.GetBuffer(0), NULL, &pidl_folder, NULL) == S_OK)
+			{
+				if (pisf->BindToObject(pidl_folder, NULL, IID_IShellFolder, (void**)&pisf) == S_OK)
+				{
+					if (pisf->ParseDisplayName(NULL, 0, strName.GetBuffer(0), NULL, &pidl_file, NULL) == S_OK)
+					{
+						LPITEMIDLIST pidl_fullpath = NULL;
+						UINT cb1 = ILGetSize(pidl_folder) - sizeof(pidl_folder->mkid.cb);
+						UINT cb2 = ILGetSize(pidl_file);
+						//IMalloc* pMalloc = NULL;
+						//SHGetMalloc(&pMalloc);
+						//pidl_fullpath = (LPITEMIDLIST)pMalloc->Alloc(cb1 + cb2);
+						pidl_fullpath = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
+						if (pidl_fullpath != NULL)
+						{
+							CopyMemory(pidl_fullpath, pidl_folder, cb1);
+							CopyMemory(((LPSTR)pidl_fullpath) + cb1 , pidl_file, cb2);
+							SHELLEXECUTEINFO sei;
+							memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
+							sei.fMask = SEE_MASK_IDLIST;
+							sei.cbSize = sizeof(SHELLEXECUTEINFO);
+							sei.lpVerb = _T("open");
+							//sei.lpFile = (strPath.GetLength() > MAX_PATH) ? shortpath : strPath;
+							sei.lpFile = NULL;
+							sei.lpIDList = pidl_fullpath;
+							sei.nShow = SW_SHOW;
+							if (ShellExecuteEx(&sei) == FALSE)
+							{
+								AfxMessageBox(L"Shell Execution Error"); //Resource
+							}
+							CoTaskMemFree(pidl_fullpath);
+							//pMalloc->Free(pidl_fullpath);
+						}
+						//pMalloc->Release();
+					}
+					CoTaskMemFree(pidl_file);
+				}
+				CoTaskMemFree(pidl_folder);
+			}
+			strFolder.ReleaseBuffer();*/
 		}
 		else //Folder
 		{
@@ -449,6 +573,7 @@ void CFileListCtrl::OpenSelectedItem()
 		if (bMulti == TRUE) nItem = GetNextItem(nItem, LVNI_SELECTED);
 		else nItem = -1;
 	}
+	pisf->Release();
 }
 
 
@@ -988,6 +1113,117 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 
 void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak, CString strSelectByName)
 {
+	/*
+	HRESULT hr = S_OK;
+	LPITEMIDLIST pidl = NULL;
+	IShellFolder* pisf = NULL;
+	//루트(데스크탑)의 IShellFolder 인터페이스 얻어오기
+	if (FAILED(SHGetDesktopFolder(&pisf))) return;
+	//IShellFolder를 이용해서 경로를 루트 기준 PIDL로 변경
+	hr = pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl, NULL);
+	strPath.ReleaseBuffer();
+	if (FAILED(hr)) { pisf->Release(); return; }
+	//IShellFolder를 PIDL에 바인딩 
+	if (SUCCEEDED(pisf->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&pisf)))
+	{
+		IEnumIDList* pIDList;
+		TCHAR path[MY_MAX_PATH] = { 0 };
+		PITEMID_CHILD child; //LPITEMIDLIST*
+		WIN32_FIND_DATA fd;
+
+		CString strSize, strDate, strType;
+		DWORD itemData = 0;
+		int nItem = -1;
+		size_t nLen = 0;
+		ULARGE_INTEGER filesize;
+		COleDateTime tTemp;
+		BOOL b = TRUE, bIsDir = FALSE;
+		//TCHAR fullpath[MY_MAX_PATH];
+		CString fullpath;
+		CString strDir = Get_Folder(strPath);
+		BOOL bSelect = !(strSelectByName.IsEmpty());
+
+		// 하위 항목들을 가져오기
+		if (pisf->EnumObjects(NULL, SHCONTF_NONFOLDERS | SHCONTF_FOLDERS, &pIDList) == S_OK)
+		{
+			while (pIDList->Next(1, &child, NULL) == S_OK)
+			{
+				SHGetDataFromIDListW(pisf, child, SHGDFIL_FINDDATA, (void*)&fd, sizeof(WIN32_FIND_DATA));
+				if (bAllowBreak == TRUE && IsLoading(this) == FALSE)
+				{
+					break;
+				}
+				itemData = ITEM_TYPE_FILE;
+				nLen = _tcsclen(fd.cFileName);
+				if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
+				else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
+				if (itemData != ITEM_TYPE_DOTS)
+				{
+					tTemp = COleDateTime(fd.ftLastWriteTime);
+					strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+					if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+					{
+						itemData = ITEM_TYPE_DIRECTORY;  //Directory
+						bIsDir = TRUE;
+						strSize.Empty();
+					}
+					else
+					{
+						bIsDir = FALSE;
+						filesize.HighPart = fd.nFileSizeHigh;
+						filesize.LowPart = fd.nFileSizeLow;
+						strSize = GetFileSizeString(filesize.QuadPart);
+					}
+					fullpath = strDir + _T("\\") + fd.cFileName;
+					//PathCombineW(fullpath, strDir, fd.cFileName);
+					BOOL bExist = FALSE;
+					if (bCheckExist == TRUE)
+					{
+						{
+							for (int i = 0; i < GetItemCount(); i++)
+							{
+								if (GetItemText(i, 0).CompareNoCase(fd.cFileName) == 0)
+								{
+									bExist = TRUE;
+									nItem = i;
+									break;
+								}
+							}
+						}
+					}
+					if (bExist == FALSE)
+					{
+						nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir, child));
+					}
+					if (nItem != -1)
+					{
+						if (bSelect == TRUE)
+						{
+							if (strSelectByName.CompareNoCase(fd.cFileName) == 0)
+							{
+								SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+								bSelect = FALSE; //한번만
+							}
+						}
+						SetItemData(nItem, itemData);
+						SetItemText(nItem, COL_DATE, strDate);
+						SetItemText(nItem, COL_SIZE, strSize);
+						//if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathType(fullpath));
+						//else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
+						SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
+					}
+				}
+				CoTaskMemFree(child); //받아온 child의 pidl은 다시 반환
+			}
+		}
+		pisf->Release();
+		pIDList->Release();
+		CoTaskMemFree(pidl);
+	}
+	return;
+	*/
+
+	//////////////////////////////////////////
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
@@ -999,7 +1235,8 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 	ULARGE_INTEGER filesize;
 	COleDateTime tTemp;
 	BOOL b = TRUE, bIsDir = FALSE;
-	TCHAR fullpath[MY_MAX_PATH];
+	//TCHAR fullpath[MY_MAX_PATH];
+	CString fullpath;
 	CString strDir = Get_Folder(strPath);
 	BOOL bSelect = !(strSelectByName.IsEmpty());
 	while (b)
@@ -1029,7 +1266,8 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 				filesize.LowPart = fd.nFileSizeLow;
 				strSize = GetFileSizeString(filesize.QuadPart);
 			}
-			PathCombineW(fullpath, strDir, fd.cFileName);
+			fullpath = strDir + _T("\\") + fd.cFileName;
+			//PathCombineW(fullpath, strDir, fd.cFileName);
 			BOOL bExist = FALSE;
 			if (bCheckExist == TRUE)
 			{

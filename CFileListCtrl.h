@@ -91,6 +91,8 @@ public:
 	static BOOL IsLoading(CFileListCtrl* pList);
 	static void DeleteLoadingStatus(CFileListCtrl* pList);
 
+	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
+
 	void ClearThread();
 	HANDLE m_hThreadLoad;
 	CDirectoryChangeWatcher m_DirWatcher;
