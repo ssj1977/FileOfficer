@@ -1662,8 +1662,7 @@ BOOL CFileListCtrl::RenameSelectedItem()
 		memset(szOldPath, 0, MY_MAX_PATH * sizeof(TCHAR));
 		memset(szNewPath, 0, MY_MAX_PATH * sizeof(TCHAR));
 		lstrcpy(szOldPath, (LPCTSTR)strPath);
-		PathCombineW(szNewPath, m_strFolder, dlg.m_strInput);
-
+		lstrcpy(szNewPath, (LPCTSTR)(PathBackSlash(m_strFolder) + dlg.m_strInput));
 		BOOL bIsSamePath = FALSE;
 		if (strPath.CompareNoCase(szNewPath) == 0) bIsSamePath = TRUE;
 
