@@ -331,11 +331,9 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 			SetTabTitle(i, GetPathName(pti.strPath));
 			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
-				CString path;
-				path = pList->m_strFolder + _T("\\") + pList->m_strFilterInclude;
-				//TCHAR path[MY_MAX_PATH];
-				//PathCombine(path, pList->m_strFolder, pList->m_strFilterInclude);
-				m_editPath.SetWindowText(path);
+				CString strPath;
+				strPath = PathBackSlash(pList->m_strFolder) + pList->m_strFilterInclude;
+				m_editPath.SetWindowText(strPath);
 			}
 			else
 			{
@@ -370,7 +368,6 @@ CString GetActualPath(CString strPath)
 {
 	if (strPath.IsEmpty()) return strPath;
 	if (strPath.GetAt(0) == L'\\') return strPath;
-	TCHAR path[MY_MAX_PATH] = {};
 	CString strParent = GetParentFolder(strPath);
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
@@ -382,8 +379,7 @@ CString GetActualPath(CString strPath)
 	}
 	else
 	{
-		PathCombine(path, GetActualPath(strParent), fd.cFileName);
-		strReturn = path;
+		strReturn = PathBackSlash(GetActualPath(strParent)) + fd.cFileName;
 	}
 	FindClose(hFind);
 	return strReturn;
@@ -431,9 +427,7 @@ void CDlgTabView::UpdateTabByPathEdit()
 	strPath = GetActualPath(strPath);
 	if (strFilter.IsEmpty() == FALSE)
 	{
-		TCHAR path_with_filter[MY_MAX_PATH] = {};
-		PathCombine(path_with_filter, strPath, strFilter);
-		pList->DisplayFolder_Start(path_with_filter);
+		pList->DisplayFolder_Start(PathBackSlash(strPath) + strFilter);
 	}
 	else
 	{

@@ -11,5 +11,5 @@ void GetToken(CString& strLine, CString& str1, CString& str2, TCHAR cSplit, BOOL
 CString Get_Folder(CString strFile, BOOL bIncludeSlash = FALSE);
 CString Get_Name(CString strFile, BOOL bKeepExt = TRUE);
 CString Get_Ext(CString strFile, BOOL bIsDirectory = FALSE, BOOL bIncludeDot = TRUE);
-CString PathBackSlash(CString strPath, BOOL bUseBackSlash);
+CString PathBackSlash(CString strPath, BOOL bUseBackSlash = TRUE);
 #endif
