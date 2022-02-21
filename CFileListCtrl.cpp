@@ -1010,30 +1010,40 @@ struct HANDLETOMAPPINGS
 	LPSHNAMEMAPPING   lpSHNameMapping;    // Pointer to the array of mappings.
 };
 
-void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
+void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 {
 	if (m_strFolder.IsEmpty()) return;
-	if (aOldPath.GetSize() == 0) return;
+	if (aSrcPath.GetSize() == 0) return;
 
 	BOOL bIsSamePath = FALSE;
-	CString strOldFolder = Get_Folder(aOldPath[0], TRUE); //'\'를 붙여서 추출
+	CString strOldFolder = Get_Folder(aSrcPath[0], TRUE); //'\'를 붙여서 추출
 	CString strNewFolder = m_strFolder;
 	strNewFolder = PathBackSlash(strNewFolder); //뒤에 '\'가 없으면 붙여 준다.
 	if (strOldFolder.CompareNoCase(strNewFolder) == 0) bIsSamePath = TRUE;
-
-	CStringArray aNewPath;
+	//파일 경로가 MAX_PATH이상인 경우는 SHFileOperation을 쓸 수 없음
+	//이런경우 CopyFileEx 또는 MoveFileEx를 이용해서 별도로 처리한다.
+	CStringArray aOldPath, aNewPath, aLongOldPath, aLongNewPath;
 	aNewPath.SetSize(aOldPath.GetSize());
-	for (int i = 0; i < aOldPath.GetSize(); i++)
+	for (int i = 0; i < aSrcPath.GetSize(); i++)
 	{
-		aNewPath[i] = strNewFolder + Get_Name(aOldPath[i]);
+		if (aSrcPath.GetAt(i).GetLength() < MAX_PATH)
+		{
+			aOldPath.Add(aSrcPath.GetAt(i));
+			aNewPath.Add(strNewFolder + Get_Name(aSrcPath.GetAt(i)));
+		}
+		else
+		{
+			aLongOldPath.Add(aSrcPath.GetAt(i));
+			aLongNewPath.Add(strNewFolder + Get_Name(aSrcPath.GetAt(i)));
+		}
 	}
+	//먼저 MAX_PATH보다 짧은 경로들을 처리
 	TCHAR* pszzBuf_OldPath = NULL;
 	TCHAR* pszzBuf_NewPath = NULL;
 	StringArray2szzBuffer(aOldPath, pszzBuf_OldPath);
 	if (pszzBuf_OldPath == NULL) return;
 	StringArray2szzBuffer(aNewPath, pszzBuf_NewPath);
 	if (pszzBuf_NewPath == NULL) return;
-
 	SHFILEOPSTRUCT FileOp = { 0 };
 	FileOp.hwnd = NULL;
 	FileOp.wFunc = bMove ? FO_MOVE : FO_COPY;
@@ -1062,6 +1072,22 @@ void CFileListCtrl::PasteFiles(CStringArray& aOldPath, BOOL bMove)
 	delete[] pszzBuf_OldPath;
 	delete[] pszzBuf_NewPath;
 	for (int i=0; i<aNewPath.GetSize(); i++) AddItemByPath(aNewPath[i], TRUE, FALSE); 
+	//MAX_PATH보다 긴 경로들을 처리
+	BOOL bRet = FALSE;
+	for (int i = 0; i < aLongNewPath.GetSize(); i++)
+	{
+		if (bMove == FALSE)
+		{
+			bRet = CopyFileEx(aLongOldPath.GetAt(i), aLongNewPath.GetAt(i)
+				, NULL, NULL, NULL, COPY_FILE_FAIL_IF_EXISTS);
+		}
+		else
+		{
+			bRet = MoveFileWithProgress(aLongOldPath.GetAt(i), aLongNewPath.GetAt(i)
+				, NULL, NULL, MOVEFILE_COPY_ALLOWED);
+		}
+		if (bRet != FALSE) AddItemByPath(aNewPath[i], TRUE, FALSE);
+	}
 	WatchCurrentDirectory(TRUE);
 }
 
@@ -1610,19 +1636,20 @@ void CFileListCtrl::ClipBoardImport()
 
 void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 {
-	CStringArray aPath;
+	CStringArray aPath, aLongPath;
 	CString strPath;
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
 	while (nItem != -1)
 	{
 		strPath = GetItemFullPath(nItem);
-		aPath.Add(strPath);
+		if (strPath.GetLength() < MAX_PATH)	aPath.Add(strPath);
+		else aLongPath.Add(strPath);
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
+	//MAX_PATH보다 짧은 경로들 처리
 	TCHAR* pszBuf_Delete;
 	StringArray2szzBuffer(aPath, pszBuf_Delete);
-
 	SHFILEOPSTRUCT FileOp = { 0 };
 	FileOp.hwnd = NULL;
 	FileOp.wFunc = FO_DELETE;
@@ -1635,11 +1662,24 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	WatchCurrentDirectory(FALSE);
 	int nRet = SHFileOperation(&FileOp);
 	delete[] pszBuf_Delete;
+	//MAX_PATH보다 긴 경로들 처리
+	for (int i = 0; i < aLongPath.GetSize(); i++)
+	{
+		if (bRecycle == FALSE)
+		{
+			DeleteFile(aLongPath.GetAt(i));
+		}
+		else
+		{
+			//MoveFile
+		}
+	}
+	//UI에서 삭제하기
 	nItem = GetNextItem(-1, LVNI_SELECTED);
 	BOOL bDeleted = FALSE;
 	while (nItem != -1)
 	{
-		bDeleted = DeleteInvalidItem(nItem);
+		bDeleted = DeleteInvalidItem(nItem); //실제로 지워졌는지 확인
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
