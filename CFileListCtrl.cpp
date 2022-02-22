@@ -1643,11 +1643,34 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	while (nItem != -1)
 	{
 		strPath = GetItemFullPath(nItem);
-		if (strPath.GetLength() < MAX_PATH)	aPath.Add(strPath);
-		else aLongPath.Add(strPath);
+		//if (strPath.GetLength() < MAX_PATH)	aPath.Add(strPath);
+		//else aLongPath.Add(strPath);
+		aPath.Add(strPath);
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
-	//MAX_PATH보다 짧은 경로들 처리
+	////
+	IFileOperation* pifo;
+	HRESULT hr = CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_ALL, IID_PPV_ARGS(&pifo));
+	if (hr == S_OK)
+	{
+		DWORD flag = 0;
+		if (bRecycle) flag = flag | FOFX_RECYCLEONDELETE | FOFX_ADDUNDORECORD;
+		if (pifo->SetOperationFlags(flag) == S_OK)
+		{
+			for (int i = 0; i < aPath.GetSize(); i++)
+			{
+				IShellItem* pTarget = NULL;
+				if (SHCreateItemFromParsingName(aPath[i], NULL, IID_PPV_ARGS(&pTarget)) == S_OK)
+				{
+					pifo->DeleteItem(pTarget, NULL);
+					pTarget->Release();
+				}
+			}
+			pifo->PerformOperations();
+		}
+		pifo->Release();
+	}
+/*	//MAX_PATH보다 짧은 경로들 처리
 	TCHAR* pszBuf_Delete;
 	StringArray2szzBuffer(aPath, pszBuf_Delete);
 	SHFILEOPSTRUCT FileOp = { 0 };
@@ -1673,7 +1696,7 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 		{
 			//MoveFile
 		}
-	}
+	}*/
 	//UI에서 삭제하기
 	nItem = GetNextItem(-1, LVNI_SELECTED);
 	BOOL bDeleted = FALSE;
