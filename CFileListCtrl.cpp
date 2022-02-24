@@ -16,6 +16,7 @@
 /////////////////////////////////////////////////
 //파일 아이콘 처리
 #include <map>
+#include <vector>
 typedef std::map<CString, int> CExtMap; //확장자에 해당하는 이미지맵의 번호를 기억
 static CExtMap mapExt;
 typedef std::map<CString, CString> CTypeMap;
@@ -1633,79 +1634,53 @@ void CFileListCtrl::ClipBoardImport()
 	}
 }
 
-
 void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 {
-	CStringArray aPath, aLongPath;
-	CString strPath;
+	std::vector<LPITEMIDLIST> pidl_items;
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
 	while (nItem != -1)
 	{
-		strPath = GetItemFullPath(nItem);
-		//if (strPath.GetLength() < MAX_PATH)	aPath.Add(strPath);
-		//else aLongPath.Add(strPath);
-		aPath.Add(strPath);
+		CString strPath = GetItemFullPath(nItem);
+		LPITEMIDLIST pidl = GetPIDLfromPath(strPath);
+		if (pidl) pidl_items.push_back(pidl);
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
-	////
-	IFileOperation* pifo;
-	HRESULT hr = CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_ALL, IID_PPV_ARGS(&pifo));
-	if (hr == S_OK)
+	IShellItemArray* shi_array = NULL;
+	if (SHCreateShellItemArrayFromIDLists(
+		(UINT)pidl_items.size(), 
+		(LPCITEMIDLIST*)pidl_items.data(), 
+		&shi_array) == S_OK)
 	{
-		DWORD flag = 0;
-		if (bRecycle) flag = flag | FOFX_RECYCLEONDELETE | FOFX_ADDUNDORECORD;
-		if (pifo->SetOperationFlags(flag) == S_OK)
+		IFileOperation* pifo = NULL;
+		if (CoCreateInstance(CLSID_FileOperation, NULL, 
+			CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
 		{
-			for (int i = 0; i < aPath.GetSize(); i++)
+			DWORD flag = 0;
+			if (bRecycle) flag = flag | FOFX_RECYCLEONDELETE | FOFX_ADDUNDORECORD;
+			if (pifo->SetOperationFlags(flag) == S_OK &&
+				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
 			{
-				IShellItem* pTarget = NULL;
-				if (SHCreateItemFromParsingName(aPath[i], NULL, IID_PPV_ARGS(&pTarget)) == S_OK)
-				{
-					pifo->DeleteItem(pTarget, NULL);
-					pTarget->Release();
-				}
+				pifo->DeleteItems(shi_array);
+				pifo->PerformOperations();
 			}
-			pifo->PerformOperations();
+			if (pifo) pifo->Release();
 		}
-		pifo->Release();
+		if (shi_array) shi_array->Release();
 	}
-/*	//MAX_PATH보다 짧은 경로들 처리
-	TCHAR* pszBuf_Delete;
-	StringArray2szzBuffer(aPath, pszBuf_Delete);
-	SHFILEOPSTRUCT FileOp = { 0 };
-	FileOp.hwnd = NULL;
-	FileOp.wFunc = FO_DELETE;
-	FileOp.pFrom = pszBuf_Delete;
-	FileOp.pTo = NULL;
-	FileOp.fFlags = bRecycle ? FOF_ALLOWUNDO : 0;
-	FileOp.fAnyOperationsAborted = false;
-	FileOp.hNameMappings = NULL;
-	FileOp.lpszProgressTitle = NULL;
-	WatchCurrentDirectory(FALSE);
-	int nRet = SHFileOperation(&FileOp);
-	delete[] pszBuf_Delete;
-	//MAX_PATH보다 긴 경로들 처리
-	for (int i = 0; i < aLongPath.GetSize(); i++)
-	{
-		if (bRecycle == FALSE)
-		{
-			DeleteFile(aLongPath.GetAt(i));
-		}
-		else
-		{
-			//MoveFile
-		}
-	}*/
+	for (auto& pid : pidl_items) CoTaskMemFree(pid);
+	pidl_items.clear();
 	//UI에서 삭제하기
 	nItem = GetNextItem(-1, LVNI_SELECTED);
 	BOOL bDeleted = FALSE;
+	this->SetRedraw(FALSE);
 	while (nItem != -1)
 	{
 		bDeleted = DeleteInvalidItem(nItem); //실제로 지워졌는지 확인
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
+	this->SetRedraw(TRUE);
 	WatchCurrentDirectory(TRUE);
 }
 
