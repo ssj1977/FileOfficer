@@ -374,7 +374,7 @@ CString GetActualPath(CString strPath)
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
 	CString strReturn;
 	if (strParent.IsEmpty())
-	{
+	{	//각 드라이브의 루트이므로 드라이브 문자는 대문자로
 		strReturn = strPath.MakeUpper();
 	}
 	else

@@ -234,6 +234,61 @@ void CMyDirectoryChangeHandler::On_FileNameChanged(const CString& strOldFileName
 
 void ClearAllNotification();
 
+// IFileOperation 에서 변경된 파일명을 받아오기 위한 IFileOperationProgressSink 구현
+
+IFACEMETHODIMP MyProgress::PostCopyItem(DWORD dwFlags, IShellItem* psiItem,
+	IShellItem* psiDestinationFolder, PCWSTR pwszNewName, HRESULT hrCopy,
+	IShellItem* psiNewlyCreated)
+{
+	CString strPath = PathBackSlash(m_pList->m_strFolder, TRUE) + pwszNewName;
+	if (m_pList) m_pList->AddItemByPath(strPath, TRUE, FALSE);
+	return S_OK;
+}
+IFACEMETHODIMP MyProgress::PostMoveItem(DWORD dwFlags, IShellItem* psiItem,
+	IShellItem* psiDestinationFolder, PCWSTR pwszNewName, HRESULT hrCopy,
+	IShellItem* psiNewlyCreated)
+{
+	CString strPath = PathBackSlash(m_pList->m_strFolder, TRUE) + pwszNewName;
+	if (m_pList) m_pList->AddItemByPath(strPath, TRUE, FALSE);
+	return S_OK;
+}
+IFACEMETHODIMP MyProgress::PostRenameItem(DWORD dwFlags, IShellItem* psiItem, 
+	PCWSTR pszNewName, HRESULT hrRename, IShellItem* psiNewlyCreated)
+{ 
+	if (m_pList == NULL) return S_OK;
+	LPWSTR pszOldName;
+	psiItem->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &pszOldName);
+	size_t nOldSize = _tcslen(pszOldName);
+	size_t nNewSize = _tcslen(pszNewName);
+	size_t nCompareSize = (nOldSize > nNewSize) ? nOldSize : nNewSize;
+	if (_tcsnicmp(pszOldName, pszNewName, nCompareSize) != 0)
+	{
+		m_pList->UpdateItemByPath(pszOldName, pszNewName, TRUE);
+	}
+	CoTaskMemFree(pszOldName);
+	return S_OK;
+}
+
+IFACEMETHODIMP MyProgress::QueryInterface(REFIID riid, void** ppv)
+{
+	static const QITAB qit[] =
+	{
+		QITABENT(CFileListCtrl, IFileOperationProgressSink),
+		{0},
+	};
+	return QISearch(this, qit, riid, ppv);
+}
+IFACEMETHODIMP_(ULONG) MyProgress::AddRef()
+{ 
+	return InterlockedIncrement(&_cRef); 
+}
+IFACEMETHODIMP_(ULONG) MyProgress::Release()
+{
+	ULONG cRef = InterlockedDecrement(&_cRef);
+	if (0 == cRef)	delete this;
+	return cRef;
+}
+
 // CFileListCtrl
 
 IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
@@ -316,6 +371,7 @@ CFileListCtrl::CFileListCtrl()
 	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
 	//m_bUseFileType = FALSE;
+
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -1005,11 +1061,6 @@ void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
 }
 
-struct HANDLETOMAPPINGS
-{
-	UINT              uNumberOfMappings;  // Number of mappings in the array.
-	LPSHNAMEMAPPING   lpSHNameMapping;    // Pointer to the array of mappings.
-};
 
 void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 {
@@ -1017,90 +1068,61 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 	if (aSrcPath.GetSize() == 0) return;
 
 	BOOL bIsSamePath = FALSE;
-	CString strOldFolder = Get_Folder(aSrcPath[0], TRUE); //'\'를 붙여서 추출
-	CString strNewFolder = m_strFolder;
-	strNewFolder = PathBackSlash(strNewFolder); //뒤에 '\'가 없으면 붙여 준다.
+	CString strOldFolder = Get_Folder(aSrcPath[0], FALSE); //'\'를 붙여서 추출
+	CString strNewFolder = PathBackSlash(m_strFolder, FALSE);
 	if (strOldFolder.CompareNoCase(strNewFolder) == 0) bIsSamePath = TRUE;
-	//파일 경로가 MAX_PATH이상인 경우는 SHFileOperation을 쓸 수 없음
-	//이런경우 CopyFileEx 또는 MoveFileEx를 이용해서 별도로 처리한다.
-	CStringArray aOldPath, aNewPath, aLongOldPath, aLongNewPath;
-	aNewPath.SetSize(aOldPath.GetSize());
-	for (int i = 0; i < aSrcPath.GetSize(); i++)
+
+	IShellItemArray* shi_array = NULL;
+	if (CreateShellItemArrayFromPaths(aSrcPath, shi_array) == S_OK)
 	{
-		if (aSrcPath.GetAt(i).GetLength() < MAX_PATH)
+		IFileOperation* pifo = NULL;
+		if (CoCreateInstance(CLSID_FileOperation, NULL,
+			CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
 		{
-			aOldPath.Add(aSrcPath.GetAt(i));
-			aNewPath.Add(strNewFolder + Get_Name(aSrcPath.GetAt(i)));
+			IShellItem* pisi = NULL;
+			if (SHCreateShellItem(NULL, NULL, GetPIDLfromPath(strNewFolder), &pisi) == S_OK)
+			{
+				DWORD flag = FOFX_ADDUNDORECORD | FOF_ALLOWUNDO;
+				if (bIsSamePath == TRUE) flag = flag | FOF_RENAMEONCOLLISION;
+				if (pifo->SetOperationFlags(flag) == S_OK &&
+					pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
+				{
+					if (bMove)	pifo->MoveItems(shi_array, pisi);
+					else		pifo->CopyItems(shi_array, pisi);
+					WatchCurrentDirectory(FALSE);
+					SetRedraw(FALSE);
+					::ATL::CComPtr<::MyProgress> pSink; //이름이 바뀌었을때 가져오기
+					pSink.Attach(new MyProgress{});
+					pSink->m_pList = this;
+					DWORD dwCookie;
+					pifo->Advise(pSink, &dwCookie);
+					pifo->PerformOperations();
+					pifo->Unadvise(dwCookie);
+					pSink.Release();
+					SetRedraw(TRUE);
+					WatchCurrentDirectory(TRUE);
+				}
+				if (pisi) pisi->Release();
+			}
+			if (pifo) pifo->Release();
 		}
-		else
-		{
-			aLongOldPath.Add(aSrcPath.GetAt(i));
-			aLongNewPath.Add(strNewFolder + Get_Name(aSrcPath.GetAt(i)));
-		}
+		if (shi_array) shi_array->Release();
 	}
-	//먼저 MAX_PATH보다 짧은 경로들을 처리
-	TCHAR* pszzBuf_OldPath = NULL;
-	TCHAR* pszzBuf_NewPath = NULL;
-	StringArray2szzBuffer(aOldPath, pszzBuf_OldPath);
-	if (pszzBuf_OldPath == NULL) return;
-	StringArray2szzBuffer(aNewPath, pszzBuf_NewPath);
-	if (pszzBuf_NewPath == NULL) return;
-	SHFILEOPSTRUCT FileOp = { 0 };
-	FileOp.hwnd = NULL;
-	FileOp.wFunc = bMove ? FO_MOVE : FO_COPY;
-	FileOp.pFrom = pszzBuf_OldPath;
-	FileOp.pTo = pszzBuf_NewPath;
-	FileOp.fFlags = FOF_MULTIDESTFILES | FOF_ALLOWUNDO | FOF_WANTMAPPINGHANDLE;
-	if (bIsSamePath == TRUE) FileOp.fFlags = FileOp.fFlags | FOF_RENAMEONCOLLISION;
-	FileOp.fAnyOperationsAborted = false;
-	FileOp.hNameMappings = NULL;
-	FileOp.lpszProgressTitle = NULL;
-	WatchCurrentDirectory(FALSE);
-	int nRet = SHFileOperation(&FileOp);
-	if (FileOp.hNameMappings)
-	{
-		HANDLETOMAPPINGS* phtm = (HANDLETOMAPPINGS*)FileOp.hNameMappings;
-		SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
-		aNewPath.RemoveAll();
-		int nCount = (int)phtm->uNumberOfMappings;
-		for (int i = 0; i < nCount; i++)
-		{
-			aNewPath.Add(pnm->pszNewPath);
-			pnm++;
-		}
-		SHFreeNameMappings(FileOp.hNameMappings);
-	}
-	delete[] pszzBuf_OldPath;
-	delete[] pszzBuf_NewPath;
-	for (int i=0; i<aNewPath.GetSize(); i++) AddItemByPath(aNewPath[i], TRUE, FALSE); 
-	//MAX_PATH보다 긴 경로들을 처리
-	BOOL bRet = FALSE;
-	for (int i = 0; i < aLongNewPath.GetSize(); i++)
-	{
-		if (bMove == FALSE)
-		{
-			bRet = CopyFileEx(aLongOldPath.GetAt(i), aLongNewPath.GetAt(i)
-				, NULL, NULL, NULL, COPY_FILE_FAIL_IF_EXISTS);
-		}
-		else
-		{
-			bRet = MoveFileWithProgress(aLongOldPath.GetAt(i), aLongNewPath.GetAt(i)
-				, NULL, NULL, MOVEFILE_COPY_ALLOWED);
-		}
-		if (bRet != FALSE) AddItemByPath(aNewPath[i], TRUE, FALSE);
-	}
-	WatchCurrentDirectory(TRUE);
+	return;
 }
 
 
-void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
+void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath)
 {
-	CString strOldFolder = Get_Folder(strOldPath, TRUE);
-	CString strNewFolder = Get_Folder(strNewPath, TRUE);
-	CString strOldName = Get_Name(strOldPath);
-	CString strNewName = Get_Name(strNewPath);
-	if (strOldFolder.CompareNoCase(m_strFolder) != 0) return;
-	if (strOldFolder.CompareNoCase(strNewFolder) != 0) return;
+	CString strOldFolder = bRelativePath ? PathBackSlash(m_strFolder, TRUE) : Get_Folder(strOldPath, TRUE);
+	CString strNewFolder = bRelativePath ? PathBackSlash(m_strFolder, TRUE) : Get_Folder(strNewPath, TRUE);
+	CString strOldName = bRelativePath ? strOldPath : Get_Name(strOldPath);
+	CString strNewName = bRelativePath ? strNewPath : Get_Name(strNewPath);
+	if (bRelativePath == FALSE)
+	{
+		if (strOldFolder.CompareNoCase(m_strFolder) != 0) return;
+		if (strOldFolder.CompareNoCase(strNewFolder) != 0) return;
+	}
 	int nItem = -1;
 	for (int i = 0; i < GetItemCount(); i++)
 	{
@@ -1112,141 +1134,45 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath)
 		}
 	}
 	if (nItem == -1) return;
-	HANDLE hFile = CreateFile(strNewPath, 0, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS, NULL);
-	if (hFile == INVALID_HANDLE_VALUE || hFile == NULL)	return;
-	DWORD itemData = PathIsDirectory(strNewPath) ? ITEM_TYPE_DIRECTORY : ITEM_TYPE_FILE;
-	CString strSize;
+	if (bRelativePath)
+	{
+		strOldPath = strOldFolder + strOldName;
+		strNewPath = strNewFolder + strNewName;
+	}
+	WIN32_FIND_DATA fd;
+	HANDLE hFind;
+	hFind = FindFirstFileExW(strNewPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+	if (hFind == INVALID_HANDLE_VALUE) return;
+	DWORD itemData = ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0 ) ? ITEM_TYPE_FILE : ITEM_TYPE_DIRECTORY;
+	//시각
+	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
+	CString strTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+	//크기
 	if (itemData == ITEM_TYPE_FILE)
 	{
-		LARGE_INTEGER filesize;
-		if (GetFileSizeEx(hFile, &filesize)) strSize = GetFileSizeString(filesize.QuadPart);
+		ULARGE_INTEGER filesize;
+		filesize.HighPart = fd.nFileSizeHigh;
+		filesize.LowPart = fd.nFileSizeLow;
+		CString strSize = GetFileSizeString(filesize.QuadPart);
+		SetItemText(nItem, COL_SIZE, strSize);
+		if (Get_Ext(strOldName).CompareNoCase(Get_Ext(strNewName)) != 0)
+		{
+			//종류
+			CString strType = GetPathTypeFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY));
+			SetItemText(nItem, COL_TYPE, strType);
+			//아이콘
+			int nImage = GetFileImageIndexFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY));
+			SetItem(nItem, COL_NAME, LVIF_IMAGE, NULL, nImage, 0, 0, 0);
+		}
 	}
-	FILETIME ftWrite;
-	CString strWriteTime;
-	if (GetFileTime(hFile, NULL, NULL, &ftWrite))
-	{
-		COleDateTime tTemp = COleDateTime(ftWrite);
-		strWriteTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
-	}
-	int nImage = GetFileImageIndexFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY) );
-	SetItem(nItem, 0, LVIF_IMAGE | LVIF_TEXT, strNewName, nImage, 0, 0, 0);
-	SetItemText(nItem, COL_DATE, strWriteTime);
-	SetItemText(nItem, COL_SIZE, strSize);
-	CloseHandle(hFile);
+	SetItemText(nItem, COL_NAME, strNewName);
+	SetItemText(nItem, COL_DATE, strTime);
+	FindClose(hFind);
 }
 
 
 void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak, CString strSelectByName)
 {
-	/*
-	HRESULT hr = S_OK;
-	LPITEMIDLIST pidl = NULL;
-	IShellFolder* pisf = NULL;
-	//루트(데스크탑)의 IShellFolder 인터페이스 얻어오기
-	if (FAILED(SHGetDesktopFolder(&pisf))) return;
-	//IShellFolder를 이용해서 경로를 루트 기준 PIDL로 변경
-	hr = pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl, NULL);
-	strPath.ReleaseBuffer();
-	if (FAILED(hr)) { pisf->Release(); return; }
-	//IShellFolder를 PIDL에 바인딩 
-	if (SUCCEEDED(pisf->BindToObject(pidl, NULL, IID_IShellFolder, (void**)&pisf)))
-	{
-		IEnumIDList* pIDList;
-		TCHAR path[MY_MAX_PATH] = { 0 };
-		PITEMID_CHILD child; //LPITEMIDLIST*
-		WIN32_FIND_DATA fd;
-
-		CString strSize, strDate, strType;
-		DWORD itemData = 0;
-		int nItem = -1;
-		size_t nLen = 0;
-		ULARGE_INTEGER filesize;
-		COleDateTime tTemp;
-		BOOL b = TRUE, bIsDir = FALSE;
-		//TCHAR fullpath[MY_MAX_PATH];
-		CString fullpath;
-		CString strDir = Get_Folder(strPath);
-		BOOL bSelect = !(strSelectByName.IsEmpty());
-
-		// 하위 항목들을 가져오기
-		if (pisf->EnumObjects(NULL, SHCONTF_NONFOLDERS | SHCONTF_FOLDERS, &pIDList) == S_OK)
-		{
-			while (pIDList->Next(1, &child, NULL) == S_OK)
-			{
-				SHGetDataFromIDListW(pisf, child, SHGDFIL_FINDDATA, (void*)&fd, sizeof(WIN32_FIND_DATA));
-				if (bAllowBreak == TRUE && IsLoading(this) == FALSE)
-				{
-					break;
-				}
-				itemData = ITEM_TYPE_FILE;
-				nLen = _tcsclen(fd.cFileName);
-				if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
-				else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
-				if (itemData != ITEM_TYPE_DOTS)
-				{
-					tTemp = COleDateTime(fd.ftLastWriteTime);
-					strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
-					if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-					{
-						itemData = ITEM_TYPE_DIRECTORY;  //Directory
-						bIsDir = TRUE;
-						strSize.Empty();
-					}
-					else
-					{
-						bIsDir = FALSE;
-						filesize.HighPart = fd.nFileSizeHigh;
-						filesize.LowPart = fd.nFileSizeLow;
-						strSize = GetFileSizeString(filesize.QuadPart);
-					}
-					fullpath = strDir + _T("\\") + fd.cFileName;
-					BOOL bExist = FALSE;
-					if (bCheckExist == TRUE)
-					{
-						{
-							for (int i = 0; i < GetItemCount(); i++)
-							{
-								if (GetItemText(i, 0).CompareNoCase(fd.cFileName) == 0)
-								{
-									bExist = TRUE;
-									nItem = i;
-									break;
-								}
-							}
-						}
-					}
-					if (bExist == FALSE)
-					{
-						nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir, child));
-					}
-					if (nItem != -1)
-					{
-						if (bSelect == TRUE)
-						{
-							if (strSelectByName.CompareNoCase(fd.cFileName) == 0)
-							{
-								SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-								bSelect = FALSE; //한번만
-							}
-						}
-						SetItemData(nItem, itemData);
-						SetItemText(nItem, COL_DATE, strDate);
-						SetItemText(nItem, COL_SIZE, strSize);
-						//if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathType(fullpath));
-						//else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
-						SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
-					}
-				}
-				CoTaskMemFree(child); //받아온 child의 pidl은 다시 반환
-			}
-		}
-		pisf->Release();
-		pIDList->Release();
-		CoTaskMemFree(pidl);
-	}
-	return;
-	*/
-
 	//////////////////////////////////////////
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
@@ -1311,7 +1237,6 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 			}
 			if (bExist == FALSE)
 			{
-
 				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
 			}
 			if (nItem != -1)
@@ -1634,42 +1559,52 @@ void CFileListCtrl::ClipBoardImport()
 	}
 }
 
+HRESULT CFileListCtrl::CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array)
+{
+	HRESULT hr = S_OK;
+	std::vector<LPITEMIDLIST> pidl_items;
+	for (int i = 0; i < aPath.GetSize(); i++)
+	{
+		LPITEMIDLIST pidl = CFileListCtrl::GetPIDLfromPath(aPath.GetAt(i));
+		if (pidl) pidl_items.push_back(pidl);
+	}
+	hr = SHCreateShellItemArrayFromIDLists((UINT)pidl_items.size(),
+		(LPCITEMIDLIST*)pidl_items.data(), &shi_array);
+	for (auto& pid : pidl_items) CoTaskMemFree(pid);
+	pidl_items.clear();
+	return hr;
+}
+
 void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 {
-	std::vector<LPITEMIDLIST> pidl_items;
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
+	CStringArray aPath;
 	while (nItem != -1)
 	{
-		CString strPath = GetItemFullPath(nItem);
-		LPITEMIDLIST pidl = GetPIDLfromPath(strPath);
-		if (pidl) pidl_items.push_back(pidl);
+		aPath.Add(GetItemFullPath(nItem));
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
 	IShellItemArray* shi_array = NULL;
-	if (SHCreateShellItemArrayFromIDLists(
-		(UINT)pidl_items.size(), 
-		(LPCITEMIDLIST*)pidl_items.data(), 
-		&shi_array) == S_OK)
+	if (CreateShellItemArrayFromPaths(aPath, shi_array) == S_OK)
 	{
 		IFileOperation* pifo = NULL;
-		if (CoCreateInstance(CLSID_FileOperation, NULL, 
-			CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
+		if (CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
 		{
 			DWORD flag = 0;
-			if (bRecycle) flag = flag | FOFX_RECYCLEONDELETE | FOFX_ADDUNDORECORD;
+			if (bRecycle) flag = flag | FOFX_RECYCLEONDELETE | FOFX_ADDUNDORECORD | FOF_ALLOWUNDO;
 			if (pifo->SetOperationFlags(flag) == S_OK &&
 				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
 			{
 				pifo->DeleteItems(shi_array);
+				WatchCurrentDirectory(FALSE);
 				pifo->PerformOperations();
+				WatchCurrentDirectory(TRUE);
 			}
 			if (pifo) pifo->Release();
 		}
 		if (shi_array) shi_array->Release();
 	}
-	for (auto& pid : pidl_items) CoTaskMemFree(pid);
-	pidl_items.clear();
 	//UI에서 삭제하기
 	nItem = GetNextItem(-1, LVNI_SELECTED);
 	BOOL bDeleted = FALSE;
@@ -1681,54 +1616,51 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
 	this->SetRedraw(TRUE);
-	WatchCurrentDirectory(TRUE);
 }
 
-BOOL CFileListCtrl::RenameSelectedItem()
+void CFileListCtrl::RenameSelectedItem()
 {
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
-	if (nItem == -1) return FALSE;
+	if (nItem == -1) return;
 	CDlgInput dlg;
-	dlg.m_strTitle = _T("이름 바꾸기"); // 리소스 처리
+	dlg.m_strTitle.LoadString(IDS_RENAME);
 	dlg.m_strInput = GetItemText(nItem, 0);
 	dlg.m_nMode = INPUT_MODE_FILENAME;
-	if (dlg.DoModal() == IDOK)
+	if (dlg.DoModal() != IDOK) return;
+	CStringArray aPath;
+	while (nItem != -1)
 	{
-		CString strPath = GetItemFullPath(nItem);
-		TCHAR szOldPath[MY_MAX_PATH];
-		TCHAR szNewPath[MY_MAX_PATH];
-		memset(szOldPath, 0, MY_MAX_PATH * sizeof(TCHAR));
-		memset(szNewPath, 0, MY_MAX_PATH * sizeof(TCHAR));
-		lstrcpy(szOldPath, (LPCTSTR)strPath);
-		lstrcpy(szNewPath, (LPCTSTR)(PathBackSlash(m_strFolder) + dlg.m_strInput));
-		BOOL bIsSamePath = FALSE;
-		if (strPath.CompareNoCase(szNewPath) == 0) bIsSamePath = TRUE;
-
-		SHFILEOPSTRUCT FileOp = { 0 };
-		FileOp.hwnd = NULL;
-		FileOp.wFunc = FO_RENAME;
-		FileOp.pFrom = szOldPath;
-		FileOp.pTo = szNewPath;
-		FileOp.fFlags = FOF_RENAMEONCOLLISION | FOF_WANTMAPPINGHANDLE | FOF_ALLOWUNDO;
-		FileOp.fAnyOperationsAborted = false;
-		FileOp.hNameMappings = NULL;
-		FileOp.lpszProgressTitle = NULL;
-		WatchCurrentDirectory(FALSE);
-		int nRet = SHFileOperation(&FileOp);
-		if (FileOp.hNameMappings)
-		{
-			HANDLETOMAPPINGS* phtm = (HANDLETOMAPPINGS*)FileOp.hNameMappings;
-			if (phtm->uNumberOfMappings > 0)
-			{
-				SHNAMEMAPPING* pnm = phtm->lpSHNameMapping;
-				lstrcpy(szNewPath, pnm->pszNewPath);
-			}
-			SHFreeNameMappings(FileOp.hNameMappings);
-		}
-		SetItemText(nItem, 0, Get_Name(szNewPath));
-		WatchCurrentDirectory(TRUE);
+		aPath.Add(GetItemFullPath(nItem));
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
-	return TRUE;
+	IShellItemArray* shi_array = NULL;
+	if (CreateShellItemArrayFromPaths(aPath, shi_array) == S_OK)
+	{
+		IFileOperation* pifo = NULL;
+		if (CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
+		{
+			DWORD flag = FOF_RENAMEONCOLLISION | FOFX_ADDUNDORECORD | FOF_ALLOWUNDO;
+			if (pifo->SetOperationFlags(flag) == S_OK &&
+				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
+			{
+				pifo->RenameItems(shi_array, dlg.m_strInput);
+				WatchCurrentDirectory(FALSE);
+				SetRedraw(FALSE);
+				::ATL::CComPtr<::MyProgress> pSink; //이름이 바뀌었을때 가져오기
+				pSink.Attach(new MyProgress{});
+				pSink->m_pList = this;
+				DWORD dwCookie;
+				pifo->Advise(pSink, &dwCookie);
+				pifo->PerformOperations();
+				pifo->Unadvise(dwCookie);
+				pSink.Release();
+				SetRedraw(TRUE);
+				WatchCurrentDirectory(TRUE);
+			}
+			if (pifo) pifo->Release();
+		}
+		if (shi_array) shi_array->Release();
+	}
 }
 
 
@@ -1928,3 +1860,4 @@ COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
 {
 	return ApplyColorRule(nRow, nColumn, TRUE);
 }
+

@@ -29,6 +29,7 @@
 #define IDS_NOW_LOADING                 34
 #define IDS_VIEW_CFG_EXPORT             35
 #define IDS_VIEW_CFG_IMPORT             36
+#define IDS_RENAME                      37
 #define IDS_MSG_COLORRULE_DATEERR       55
 #define IDS_MSG_COLORRULE_EERR          55
 #define IDS_MSG_INVALIDFONTSIZE         56

@@ -39,7 +39,7 @@ public:
 	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
 	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
-	void UpdateItemByPath(CString strOldPath, CString strNewPath);
+	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE);
 	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void InitColumns(int nType);
@@ -69,7 +69,7 @@ public:
 	BOOL IsFirstPath();
 	BOOL IsLastPath();
 	BOOL IsRootPath();
-//	CPathSet m_setPath;
+	//	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
 	//BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
@@ -85,13 +85,14 @@ public:
 	CMyDropTarget m_DropTarget;
 	void ProcessDropFiles(HDROP hDropInfo, BOOL bMove);
 	void DeleteSelected(BOOL bRecycle);
-	BOOL RenameSelectedItem();
+	void RenameSelectedItem();
 	static UINT DisplayFolder_Thread(void* lParam);
 	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
 	static BOOL IsLoading(CFileListCtrl* pList);
 	static void DeleteLoadingStatus(CFileListCtrl* pList);
 
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
+	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
 
 	void ClearThread();
 	HANDLE m_hThreadLoad;
@@ -117,6 +118,38 @@ public:
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	virtual COLORREF OnGetCellTextColor(int nRow, int nColumn);
 	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
+};
+
+class MyProgress : public IFileOperationProgressSink
+{
+public :
+// IFileOperationSinkProgress 관련 구현
+	IFACEMETHODIMP PostCopyItem(DWORD dwFlags, IShellItem* psiItem,
+		IShellItem* psiDestinationFolder, PCWSTR pwszNewName, HRESULT hrCopy,
+		IShellItem* psiNewlyCreated);
+	IFACEMETHODIMP PostMoveItem(DWORD dwFlags, IShellItem* psiItem,
+		IShellItem* psiDestinationFolder, PCWSTR pwszNewName, HRESULT hrCopy,
+		IShellItem* psiNewlyCreated);
+	IFACEMETHODIMP PostRenameItem(DWORD dwFlags, IShellItem*, PCWSTR, HRESULT, IShellItem*);
+	long   _cRef;
+	CFileListCtrl* m_pList;
+	MyProgress() { _cRef = 1; m_pList = NULL; };
+	IFACEMETHODIMP QueryInterface(REFIID riid, void** ppv);
+	IFACEMETHODIMP_(ULONG) AddRef();
+	IFACEMETHODIMP_(ULONG) Release();
+	IFACEMETHODIMP StartOperations() { return S_OK; };
+	IFACEMETHODIMP FinishOperations(HRESULT) { return S_OK; };
+	IFACEMETHODIMP PreRenameItem(DWORD, IShellItem*, PCWSTR) { return S_OK; };
+	IFACEMETHODIMP PreMoveItem(DWORD, IShellItem*, IShellItem*, PCWSTR) { return S_OK; };
+	IFACEMETHODIMP PreCopyItem(DWORD, IShellItem*, IShellItem*, PCWSTR) { return S_OK; };
+	IFACEMETHODIMP PreDeleteItem(DWORD, IShellItem*) { return S_OK; };
+	IFACEMETHODIMP PostDeleteItem(DWORD, IShellItem*, HRESULT, IShellItem*) { return S_OK; };
+	IFACEMETHODIMP PreNewItem(DWORD, IShellItem*, PCWSTR) { return S_OK; };
+	IFACEMETHODIMP PostNewItem(DWORD, IShellItem*, PCWSTR, PCWSTR, DWORD, HRESULT, IShellItem*) { return S_OK; };
+	IFACEMETHODIMP UpdateProgress(UINT, UINT) { return S_OK; };
+	IFACEMETHODIMP ResetTimer() { return S_OK; };
+	IFACEMETHODIMP PauseTimer() { return S_OK; };
+	IFACEMETHODIMP ResumeTimer() { return S_OK; };
 };
 
 
