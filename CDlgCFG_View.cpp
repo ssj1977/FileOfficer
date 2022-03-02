@@ -279,7 +279,7 @@ void CDlgCFG_View::OnBnClickedBtnColorRuleDown()
 
 void CDlgCFG_View::OnBnClickedBtnBkimgPath()
 {
-	OPENFILENAME ofn = { 0 };
+	OPENFILENAME ofn = {};
 	CString strTitle;
 	if (strTitle.LoadString(IDS_BKIMG_PATH) == FALSE) strTitle.Empty();
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -315,7 +315,7 @@ void CDlgCFG_View::OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CDlgCFG_View::OnBnClickedBtnViewCfgExport()
 {
-	OPENFILENAME ofn = { 0 };
+	OPENFILENAME ofn = {};
 	CString strTitle;
 	if (strTitle.LoadString(IDS_VIEW_CFG_EXPORT) == FALSE) strTitle.Empty();
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -325,7 +325,7 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgExport()
 	ofn.lpstrFilter = _T("FileOfficer View Config(*.fvc)\0*.fvc\0All Files(*.*)\0*.*\0\0"); //모든 파일이 대상인 경우는 필터 불필요
 	ofn.nMaxFile = MY_MAX_PATH;
 	ofn.lpstrDefExt = _T("bnp");
-	TCHAR pBuf[MY_MAX_PATH] = { 0 };
+	TCHAR pBuf[MY_MAX_PATH] = {};
 	ofn.lpstrFile = pBuf;
 	if (GetSaveFileName(&ofn) != FALSE)
 	{
@@ -337,7 +337,7 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgExport()
 
 void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
 {
-	OPENFILENAME ofn = { 0 };
+	OPENFILENAME ofn = {};
 	CString strTitle;
 	if (strTitle.LoadString(IDS_VIEW_CFG_IMPORT) == FALSE) strTitle.Empty();
 	ofn.lStructSize = sizeof(OPENFILENAME);
@@ -347,7 +347,7 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
 	ofn.lpstrFilter = _T("FileOfficer View Config(*.fvc)\0*.fvc\0All Files(*.*)\0*.*\0\0");
 	ofn.nMaxFile = MY_MAX_PATH;
 	ofn.lpstrDefExt = _T("bnp");
-	TCHAR pBuf[MY_MAX_PATH] = { 0 };
+	TCHAR pBuf[MY_MAX_PATH] = {};
 	ofn.lpstrFile = pBuf;
 	if (GetOpenFileName(&ofn) != FALSE)
 	{

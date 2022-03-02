@@ -170,7 +170,7 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 
 void CFileListContextMenu::InvokeCommand(LPCONTEXTMENU pContextMenu, UINT idCommand)
 {
-	CMINVOKECOMMANDINFOEX cmi = { 0 };
+	CMINVOKECOMMANDINFOEX cmi = {};
 	cmi.cbSize = sizeof(CMINVOKECOMMANDINFOEX);
 	cmi.fMask = 0x00004000;
 	cmi.hwnd = m_pParent->GetSafeHwnd();

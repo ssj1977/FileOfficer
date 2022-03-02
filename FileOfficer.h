@@ -11,7 +11,7 @@
 #include "resource.h"		// 주 기호입니다.
 
 #ifndef MY_MAX_PATH
-#define MY_MAX_PATH 2048
+#define MY_MAX_PATH 32768
 #endif
 
 #ifndef PathTabInfo

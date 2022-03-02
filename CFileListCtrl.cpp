@@ -119,7 +119,7 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 CString GetPathName(CString strPath)
 {
 	CString strReturn;
-	SHFILEINFO sfi = { 0 };
+	SHFILEINFO sfi = {};
 	LPITEMIDLIST pidl = NULL;
 	if (strPath.IsEmpty())
 	{
@@ -146,7 +146,7 @@ CString GetPathName(CString strPath)
 CString GetPathType(CString strPath)
 {
 	CString strReturn;
-	SHFILEINFO sfi = { 0 };
+	SHFILEINFO sfi = {};
 	if (strPath.GetLength() < MAX_PATH)
 	{
 		if (SHGetFileInfo(strPath, -1, &sfi, sizeof(sfi), SHGFI_TYPENAME))
@@ -764,6 +764,7 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 		pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 	}
 	SetEvent(pList->m_hThreadLoad);
+	CoUninitialize();
 	return 0;
 }
 
@@ -1076,8 +1077,7 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 	if (CreateShellItemArrayFromPaths(aSrcPath, shi_array) == S_OK)
 	{
 		IFileOperation* pifo = NULL;
-		if (CoCreateInstance(CLSID_FileOperation, NULL,
-			CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
+		if (CoCreateInstance(CLSID_FileOperation, NULL,	CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
 		{
 			IShellItem* pisi = NULL;
 			if (SHCreateShellItem(NULL, NULL, GetPIDLfromPath(strNewFolder), &pisi) == S_OK)
