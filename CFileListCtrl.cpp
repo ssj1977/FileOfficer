@@ -994,6 +994,11 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
 			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE); return TRUE; }
 			if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
+			if (pMsg->wParam == _T('A')) 
+			{ 
+				SetItemState(-1, LVIS_SELECTED, LVIS_SELECTED);
+				return TRUE;
+			}
 		}
 	}
 	if (pMsg->message == WM_COMMAND)
