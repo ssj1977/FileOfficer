@@ -364,10 +364,11 @@ TabViewOption::TabViewOption()
 	clrBk = RGB(255, 255, 255);
 	nFontSize = 11;
 	nIconType = SHIL_SMALL;
-	bBold = FALSE;
 	bUseDefaultColor = TRUE;
 	bUseDefaultFont = TRUE;
 	bUseBkImage = FALSE;
+	nFontWeight = FW_NORMAL;
+	bFontItalic = FALSE;
 }
 TabViewOption::TabViewOption(const TabViewOption& tvo)
 {
@@ -379,7 +380,9 @@ void TabViewOption::CopyTabViewOption(const TabViewOption& tvo)
 	this->clrBk = tvo.clrBk;
 	this->nIconType = tvo.nIconType;
 	this->nFontSize = tvo.nFontSize;
-	this->bBold = tvo.bBold;
+	this->nFontWeight = tvo.nFontWeight;
+	this->bFontItalic = tvo.bFontItalic;
+	this->strFontName = tvo.strFontName;
 	this->bUseDefaultColor = tvo.bUseDefaultColor;
 	this->bUseDefaultFont = tvo.bUseDefaultFont;
 	this->bUseBkImage = tvo.bUseBkImage;
@@ -389,13 +392,18 @@ void TabViewOption::CopyTabViewOption(const TabViewOption& tvo)
 CString TabViewOption::StringExport()
 {
 	CString strData, strLine;
-	strLine.Format(_T("TabViewOption=%d,%d,%d,%d,%d,%d,%d,%d\r\n"),
-		clrText, clrBk, nIconType, nFontSize, bBold,
-		bUseDefaultColor, bUseDefaultFont, bUseBkImage);
+	strLine.Format(_T("TabViewOption=%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n"),
+		clrText, clrBk, nIconType, nFontSize, nFontWeight,
+		bUseDefaultColor, bUseDefaultFont, bUseBkImage, bFontItalic);
 	strData += strLine;
 	if (strBkImagePath.IsEmpty() == FALSE)
 	{
 		strLine.Format(_T("TVO_BkImgPath=%s\r\n"), strBkImagePath);
+		strData += strLine;
+	}
+	if (strFontName.IsEmpty() == FALSE)
+	{
+		strLine.Format(_T("TVO_FontName=%s\r\n"), strFontName);
 		strData += strLine;
 	}
 	for (int i = 0; i < aColorRules.GetSize(); i++)
@@ -426,13 +434,15 @@ void TabViewOption::StringImport(CString strData)
 				else if (i == 1) clrBk = nVal;
 				else if (i == 2) nIconType = nVal;
 				else if (i == 3) nFontSize = nVal;
-				else if (i == 4) bBold = nVal;
+				else if (i == 4) nFontWeight = nVal;
 				else if (i == 5) bUseDefaultColor = nVal;
 				else if (i == 6) bUseDefaultFont = nVal;
 				else if (i == 7) bUseBkImage = nVal;
+				else if (i == 8) bFontItalic = nVal;
 				i++;
 			}
 		}
+		else if (str1.CompareNoCase(_T("TVO_FontName")) == 0) strFontName = str2;
 		else if (str1.CompareNoCase(_T("TVO_BkImgPath")) == 0) strBkImagePath = str2;
 		else if (str1.CompareNoCase(_T("TVO_ColorRule")) == 0) nIndex = (int)aColorRuleString.Add(strLine);
 		else if (str1.CompareNoCase(_T("TVO_ColorRuleOption")) == 0 && nIndex != -1 && nIndex < aColorRuleString.GetSize())

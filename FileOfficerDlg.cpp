@@ -53,7 +53,8 @@ void CFileOfficerDlg::InitDefaultListOption(CWnd* pWnd)
 	tvo.nFontSize = MulDiv(-1 * lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
 	tvo.clrText = pList->GetTextColor();
 	tvo.clrBk = pList->GetBkColor();
-	tvo.bBold = (lf.lfWeight == FW_BOLD) ? TRUE : FALSE;
+	tvo.nFontWeight = lf.lfWeight;
+	tvo.bFontItalic = lf.lfItalic;
 }
 
 

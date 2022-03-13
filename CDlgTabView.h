@@ -38,8 +38,6 @@ public:
 	void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
 	int GetIconType();
 	void SetIconType(int nIconType);
-	int GetFontSize();
-	BOOL GetIsBold();
 	COLORREF GetMyClrText();
 	COLORREF GetMyClrBk();
 	void InitFont();

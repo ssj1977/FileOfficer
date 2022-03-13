@@ -30,6 +30,9 @@
 #define IDS_VIEW_CFG_EXPORT             35
 #define IDS_VIEW_CFG_IMPORT             36
 #define IDS_RENAME                      37
+#define IDS_THIN                        38
+#define IDS_ITALIC                      39
+#define IDS_BOLD                        40
 #define IDS_MSG_COLORRULE_DATEERR       55
 #define IDS_MSG_COLORRULE_EERR          55
 #define IDS_MSG_INVALIDFONTSIZE         56
@@ -82,9 +85,11 @@
 #define IDC_ST_COLOR_TEXT               1012
 #define IDC_ST_FONTSIZE                 1013
 #define IDC_CHK_BOLD                    1014
+#define IDC_ST_FONTNAME                 1014
 #define IDC_RADIO_LAYOUT_HORIZONTAL     1015
 #define IDC_ST_COLOR_RULE_TITLE         1015
 #define IDC_RADIO_LAYOUT_VERTICAL       1016
+#define IDC_EDIT_FONTNAME               1016
 #define IDC_RADIO_LAYOUT_SINGLE_1       1017
 #define IDC_RADIO_LAYOUT_SINGLE_2       1018
 #define IDC_RADIO_LAYOUT_PERCENT        1019
@@ -108,6 +113,7 @@
 #define IDC_BTN_FIND                    1036
 #define IDC_BTN_VIEW_CFG_IMPORT         1036
 #define IDC_CB_RULETYPE                 1037
+#define IDC_BTN_FONT                    1037
 #define IDC_EDIT_COLOR_RULE             1038
 #define IDC_STATIC_INPUT_GUIDE          1039
 #define IDC_STATIC_COLOR_RULE           1040

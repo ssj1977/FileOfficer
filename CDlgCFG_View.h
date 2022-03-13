@@ -22,6 +22,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	TabViewOption m_tvo;
+	LOGFONT m_lf;
+	BOOL m_bUpdateFont;
+
 	void UpdateControl();
 	int DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd);
 	void TVOExport();
@@ -42,4 +45,5 @@ public:
 	afx_msg void OnDblclkListColorRule(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedBtnViewCfgExport();
 	afx_msg void OnBnClickedBtnViewCfgImport();
+	afx_msg void OnBnClickedBtnFont();
 };

@@ -180,7 +180,7 @@ CString GetPathTypeFromMap(CString strPath, BOOL bIsDirectory)
 }
 
 
-void StringArray2szzBuffer(CStringArray& aPath, TCHAR*& pszzBuf)
+/*void StringArray2szzBuffer(CStringArray& aPath, TCHAR*& pszzBuf)
 {
 	if (aPath.GetSize() == 0)
 	{
@@ -203,7 +203,7 @@ void StringArray2szzBuffer(CStringArray& aPath, TCHAR*& pszzBuf)
 		lstrcpy(pBufPos, (LPCTSTR)aPath[i]);
 		pBufPos = 1 + _tcschr(pBufPos, _T('\0'));
 	}
-}
+}*/
 
 // From https://www.codeproject.com/Articles/950/CDirectoryChangeWatcher-ReadDirectoryChangesW-all
 

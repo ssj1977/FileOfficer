@@ -591,18 +591,6 @@ int CDlgTabView::GetIconType()
 }
 
 
-int CDlgTabView::GetFontSize()
-{
-	return m_tvo.bUseDefaultFont ? APP()->m_DefaultViewOption.nFontSize : m_tvo.nFontSize;
-}
-
-BOOL CDlgTabView::GetIsBold()
-{
-	return m_tvo.bUseDefaultFont ? APP()->m_DefaultViewOption.bBold : m_tvo.bBold;
-}
-
-
-
 void CDlgTabView::SetIconType(int nIconType)
 {
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
@@ -622,7 +610,8 @@ void CDlgTabView::ConfigViewOption()
 	TabViewOption& tvo = m_tvo;
 	CDlgCFG_View dlg;
 	dlg.m_tvo = tvo;
-	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE;
+	m_font.GetLogFont(&dlg.m_lf);
+	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE, bFontUpdated = FALSE;
 	if (dlg.DoModal() == IDOK)
 	{
 		//Color
@@ -649,27 +638,32 @@ void CDlgTabView::ConfigViewOption()
 		}
 		SetListColor(GetMyClrBk(), GetMyClrText(), bUpdateClrBk, bUpdateClrText);
 		//Font
-		if (tvo.nFontSize != dlg.m_tvo.nFontSize || tvo.bBold != dlg.m_tvo.bBold)
+		if (dlg.m_bUpdateFont != FALSE) // 폰트 선택 다이얼로그를 연 경우
+		{
+			CString strFontName = dlg.m_lf.lfFaceName;
+			if (strFontName.IsEmpty() == FALSE)	tvo.strFontName = strFontName;
+			tvo.nFontSize = dlg.m_tvo.nFontSize;
+			tvo.nFontWeight = dlg.m_lf.lfWeight;
+			tvo.bFontItalic = dlg.m_lf.lfItalic;
+			if (tvo.bUseDefaultFont == FALSE) bFontUpdated = TRUE;
+		}
+		if (tvo.nFontSize != dlg.m_tvo.nFontSize) // 에디트 컨트롤에서 폰트 크기만 변경
 		{
 			tvo.nFontSize = dlg.m_tvo.nFontSize;
-			tvo.bBold = dlg.m_tvo.bBold;
-			if (tvo.bUseDefaultFont == FALSE)
-			{
-				InitFont();
-				UpdateChildFont();
-				ArrangeCtrl();
-			}
+			if (tvo.bUseDefaultFont == FALSE) bFontUpdated = TRUE;
 		}
-		if (tvo.bUseDefaultFont != dlg.m_tvo.bUseDefaultFont)
+		if (tvo.bUseDefaultFont != dlg.m_tvo.bUseDefaultFont) // 디폴트 폰트 사용여부 변경
 		{
 			tvo.bUseDefaultFont = dlg.m_tvo.bUseDefaultFont;
-			tvo.bBold = dlg.m_tvo.bBold;
-			{
-				InitFont();
-				UpdateChildFont();
-				ArrangeCtrl();
-			}
+			bFontUpdated = TRUE;
 		}
+		if (bFontUpdated != FALSE)
+		{
+			InitFont();
+			UpdateChildFont();
+			ArrangeCtrl();
+		}
+		//Icon
 		if (tvo.nIconType != dlg.m_tvo.nIconType)
 		{
 			SetIconType(dlg.m_tvo.nIconType);
@@ -720,16 +714,33 @@ void CDlgTabView::UpdateBkImg(CWnd* pWnd)
 
 void CDlgTabView::InitFont()
 {
-	int nFontSize = GetFontSize();
-	BOOL bBold = GetIsBold();
 	LOGFONT lf;
-	APP()->m_fontDefault.GetLogFont(&lf);
-	lf.lfHeight = -1 * MulDiv(nFontSize, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY), 72);
+	if (m_tvo.bUseDefaultFont == FALSE)
+	{
+		if (m_tvo.strFontName.IsEmpty() == FALSE)
+		{
+			memset(&lf, 0, sizeof(LOGFONT));
+			_tcsncpy_s(lf.lfFaceName, LF_FACESIZE, m_tvo.strFontName, _TRUNCATE);
+		}
+		else //폰트 이름이 없으면 윈도우 기본 폰트를 가져와서 크기 등을 바꾼다
+		{
+			APP()->m_fontDefault.GetLogFont(&lf);
+		}
+		lf.lfHeight = m_tvo.nFontSize * 10;
+		lf.lfWeight = m_tvo.nFontWeight;
+		lf.lfItalic = m_tvo.bFontItalic;
+		m_font.DeleteObject();
+		m_font.CreatePointFontIndirect(&lf);
+	}
+	else  //윈도우 기본 폰트를 써야 할때
+	{
+		APP()->m_fontDefault.GetLogFont(&lf);
+		m_font.DeleteObject();
+		m_font.CreateFontIndirect(&lf);
+	}
+	//화면 확대 축소 비율을 반영한 컨트롤 배치용 초기값 구하기
+	m_font.GetLogFont(&lf);
 	m_lfHeight = abs(lf.lfHeight);
-	if (bBold == TRUE)	lf.lfWeight = FW_BOLD;
-	else				lf.lfWeight = FW_NORMAL;
-	m_font.DeleteObject();
-	m_font.CreateFontIndirect(&lf); //자동 소멸되지 않도록 멤버 변수 사용
 }
 
 void CDlgTabView::UpdateChildFont()

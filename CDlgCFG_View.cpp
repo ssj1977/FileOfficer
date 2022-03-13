@@ -10,6 +10,15 @@
 #include <afxdialogex.h>
 #include <afxcolorbutton.h>
 
+static CString GetLogFontInfoString(LOGFONT& ft)
+{
+	CString str = ft.lfFaceName;
+	if (ft.lfWeight > FW_NORMAL) str += IDSTR(IDS_BOLD); // _T("/ 굵게");
+	else if (ft.lfWeight < FW_NORMAL) str += IDSTR(IDS_THIN); // _T("/ 얇게");
+	if (ft.lfItalic != FALSE) str += IDSTR(IDS_ITALIC); //str += _T("/ 이탤릭체");
+	return str;
+}
+
 // CDlgCFG_View 대화 상자
 
 IMPLEMENT_DYNAMIC(CDlgCFG_View, CDialogEx)
@@ -17,6 +26,7 @@ IMPLEMENT_DYNAMIC(CDlgCFG_View, CDialogEx)
 CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_CFG_VIEW, pParent)
 {
+	m_bUpdateFont = FALSE;
 }
 
 CDlgCFG_View::~CDlgCFG_View()
@@ -43,6 +53,7 @@ BEGIN_MESSAGE_MAP(CDlgCFG_View, CDialogEx)
 	ON_NOTIFY(NM_DBLCLK, IDC_LIST_COLOR_RULE, &CDlgCFG_View::OnDblclkListColorRule)
 	ON_BN_CLICKED(IDC_BTN_VIEW_CFG_EXPORT, &CDlgCFG_View::OnBnClickedBtnViewCfgExport)
 	ON_BN_CLICKED(IDC_BTN_VIEW_CFG_IMPORT, &CDlgCFG_View::OnBnClickedBtnViewCfgImport)
+	ON_BN_CLICKED(IDC_BTN_FONT, &CDlgCFG_View::OnBnClickedBtnFont)
 END_MESSAGE_MAP()
 
 
@@ -80,6 +91,9 @@ void CDlgCFG_View::UpdateControl()
 	GetDlgItem(IDC_ST_COLOR_TEXT)->EnableWindow(!m_tvo.bUseDefaultColor);
 	GetDlgItem(IDC_EDIT_FONTSIZE)->EnableWindow(!m_tvo.bUseDefaultFont);
 	GetDlgItem(IDC_ST_FONTSIZE)->EnableWindow(!m_tvo.bUseDefaultFont);
+	GetDlgItem(IDC_EDIT_FONTNAME)->EnableWindow(!m_tvo.bUseDefaultFont);
+	GetDlgItem(IDC_ST_FONTNAME)->EnableWindow(!m_tvo.bUseDefaultFont);
+	GetDlgItem(IDC_BTN_FONT)->EnableWindow(!m_tvo.bUseDefaultFont);
 	GetDlgItem(IDC_EDIT_BKIMG_PATH)->EnableWindow(m_tvo.bUseBkImage);
 	GetDlgItem(IDC_BTN_BKIMG_PATH)->EnableWindow(m_tvo.bUseBkImage);
 }
@@ -90,8 +104,9 @@ void CDlgCFG_View::TVOImport()
 	((CMFCColorButton*)GetDlgItem(IDC_COLOR_BK))->SetColor(m_tvo.clrBk);
 	((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->SetColor(m_tvo.clrText);
 	((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->SetCheck(m_tvo.bUseDefaultFont ? BST_CHECKED : BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHK_BOLD))->SetCheck(m_tvo.bBold ? BST_CHECKED : BST_UNCHECKED);
 	GetDlgItem(IDC_EDIT_FONTSIZE)->SetWindowText(INTtoSTR(m_tvo.nFontSize));
+	GetDlgItem(IDC_EDIT_FONTNAME)->SetWindowText(GetLogFontInfoString(m_lf));
+
 	CComboBox* pCB = (CComboBox*)GetDlgItem(IDC_CB_ICONSIZE);
 	for (int i = 0; pCB->GetCount(); i++)
 	{
@@ -123,10 +138,11 @@ void CDlgCFG_View::TVOExport()
 	m_tvo.clrText = ((CMFCColorButton*)GetDlgItem(IDC_COLOR_TEXT))->GetColor();
 	m_tvo.bUseDefaultColor = (((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_COLOR))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	m_tvo.bUseDefaultFont = (((CButton*)GetDlgItem(IDC_CHECK_DEFAULT_FONT))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	m_tvo.bBold = (((CButton*)GetDlgItem(IDC_CHK_BOLD))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	CString strTemp;
-	GetDlgItem(IDC_EDIT_FONTSIZE)->GetWindowText(strTemp);
-	m_tvo.nFontSize = _ttoi(strTemp);
+	GetDlgItem(IDC_EDIT_FONTSIZE)->GetWindowText(strTemp); m_tvo.nFontSize = _ttoi(strTemp);
+	m_tvo.strFontName = m_lf.lfFaceName;
+	m_tvo.nFontWeight = m_lf.lfWeight;
+	m_tvo.bFontItalic = m_lf.lfItalic;
 	if (m_tvo.nFontSize < 1 || m_tvo.nFontSize > 100)
 	{
 		AfxMessageBox(IDSTR(IDS_MSG_INVALIDFONTSIZE));
@@ -288,8 +304,7 @@ void CDlgCFG_View::OnBnClickedBtnBkimgPath()
 	ofn.lpstrTitle = strTitle;
 	ofn.lpstrFilter = _T("Image Files(BMP,GIF,JPG,PNG)\0*.BMP;*.GIF;*.JPG;*.JPEG;*.PNG\0All Files(*.*)\0*.*\0\0");
 	ofn.nMaxFile = MY_MAX_PATH;
-	TCHAR* pBuf = new TCHAR[ofn.nMaxFile];
-	memset(pBuf, 0, sizeof(TCHAR) * ofn.nMaxFile);
+	TCHAR pBuf[MY_MAX_PATH] = {};
 	ofn.lpstrFile = pBuf;
 	if (GetOpenFileName(&ofn) != FALSE)
 	{
@@ -355,5 +370,25 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
 		ReadFileToCString(ofn.lpstrFile, strData);
 		m_tvo.StringImport(strData);
 		TVOImport();
+	}
+}
+
+
+void CDlgCFG_View::OnBnClickedBtnFont()
+{
+	CString strFontNameOld = m_lf.lfFaceName;
+	CFontDialog dlg(&m_lf, CF_SCREENFONTS);
+	if (dlg.DoModal() == IDOK)
+	{
+		dlg.GetCurrentFont(&m_lf);
+		CString strFontNameNew = m_lf.lfFaceName;
+		if (strFontNameNew.IsEmpty())
+		{
+			_tcsncpy_s(m_lf.lfFaceName, LF_FACESIZE, strFontNameOld, _TRUNCATE);
+		}
+		GetDlgItem(IDC_EDIT_FONTNAME)->SetWindowText(GetLogFontInfoString(m_lf));
+		int nFontSize = MulDiv(-1 * m_lf.lfHeight, 72, GetDeviceCaps(GetDC()->GetSafeHdc(), LOGPIXELSY));
+		GetDlgItem(IDC_EDIT_FONTSIZE)->SetWindowText(INTtoSTR(nFontSize));
+		m_bUpdateFont = TRUE;
 	}
 }

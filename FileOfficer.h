@@ -99,13 +99,15 @@ struct TabViewOption
 {
 	COLORREF clrText;
 	COLORREF clrBk;
-	int nFontSize;
 	int nIconType;
-	BOOL bBold;
 	BOOL bUseDefaultColor;
-	BOOL bUseDefaultFont;
 	BOOL bUseBkImage;
 	CString strBkImagePath;
+	BOOL bUseDefaultFont;
+	CString strFontName;
+	int nFontWeight;
+	int nFontSize;
+	BOOL bFontItalic;
 	ColorRuleArray aColorRules;
 	TabViewOption();
 	TabViewOption(const TabViewOption& tvo);
