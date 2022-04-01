@@ -72,6 +72,7 @@ public:
 	//	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
+	BOOL m_bLoading; //IsLoading과 중복되지만 OnLvnItemchanged의 빠른 처리를 위해 사용
 	//BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	CUIntArray m_aColWidth;
 	int m_nSortCol;
@@ -93,7 +94,7 @@ public:
 
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
 	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
-
+	void UpdateCount();
 	void ClearThread();
 	HANDLE m_hThreadLoad;
 	CDirectoryChangeWatcher m_DirWatcher;
@@ -101,6 +102,7 @@ public:
 	void WatchCurrentDirectory(BOOL bOn);
 	void SortCurrentList();
 	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
+
 protected:
 	DECLARE_MESSAGE_MAP()
 
@@ -118,6 +120,7 @@ public:
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	virtual COLORREF OnGetCellTextColor(int nRow, int nColumn);
 	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
+	afx_msg void OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult);
 };
 
 class MyProgress : public IFileOperationProgressSink

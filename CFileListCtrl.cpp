@@ -215,11 +215,13 @@ CMyDirectoryChangeHandler::CMyDirectoryChangeHandler(CFileListCtrl* pList)
 void CMyDirectoryChangeHandler::On_FileAdded(const CString& strFileName)
 {
 	m_pList->AddItemByPath(strFileName, TRUE, FALSE);
+	m_pList->UpdateCount();
 }
 
 void CMyDirectoryChangeHandler::On_FileRemoved(const CString& strFileName)
 {
 	m_pList->DeleteInvalidPath(strFileName);
+	m_pList->UpdateCount();
 }
 
 void CMyDirectoryChangeHandler::On_FileModified(const CString& strFileName)
@@ -241,7 +243,11 @@ IFACEMETHODIMP MyProgress::PostCopyItem(DWORD dwFlags, IShellItem* psiItem,
 	IShellItem* psiNewlyCreated)
 {
 	CString strPath = PathBackSlash(m_pList->m_strFolder, TRUE) + pwszNewName;
-	if (m_pList) m_pList->AddItemByPath(strPath, TRUE, FALSE);
+	if (m_pList)
+	{
+		m_pList->AddItemByPath(strPath, TRUE, FALSE);
+		m_pList->UpdateCount();
+	}
 	return S_OK;
 }
 IFACEMETHODIMP MyProgress::PostMoveItem(DWORD dwFlags, IShellItem* psiItem,
@@ -370,6 +376,7 @@ CFileListCtrl::CFileListCtrl()
 	m_bUpdatePathHistory = TRUE;
 	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
+	m_bLoading = FALSE;
 	//m_bUseFileType = FALSE;
 
 }
@@ -388,6 +395,7 @@ BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_WM_DROPFILES()
 	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CFileListCtrl::OnLvnBegindrag)
 	ON_NOTIFY_REFLECT(NM_DBLCLK, &CFileListCtrl::OnNMDblclk)
+	ON_NOTIFY_REFLECT(LVN_ITEMCHANGED, &CFileListCtrl::OnLvnItemchanged)
 	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
 	ON_WM_CLIPBOARDUPDATE()
 	ON_WM_DESTROY()
@@ -754,12 +762,12 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
 	//APP()->UpdateThreadLocale();
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	SetLoadingStatus(pList, TRUE);
+	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
 	ResetEvent(pList->m_hThreadLoad);
 	pList->SetBarMsg(IDSTR(IDS_NOW_LOADING));
 	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
 	if (IsLoading(pList) == TRUE)
-	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우
+	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우로 아래와 같은 처리가 추가로 필요
 		SetLoadingStatus(pList, FALSE);
 		pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 	}
@@ -785,8 +793,9 @@ COLORREF GetDimColor(COLORREF clr)
 
 void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 {
-	clock_t startTime, endTime;
-	startTime = clock();
+	m_bLoading = TRUE;
+	//clock_t startTime, endTime;
+	//startTime = clock();
 	DeleteAllItems();
 	//m_setPath.clear();
 	COLORREF clrBk = GetBkColor();
@@ -922,13 +931,12 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
-	endTime = clock();
-	CString strTemp;
-	strTemp.Format(_T("%d%s / %s%d"), GetItemCount(), IDSTR(IDS_ITEM_COUNT), IDSTR(IDS_LOADING_TIME), endTime - startTime);
-	SetBarMsg(strTemp);
+	//endTime = clock();
+	UpdateCount();
 	SetBkColor(clrBk);
 	SetTextColor(clrText);
 	RedrawWindow();
+	m_bLoading = FALSE;
 }
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
@@ -1620,6 +1628,7 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
+	UpdateCount();
 	this->SetRedraw(TRUE);
 }
 
@@ -1829,7 +1838,7 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 				}
 				if (bValidDate != FALSE)
 				{
-					if (differ.GetDays() <= _ttoi(cr.strRuleOption)) bMatch = TRUE;
+					if (differ.GetTotalDays() <= (_ttoi(cr.strRuleOption) - 1)) bMatch = TRUE;
 				}
 				break;
 			case COLOR_RULE_COLNAME: //이를 컬럼 전체 
@@ -1866,3 +1875,17 @@ COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
 	return ApplyColorRule(nRow, nColumn, TRUE);
 }
 
+void CFileListCtrl::UpdateCount()
+{
+	CString strTemp;
+	strTemp.Format(_T("%d%s / %d%s"), GetItemCount(), IDSTR(IDS_ITEM_COUNT), GetSelectedCount(), IDSTR(IDS_SELECTED_COUNT)); // , IDSTR(IDS_LOADING_TIME), endTime - startTime);
+	SetBarMsg(strTemp);
+}
+
+void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	if (m_bLoading) return;
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+	UpdateCount();
+	*pResult = 0;
+}
