@@ -125,7 +125,7 @@ CString GetPathName(CString strPath)
 	{
 		SHGetKnownFolderIDList(FOLDERID_ComputerFolder, 0, NULL, &pidl); //'내 컴퓨터' 이름을 가져올떄
 	}
-	else if (strPath.GetLength() < MAX_PATH)
+	else //if (strPath.GetLength() < MAX_PATH)
 	{
 		pidl = CFileListCtrl::GetPIDLfromPath(strPath);
 	}
@@ -140,6 +140,7 @@ CString GetPathName(CString strPath)
 			strReturn = sfi.szDisplayName;
 		CoTaskMemFree(pidl);
 	}
+	if (strReturn.IsEmpty()) strReturn = strPath;
 	return strReturn;
 }
 
@@ -312,6 +313,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define ITEM_TYPE_FILE 2
 #define ITEM_TYPE_DRIVE 3
 #define ITEM_TYPE_UNC 4
+#define ITEM_TYPE_INVALID 5
 
 #define LIST_TYPE_DRIVE 0
 #define LIST_TYPE_FOLDER 1
@@ -563,66 +565,22 @@ void CFileListCtrl::OpenSelectedItem()
 		if (nType == ITEM_TYPE_FILE)
 		{
 			LPITEMIDLIST pidl = GetPIDLfromPath(GetItemFullPath(nItem));
-			SHELLEXECUTEINFO sei;
-			memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
-			sei.fMask = SEE_MASK_IDLIST;
-			sei.cbSize = sizeof(SHELLEXECUTEINFO);
-			sei.lpVerb = _T("open");
-			//sei.lpFile = (strPath.GetLength() > MAX_PATH) ? shortpath : strPath;
-			sei.lpFile = NULL;
-			sei.lpIDList = pidl;
-			sei.nShow = SW_SHOW;
-			if (ShellExecuteEx(&sei) == FALSE)
+			if (pidl != NULL)
 			{
-				AfxMessageBox(L"Shell Execution Error"); //Resource
-			}
-			CoTaskMemFree(pidl);
-			//if (strPath.IsEmpty())	SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl); else
-			/*CString strFolder = m_strFolder;
-			CString strName = GetItemText(nItem, COL_NAME);
-			//IShellFolder를 이용해서 경로를 루트 기준 PIDL로 변경
-			LPITEMIDLIST pidl_folder = NULL;
-			LPITEMIDLIST pidl_file = NULL;
-			if (pisf->ParseDisplayName(NULL, 0, strFolder.GetBuffer(0), NULL, &pidl_folder, NULL) == S_OK)
-			{
-				if (pisf->BindToObject(pidl_folder, NULL, IID_IShellFolder, (void**)&pisf) == S_OK)
+				SHELLEXECUTEINFO sei;
+				memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
+				sei.fMask = SEE_MASK_IDLIST;
+				sei.cbSize = sizeof(SHELLEXECUTEINFO);
+				sei.lpVerb = _T("open");
+				sei.lpFile = NULL;
+				sei.lpIDList = pidl;
+				sei.nShow = SW_SHOW;
+				if (ShellExecuteEx(&sei) == FALSE)
 				{
-					if (pisf->ParseDisplayName(NULL, 0, strName.GetBuffer(0), NULL, &pidl_file, NULL) == S_OK)
-					{
-						LPITEMIDLIST pidl_fullpath = NULL;
-						UINT cb1 = ILGetSize(pidl_folder) - sizeof(pidl_folder->mkid.cb);
-						UINT cb2 = ILGetSize(pidl_file);
-						//IMalloc* pMalloc = NULL;
-						//SHGetMalloc(&pMalloc);
-						//pidl_fullpath = (LPITEMIDLIST)pMalloc->Alloc(cb1 + cb2);
-						pidl_fullpath = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
-						if (pidl_fullpath != NULL)
-						{
-							CopyMemory(pidl_fullpath, pidl_folder, cb1);
-							CopyMemory(((LPSTR)pidl_fullpath) + cb1 , pidl_file, cb2);
-							SHELLEXECUTEINFO sei;
-							memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
-							sei.fMask = SEE_MASK_IDLIST;
-							sei.cbSize = sizeof(SHELLEXECUTEINFO);
-							sei.lpVerb = _T("open");
-							//sei.lpFile = (strPath.GetLength() > MAX_PATH) ? shortpath : strPath;
-							sei.lpFile = NULL;
-							sei.lpIDList = pidl_fullpath;
-							sei.nShow = SW_SHOW;
-							if (ShellExecuteEx(&sei) == FALSE)
-							{
-								AfxMessageBox(L"Shell Execution Error"); //Resource
-							}
-							CoTaskMemFree(pidl_fullpath);
-							//pMalloc->Free(pidl_fullpath);
-						}
-						//pMalloc->Release();
-					}
-					CoTaskMemFree(pidl_file);
+					AfxMessageBox(L"Shell Execution Error"); //Resource
 				}
-				CoTaskMemFree(pidl_folder);
+				CoTaskMemFree(pidl);
 			}
-			strFolder.ReleaseBuffer();*/
 		}
 		else //Folder
 		{
@@ -769,7 +727,7 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	if (IsLoading(pList) == TRUE)
 	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우로 아래와 같은 처리가 추가로 필요
 		SetLoadingStatus(pList, FALSE);
-		pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
+		if (pList->IsWatchable()) pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 	}
 	SetEvent(pList->m_hThreadLoad);
 	CoUninitialize();
@@ -926,7 +884,13 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 		}
 		//AddItemByPath으로 로딩 시작 전에 경로 에디트 박스 갱신
 		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
-		AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder);
+		if (AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder) == -1)
+		{ // 해당 경로가 존재하지 않는 오류가 발생한 경우
+			InsertItem(0, IDSTR(IDS_INVALIDPATH));
+			SetItemData(0, ITEM_TYPE_INVALID);
+			//m_bValid = FALSE;
+		}
+		else 
 		SortCurrentList();
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
@@ -1066,6 +1030,7 @@ void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 	}
 	PasteFiles(aPath, bMove);
 	int nEnd = GetItemCount();
+	SetItemState(-1, 0, LVIS_SELECTED | LVIS_FOCUSED); // 기존 선택된 항목들 초기화
 	for (int i = nStart; i < nEnd; i++)
 	{
 		SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -1184,13 +1149,17 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOO
 }
 
 
-void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak, CString strSelectByName)
+int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowBreak, CString strSelectByName)
 {
 	//////////////////////////////////////////
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
-	if (hFind == INVALID_HANDLE_VALUE) return;
+	if (hFind == INVALID_HANDLE_VALUE)
+	{
+		return -1;
+	}
+	int nCount = 0;
 	CString strSize, strDate, strType;
 	DWORD itemData = 0;
 	int nItem = -1;
@@ -1251,6 +1220,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 			if (bExist == FALSE)
 			{
 				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+				nCount++;
 			}
 			if (nItem != -1)
 			{
@@ -1273,6 +1243,7 @@ void CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllow
 		b = FindNextFileW(hFind, &fd);
 	}
 	FindClose(hFind);
+	return nCount;
 }
 
 void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
@@ -1888,4 +1859,12 @@ void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	UpdateCount();
 	*pResult = 0;
+}
+
+BOOL CFileListCtrl::IsWatchable()
+{
+	if (::IsWindow(GetSafeHwnd()) == FALSE) return FALSE;
+	if (m_nType != LIST_TYPE_FOLDER) return FALSE;
+	if (GetItemCount() == 1 && GetItemData(0) == ITEM_TYPE_INVALID) return FALSE;
+	return TRUE;
 }

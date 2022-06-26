@@ -197,6 +197,7 @@ BOOL CDlgTabView::OnInitDialog()
 		PathTabInfo tabInfo(L"", 0, TRUE);
 		m_aTabInfo.Add(tabInfo);
 	}
+	CString strTitle;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath), 1);
@@ -327,7 +328,6 @@ void CDlgTabView::UpdateTabByWnd(CWnd* pWnd)
 			PathTabInfo& pti = m_aTabInfo[i];
 			CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 			pti.strPath = GetActualPath(pList->m_strFolder);
-			//pti.strFilterInclude = pList->m_strFilterInclude; //필터정보의 저장 및 관리는 추후 검토
 			SetTabTitle(i, GetPathName(pti.strPath));
 			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
@@ -372,6 +372,7 @@ CString GetActualPath(CString strPath)
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+	if (hFind == INVALID_HANDLE_VALUE) return strPath; //해당 경로가 존재하지 않는 경우 원래값 그대로 반환 
 	CString strReturn;
 	if (strParent.IsEmpty())
 	{	//각 드라이브의 루트이므로 드라이브 문자는 대문자로

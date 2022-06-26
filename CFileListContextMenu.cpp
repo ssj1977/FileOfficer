@@ -59,6 +59,7 @@ CMenu* CFileListContextMenu::GetMenu()
 
 BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu)
 {
+	if (m_psfFolder == NULL) return FALSE;
 	*ppContextMenu = NULL;
 	LPCONTEXTMENU pMenu = NULL;
 	if (m_paPath == NULL || m_paPath->GetSize() == 0)

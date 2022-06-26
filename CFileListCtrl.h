@@ -38,7 +38,7 @@ public:
 	void OpenParentFolder();
 	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
-	void AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
+	int AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
 	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE);
 	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
@@ -69,6 +69,7 @@ public:
 	BOOL IsFirstPath();
 	BOOL IsLastPath();
 	BOOL IsRootPath();
+	BOOL IsWatchable();
 	//	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;

@@ -34,6 +34,7 @@
 #define IDS_ITALIC                      39
 #define IDS_BOLD                        40
 #define IDS_SELECTED_COUNT              41
+#define IDS_INVALIDPATH                 42
 #define IDS_MSG_COLORRULE_DATEERR       55
 #define IDS_MSG_COLORRULE_EERR          55
 #define IDS_MSG_INVALIDFONTSIZE         56
