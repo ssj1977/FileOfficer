@@ -52,9 +52,9 @@ public:
 	void DeleteInvalidPath(CString strPath);
 	BOOL IsItemExist(int nItem);
 	void PasteFiles(CStringArray& aOldPath, BOOL bMove);
-	void ClipBoardExport(BOOL bMove);
+	void ClipBoardExport(BOOL bCut);
 	void ClipBoardImport();
-	HGLOBAL GetOleDataForClipboard();
+	HGLOBAL GetOleDataForClipboard(int nState);
 	CString m_strFolder;
 	CString m_strPrevFolder; //폴더간 이동시 하위 폴더에서 상위폴더로 이동하는 경우 자동으로 해당 하위폴더를 목록 중에서 선택하기 위해 이용
 	CString m_strFilterInclude;
@@ -92,6 +92,7 @@ public:
 	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
 	static BOOL IsLoading(CFileListCtrl* pList);
 	static void DeleteLoadingStatus(CFileListCtrl* pList);
+	static void ClearPreviousSelection();
 
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
 	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);

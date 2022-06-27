@@ -31,6 +31,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_pTool = NULL;
 	m_bFindMode = FALSE;
 	m_nFocusedImage = 1;
+	m_lfHeight = 12;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -775,9 +776,9 @@ void CDlgTabView::UpdateToolBar()
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	if (pList)
 	{
-		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, !(pList->IsFirstPath()));
-		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, !(pList->IsLastPath()));
-		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, !(pList->IsRootPath()));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, (pList->IsFirstPath() == FALSE));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, (pList->IsLastPath() == FALSE));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, (pList->IsRootPath() == FALSE));
 	}
 }
 
@@ -796,7 +797,7 @@ void CDlgTabView::OnBnClickedBtnFind()
 
 void CDlgTabView::ToggleFindMode()
 {
-	m_bFindMode = !m_bFindMode; 
+	m_bFindMode = (m_bFindMode == FALSE); 
 	if (m_bFindMode == TRUE)
 	{
 		GetDlgItem(IDC_EDIT_FIND)->SetFocus();

@@ -1252,7 +1252,7 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	NM_LISTVIEW* pNMListView = pNMLV;
 	* pResult = 0;
 
-	HGLOBAL hgDrop = GetOleDataForClipboard();
+	HGLOBAL hgDrop = GetOleDataForClipboard(LVIS_CUT);
 	if (hgDrop != NULL)
 	{
 		COleDataSource datasrc;
@@ -1261,6 +1261,7 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK);
 		//if ((dwEffect & DROPEFFECT_LINK) == DROPEFFECT_LINK || (dwEffect & DROPEFFECT_COPY) == DROPEFFECT_COPY) ;
 		//else if ((dwEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
+		SetItemState(-1, 0, LVIS_CUT);
 		if (dwEffect == DROPEFFECT_NONE)
 		{
 			GlobalFree(hgDrop);
@@ -1453,17 +1454,38 @@ BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UI
 	return b;
 }
 
-HGLOBAL CFileListCtrl::GetOleDataForClipboard()
+struct CListItem
+{
+	CListItem() { pList = NULL; nIndex = -1; };
+	CListItem(CListCtrl* p, int n) { pList = p; nIndex = n; };
+	CListCtrl* pList;
+	int nIndex;
+};
+static CArray<CListItem> st_selected;
+
+void CFileListCtrl::ClearPreviousSelection()
+{
+	for (int i = 0; i < st_selected.GetCount(); i++)
+	{
+		st_selected[i].pList->SetItemState(st_selected[i].nIndex, 0, LVIS_CUT);
+	}
+	st_selected.RemoveAll();
+}
+
+HGLOBAL CFileListCtrl::GetOleDataForClipboard(int nState)
 {
 	CStringList aFiles;
 	CString strPath;
 	size_t uBuffSize = 0;
+	ClearPreviousSelection();
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return NULL;
 	while (nItem != -1)
 	{
 		strPath = GetItemFullPath(nItem);
 		aFiles.AddTail(strPath);
+		SetItemState(nItem, nState, LVIS_CUT);
+		st_selected.Add(CListItem(this, nItem));
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 		uBuffSize += strPath.GetLength() + 1;
 	}
@@ -1495,7 +1517,7 @@ HGLOBAL CFileListCtrl::GetOleDataForClipboard()
 
 void CFileListCtrl::ClipBoardExport(BOOL bMove)
 {
-	HGLOBAL hgDrop = GetOleDataForClipboard();
+	HGLOBAL hgDrop = GetOleDataForClipboard(bMove ? LVIS_CUT : 0);
 	if (hgDrop == NULL) return;
 	if (OpenClipboard())
 	{
