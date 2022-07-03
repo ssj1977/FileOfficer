@@ -837,9 +837,13 @@ void CDlgTabView::FindNext()
 }
 
 
-//void CDlgTabView::OnSetFocus(CWnd* pOldWnd)
-//{
-//	CDialogEx::OnSetFocus(pOldWnd);
-//
-//	// TODO: 여기에 메시지 처리기 코드를 추가합니다.
-//}
+void CDlgTabView::UpdateListItemByClipboard()
+{
+	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
+	{
+		if (m_aTabInfo[i].pWnd != NULL)
+		{
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
+		}
+	}
+}

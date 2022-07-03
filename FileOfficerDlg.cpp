@@ -38,6 +38,7 @@ BEGIN_MESSAGE_MAP(CFileOfficerDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_WM_SIZE()
+	ON_WM_CLIPBOARDUPDATE()
 END_MESSAGE_MAP()
 
 // CFileOfficerDlg 메시지 처리기
@@ -111,6 +112,7 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		}
 	}
 	ArrangeCtrl();
+	AddClipboardFormatListener(GetSafeHwnd());
 	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }
 	else if (APP()->m_nFocus == 2) { m_tv2.CurrentList()->SetFocus(); return FALSE; }
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
@@ -360,3 +362,12 @@ void CFileOfficerDlg::OnOK()
 	//CDialogEx::OnOK();
 }
 
+
+
+void CFileOfficerDlg::OnClipboardUpdate()
+{
+//	m_tv1.UpdateListItemByClipboard();
+//	m_tv2.UpdateListItemByClipboard();
+
+	CDialogEx::OnClipboardUpdate();
+}

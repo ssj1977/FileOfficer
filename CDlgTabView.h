@@ -29,6 +29,7 @@ public:
 	void UpdateTabByWnd(CWnd* pWnd);
 	void UpdateSortInfo(CWnd* pWnd);
 	void UpdateTabByPathEdit();
+	void UpdateListItemByClipboard();
 	void SetTabTitle(int nTab, CString strTitle);
 	void SetSelected(BOOL bSelected);
 	void AddFileListTab(CString strFolder);

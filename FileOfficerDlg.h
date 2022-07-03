@@ -33,4 +33,5 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	virtual void OnCancel();
 	virtual void OnOK();
+	afx_msg void OnClipboardUpdate();
 };

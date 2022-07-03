@@ -890,8 +890,10 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			SetItemData(0, ITEM_TYPE_INVALID);
 			//m_bValid = FALSE;
 		}
-		else 
-		SortCurrentList();
+		else
+		{
+			SortCurrentList();
+		}
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
