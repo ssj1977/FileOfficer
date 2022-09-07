@@ -86,18 +86,18 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv1.ShowWindow(SW_SHOW);
 	m_tv2.ShowWindow(SW_SHOW);
 	//Set Default Size
-	if (!m_rcMain.IsRectEmpty())
+/*	if ((APP()->m_rcMain.IsRectEmpty()) == FALSE)
 	{
 		CRect rcWindow;
 		CRect rcTemp;
 		GetDesktopWindow()->GetClientRect(rcWindow);
-		rcTemp.IntersectRect(rcWindow, m_rcMain);
+		rcTemp.IntersectRect(rcWindow, APP()->m_rcMain);
 		if (rcTemp.Width() < 100 || rcTemp.Height() < 100)
 		{
-			m_rcMain = CRect(0, 0, 400, 300);
+			APP()->m_rcMain = CRect(0, 0, 400, 300);
 		}
-		MoveWindow(m_rcMain, TRUE);
-	}
+		MoveWindow(APP()->m_rcMain, TRUE);
+	}*/
 
 	if (APP()->m_rcMain.IsRectEmpty() == FALSE)
 	{

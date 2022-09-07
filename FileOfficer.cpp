@@ -41,7 +41,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed1 = 600;
 	m_nLayoutSizeFixed2 = 600;
-	//m_bUseFileType = FALSE;
+	m_bUseFileType = FALSE;
 	m_bToolBarText = TRUE;
 	m_hIcon = NULL;
 }
@@ -188,6 +188,8 @@ void CFileOfficerApp::INISave(CString strFile)
 		strLine.Format(_T("RectMain=%d,%d,%d,%d\r\n"), m_rcMain.left, m_rcMain.top, m_rcMain.right, m_rcMain.bottom);
 		strData += strLine;;
 	}
+	strLine.Format(_T("UseFileType=%d\r\n"), m_bUseFileType);	strData += strLine;
+	strLine.Format(_T("UseFileIcon=%d\r\n"), m_bUseFileIcon);	strData += strLine;
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
@@ -236,6 +238,8 @@ void CFileOfficerApp::INILoad(CString strFile)
 		nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
 		GetToken(strLine, str1, str2, _T('='), FALSE);
 		if (str1.CompareNoCase(_T("RectMain")) == 0) m_rcMain = ConvertString2Rect(str2);
+		else if (str1.CompareNoCase(_T("UseFileType")) == 0) m_bUseFileType = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("UseFileIcon")) == 0) m_bUseFileIcon = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);

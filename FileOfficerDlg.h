@@ -12,7 +12,7 @@ public:
 	CDlgTabView m_tv2;
 	CWnd* m_pWndFocus;
 	BOOL m_bShow2;
-	CRect m_rcMain;
+	//CRect m_rcMain;
 	int m_nDefault_FontSize;
 	void ArrangeCtrl();
 	void InitDefaultListOption(CWnd* pWnd);

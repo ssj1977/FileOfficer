@@ -294,7 +294,8 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->m_nSortCol = pti.iSortColumn;
 		pList->m_bAsc = pti.bSortAscend;
 		pList->m_aColWidth.Copy(pti.aColWidth);
-		//pList->m_bUseFileType = APP()->m_bUseFileType;
+		pList->m_bUseFileType = APP()->m_bUseFileType;
+		pList->m_bUseFileIcon = APP()->m_bUseFileIcon;
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(pList->m_nIconType) , LVSIL_SMALL);
 		pti.pWnd = (CWnd*)pList;

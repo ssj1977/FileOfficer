@@ -379,8 +379,8 @@ CFileListCtrl::CFileListCtrl()
 	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
 	m_bLoading = FALSE;
-	//m_bUseFileType = FALSE;
-
+	m_bUseFileType = FALSE;
+	m_bUseFileIcon = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -1221,7 +1221,10 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 			}
 			if (bExist == FALSE)
 			{
-				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+				if (m_bUseFileIcon)
+					nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+				else
+					nItem = InsertItem(GetItemCount(), fd.cFileName, (bIsDir == FALSE) ? SI_UNKNOWN : SI_FOLDER_CLOSED);
 				nCount++;
 			}
 			if (nItem != -1)
@@ -1237,9 +1240,8 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 				SetItemData(nItem, itemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				SetItemText(nItem, COL_SIZE, strSize);
-				//if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathType(fullpath));
-				//else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
-				SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
+				if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
+				else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
 			}
 		}
 		b = FindNextFileW(hFind, &fd);
