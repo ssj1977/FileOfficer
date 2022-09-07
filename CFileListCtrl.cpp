@@ -301,8 +301,9 @@ IFACEMETHODIMP_(ULONG) MyProgress::Release()
 IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 
 #define COL_NAME 0
+#define COL_DRIVENAME 0
 #define COL_DATE 1
-#define COL_ALIAS 1
+#define COL_DRIVEPATH 1
 #define COL_SIZE 2
 #define COL_FREESPACE 2
 #define COL_TYPE 3
@@ -460,7 +461,7 @@ void CFileListCtrl::InitColumns(int nType)
 	//for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
 	if (nType == LIST_TYPE_DRIVE)
 	{
-		int string_id[] = { IDS_COL_NAME_DRIVE, IDS_COL_ALIAS_DRIVE, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE };
+		int string_id[] = { IDS_COL_DRIVE_NAME, IDS_COL_DRIVE_PATH, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE };
 		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT };
 		SetColTexts(string_id, col_fmt, 4);
 	}
@@ -489,7 +490,7 @@ CString CFileListCtrl::GetItemFullPath(int nItem)
 	}
 	else if (m_nType == LIST_TYPE_DRIVE)
 	{
-		return GetItemText(nItem, COL_NAME);
+		return GetItemText(nItem, COL_DRIVEPATH);
 	}
 	return _T("");
 }
@@ -814,8 +815,11 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 				else if (nType == DRIVE_RAMDISK) nImage = SI_RAMDISK;
 				else if (nType == DRIVE_REMOTE) nImage = SI_NETWORKDRIVE;
 				else nImage = SI_HDD;
-				nItem = InsertItem(GetItemCount(), strDrive, nImage);
-				SetItemText(nItem, COL_ALIAS, GetPathName(strDrive));
+				//nItem = InsertItem(GetItemCount(), strDrive, nImage);
+				//SetItemText(nItem, COL_ALIAS, GetPathName(strDrive));
+				// LIST_TYPE_DRIVE 인 경우에는 첫번째 컬럼에 이름 / 두번째 컬럼에 경로
+				nItem = InsertItem(GetItemCount(), GetPathName(strDrive), nImage);
+				SetItemText(nItem, COL_DRIVEPATH, strDrive);
 				if (GetDiskFreeSpaceEx(strDrive, NULL, &space_total, &space_free))
 				{
 					SetItemText(nItem, COL_FREESPACE, GetDriveSizeString(space_free));
@@ -831,6 +835,15 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			flag = flag * 2;
 		}
 		//특수폴더 표시
+		TCHAR* path = NULL;
+		SHGetKnownFolderPath(FOLDERID_Desktop, 0, NULL, &path); //바탕화면 경로 가져오기.
+		nItem = InsertItem(GetItemCount(), GetPathName(path), SI_DESKTOP);
+		SetItemText(nItem, COL_DRIVEPATH, path);
+		CoTaskMemFree(path);
+		SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &path); //문서 경로 가져오기.
+		nItem = InsertItem(GetItemCount(), GetPathName(path), GetFileImageIndex(path));
+		SetItemText(nItem, COL_DRIVEPATH, path);
+		CoTaskMemFree(path);
 	}
 	else if (PathIsUNCServerW(strFolder))
 	{
@@ -1094,6 +1107,7 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 
 void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath)
 {
+	if (m_nType != LIST_TYPE_FOLDER) return;
 	CString strOldFolder = bRelativePath ? PathBackSlash(m_strFolder, TRUE) : Get_Folder(strOldPath, TRUE);
 	CString strNewFolder = bRelativePath ? PathBackSlash(m_strFolder, TRUE) : Get_Folder(strNewPath, TRUE);
 	CString strOldName = bRelativePath ? strOldPath : Get_Name(strOldPath);
@@ -1210,7 +1224,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 				{
 					for (int i = 0; i < GetItemCount(); i++)
 					{
-						if (GetItemText(i, 0).CompareNoCase(fd.cFileName) == 0)
+						if (GetItemText(i, COL_NAME).CompareNoCase(fd.cFileName) == 0)
 						{
 							bExist = TRUE;
 							nItem = i;
@@ -1365,8 +1379,8 @@ int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 	}
 	else if (m_nType == LIST_TYPE_DRIVE)
 	{
-		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
-		else if (iColumn == COL_ALIAS) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+		if (iColumn == COL_DRIVENAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+		else if (iColumn == COL_DRIVEPATH) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 		else if (iColumn == COL_FREESPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
 		else if (iColumn == COL_TOTALSPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
 	}

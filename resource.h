@@ -42,8 +42,8 @@
 #define IDS_ICON_SMALL                  58
 #define IDS_ICON_EXLARGE                59
 #define IDS_ICON_JUMBO                  60
-#define IDS_COL_NAME_DRIVE              61
-#define IDS_COL_ALIAS_DRIVE             62
+#define IDS_COL_DRIVE_NAME              61
+#define IDS_COL_DRIVE_PATH              62
 #define IDS_COL_FREESPACE_DRIVE         63
 #define IDS_COL_TOTALSPACE_DRIVE        64
 #define IDS_COL_NAME_FOLDER             65
