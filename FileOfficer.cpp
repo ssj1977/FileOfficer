@@ -44,6 +44,8 @@ CFileOfficerApp::CFileOfficerApp()
 	m_bUseFileType = FALSE;
 	m_bToolBarText = TRUE;
 	m_hIcon = NULL;
+	m_bUseFileIcon = TRUE;
+	m_bUseFileType = TRUE;
 }
 
 

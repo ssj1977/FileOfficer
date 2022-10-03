@@ -17,6 +17,8 @@ public:
 	int m_nCurrentTab;
 	int m_lfHeight;
 	int m_nFocusedImage;
+	DWORD m_btnsize_text;
+	DWORD m_btnsize_icon;
 	CToolBar* m_pTool;
 	CToolBar m_toolIcon;
 	CToolBar m_toolText;

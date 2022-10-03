@@ -35,6 +35,8 @@
 #define IDS_BOLD                        40
 #define IDS_SELECTED_COUNT              41
 #define IDS_INVALIDPATH                 42
+#define IDS_PASTE_FILE                  43
+#define IDS_CONVERT_NFD                 44
 #define IDS_MSG_COLORRULE_DATEERR       55
 #define IDS_MSG_COLORRULE_EERR          55
 #define IDS_MSG_INVALIDFONTSIZE         56
@@ -140,13 +142,15 @@
 #define IDM_FILE_CUT                    32792
 #define IDM_FILE_DELETE                 32793
 #define IDM_FILE_COPY                   32795
+#define ID_POPUP_32796                  32796
+#define IDM_CONVERT_NFD                 32797
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32796
+#define _APS_NEXT_COMMAND_VALUE         32798
 #define _APS_NEXT_CONTROL_VALUE         1042
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

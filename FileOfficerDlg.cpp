@@ -98,19 +98,23 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		}
 		MoveWindow(APP()->m_rcMain, TRUE);
 	}*/
-
-	if (APP()->m_rcMain.IsRectEmpty() == FALSE)
+/*	if (APP()->m_rcMain.IsRectEmpty() == FALSE)
 	{
-		CRect rcScreen;
-		::GetWindowRect(::GetDesktopWindow(), &rcScreen);
 		APP()->m_rcMain.NormalizeRect();
+		CRect rcVirtualScreen = CRect(
+			GetSystemMetrics(SM_XVIRTUALSCREEN),
+			GetSystemMetrics(SM_YVIRTUALSCREEN),
+			GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
+			GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN));
 		CRect rcVisible;
-		rcVisible.IntersectRect(APP()->m_rcMain, rcScreen);
+		rcVisible.IntersectRect(APP()->m_rcMain, rcVirtualScreen);
 		if (rcVisible.Width() > 200 && rcVisible.Height() > 100)
 		{
 			MoveWindow(APP()->m_rcMain, TRUE);
 		}
-	}
+	}*/
+	MoveWindow(APP()->m_rcMain, TRUE);
+
 	ArrangeCtrl();
 	AddClipboardFormatListener(GetSafeHwnd());
 	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }

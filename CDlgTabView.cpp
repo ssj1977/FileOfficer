@@ -32,6 +32,8 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_bFindMode = FALSE;
 	m_nFocusedImage = 1;
 	m_lfHeight = 12;
+	m_btnsize_text = 0;
+	m_btnsize_icon = 0;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -112,6 +114,9 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_PASTE_FILE:  //메뉴에서 오는 경우
 		((CFileListCtrl*)CurrentList())->ClipBoardImport(); 
 		break; 
+	case IDM_CONVERT_NFD:
+		((CFileListCtrl*)CurrentList())->ConvertNFDNames();
+		break;
 	case IDM_OPEN_PREV: ((CFileListCtrl*)CurrentList())->BrowsePathHistory(TRUE); break;
 	case IDM_OPEN_NEXT:((CFileListCtrl*)CurrentList())->BrowsePathHistory(FALSE); break;
 	case IDM_PLAY_ITEM: ((CFileListCtrl*)CurrentList())->OpenSelectedItem(); break;
@@ -174,6 +179,8 @@ void CDlgTabView::InitToolBar()
 			nTextIndex++;
 		}
 	}
+	m_btnsize_text = m_toolText.GetToolBarCtrl().GetButtonSize();
+	m_btnsize_icon = m_toolIcon.GetToolBarCtrl().GetButtonSize();
 }
 
 BOOL CDlgTabView::OnInitDialog()
@@ -468,7 +475,8 @@ void CDlgTabView::ArrangeCtrl()
 	rc.top += BH;
 	rc.top += 2;
 	//Toolbar
-	DWORD btnsize = m_pTool->GetToolBarCtrl().GetButtonSize();
+	DWORD btnsize = (APP()->m_bToolBarText ? m_btnsize_text : m_btnsize_icon);
+	//DWORD btnsize = m_pTool->GetToolBarCtrl().GetButtonSize();
 	int nHP = 0, nVP = 0; //Horizontal / Vertical
 	m_pTool->GetToolBarCtrl().GetPadding(nHP, nVP);
 	int nBtnW = LOWORD(btnsize);

@@ -101,6 +101,7 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		m_pMenu = new CMenu;
 		m_pMenu->CreatePopupMenu();
 	}
+	//시스템 메뉴
 	if (!GetContextMenu((void**)&pContextMenu)) return 0;
 
 	// lets fill the our popupmenu  
@@ -117,24 +118,39 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 	{
 		g_oldWndProc = NULL;
 	}
-	
-	//BOOL b = IsClipboardFormatAvailable(CF_HDROP); 
+	//자체 커스텀 메뉴
+	MENUITEMINFO mi;
+	CString strMenuString;
+	if (m_pMenu->GetMenuItemCount() > 0)
+	{
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_FTYPE;
+		mi.fType = MFT_SEPARATOR;
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+	}
 	if (m_paPath->GetSize() == 0 && IsClipboardFormatAvailable(CF_HDROP) != FALSE)
 	{
-		CString strMenuString = L"붙여넣기";
-		MENUITEMINFO mi;
+		strMenuString.LoadStringW(IDS_PASTE_FILE);
 		mi.cbSize = sizeof(MENUITEMINFO);
 		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
 		mi.fType = MFT_STRING;
 		mi.fState = MFS_ENABLED;
 		mi.wID = IDM_PASTE_FILE;
 		mi.dwTypeData = strMenuString.GetBuffer();
-		m_pMenu->InsertMenuItem(0, &mi, TRUE);
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
 		strMenuString.ReleaseBuffer();
-
-		mi.fMask = MIIM_FTYPE;
-		mi.fType = MFT_SEPARATOR;
-		m_pMenu->InsertMenuItem(1, &mi, TRUE);
+	}
+	if (m_paPath->GetSize() > 0)
+	{
+		strMenuString.LoadStringW(IDS_CONVERT_NFD);
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
+		mi.fType = MFT_STRING;
+		mi.fState = MFS_ENABLED;
+		mi.wID = IDM_CONVERT_NFD;
+		mi.dwTypeData = strMenuString.GetBuffer();
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+		strMenuString.ReleaseBuffer();
 	}
 
 

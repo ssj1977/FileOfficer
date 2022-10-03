@@ -95,7 +95,9 @@ int GetFileImageIndex(CString strPath)
 }
 int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 {
-	if (bIsDirectory) return 3;		// SI_FOLDER_CLOSE
+	if (bIsDirectory) return SI_FOLDER_CLOSED; 
+	if (APP()->m_bUseFileIcon == FALSE) return SI_UNKNOWN;
+
 	CString strExt = Get_Ext(strPath, bIsDirectory, TRUE);
 	if (strExt.CompareNoCase(_T(".exe")) == 0
 		|| strExt.CompareNoCase(_T(".ico")) == 0
@@ -108,7 +110,24 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 	CExtMap::iterator it = mapExt.find(strExt);
 	if (it == mapExt.end())
 	{
-		int nImage = GetFileImageIndex(strPath);
+		int nImage = 0;
+		//네트워크 드라이브에서 경우에 따라 오류가 나는 확장자는 로컬에서 임시파일을 만들어서 가져온다.
+		if (strExt.CompareNoCase(_T(".jpg")) == 0 
+			|| strExt.CompareNoCase(_T(".jpeg")) == 0	
+			|| strExt.CompareNoCase(_T(".bmp")) == 0
+			|| strExt.CompareNoCase(_T(".png")) == 0
+			|| strExt.CompareNoCase(_T(".gif")) == 0
+			)
+		{
+			CString strTempPath = L"_tmp00_" + strExt;
+			HANDLE hFile = CreateFile(strTempPath, GENERIC_READ, FILE_SHARE_READ, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+			nImage = GetFileImageIndex(strTempPath);
+			if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
+		}
+		else
+		{
+			nImage = GetFileImageIndex(strPath);
+		}
 		mapExt.insert(CExtMap::value_type(strExt, nImage));
 		return nImage;
 	}
@@ -380,8 +399,8 @@ CFileListCtrl::CFileListCtrl()
 	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
 	m_bLoading = FALSE;
-	m_bUseFileType = FALSE;
-	m_bUseFileIcon = FALSE;
+	m_bUseFileType = TRUE;
+	m_bUseFileIcon = TRUE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -835,15 +854,18 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			flag = flag * 2;
 		}
 		//특수폴더 표시
-		TCHAR* path = NULL;
-		SHGetKnownFolderPath(FOLDERID_Desktop, 0, NULL, &path); //바탕화면 경로 가져오기.
-		nItem = InsertItem(GetItemCount(), GetPathName(path), SI_DESKTOP);
-		SetItemText(nItem, COL_DRIVEPATH, path);
-		CoTaskMemFree(path);
-		SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &path); //문서 경로 가져오기.
-		nItem = InsertItem(GetItemCount(), GetPathName(path), GetFileImageIndex(path));
-		SetItemText(nItem, COL_DRIVEPATH, path);
-		CoTaskMemFree(path);
+		KNOWNFOLDERID folder_ids[] = { 
+			FOLDERID_Desktop, FOLDERID_Downloads, FOLDERID_Documents, 
+			FOLDERID_Pictures, FOLDERID_Music, FOLDERID_Videos};
+		int nCount = sizeof(folder_ids) / sizeof (KNOWNFOLDERID);
+		for (int i=0; i<nCount; i++)
+		{ 
+			TCHAR* path = NULL;
+			SHGetKnownFolderPath(folder_ids[i], 0, NULL, &path); //바탕화면 경로 가져오기.
+			nItem = InsertItem(GetItemCount(), GetPathName(path), GetFileImageIndex(path));
+			SetItemText(nItem, COL_DRIVEPATH, path);
+			CoTaskMemFree(path);
+		}
 	}
 	else if (PathIsUNCServerW(strFolder))
 	{
@@ -959,6 +981,11 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 		if (pMsg->wParam == VK_RETURN)
 		{
 			OpenSelectedItem();
+			return TRUE;
+		}
+		if (pMsg->wParam == VK_ESCAPE)
+		{
+			ClearSelected();
 			return TRUE;
 		}
 		if (pMsg->wParam == VK_BACK)
@@ -1235,10 +1262,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 			}
 			if (bExist == FALSE)
 			{
-				if (m_bUseFileIcon)
-					nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
-				else
-					nItem = InsertItem(GetItemCount(), fd.cFileName, (bIsDir == FALSE) ? SI_UNKNOWN : SI_FOLDER_CLOSED);
+				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
 				nCount++;
 			}
 			if (nItem != -1)
@@ -1643,6 +1667,17 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	this->SetRedraw(TRUE);
 }
 
+void CFileListCtrl::ClearSelected()
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	while (nItem != -1)
+	{
+		SetItemState(nItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+	}
+}
+
 void CFileListCtrl::RenameSelectedItem()
 {
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
@@ -1658,6 +1693,25 @@ void CFileListCtrl::RenameSelectedItem()
 		aPath.Add(GetItemFullPath(nItem));
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
+	RenameFiles(aPath, dlg.m_strInput); //한번에 다 호출
+}
+
+void CFileListCtrl::ConvertNFDNames()
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	CStringArray aPath;
+	while (nItem != -1)
+	{
+		int nIndex= aPath.Add(GetItemFullPath(nItem));
+		RenameFiles(aPath, ConvertNFD(GetItemText(nItem, 0))); //한개씩 호출
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+		aPath.RemoveAll(); 
+	}
+}
+
+void CFileListCtrl::RenameFiles(CStringArray& aPath, CString strNewPath)
+{
 	IShellItemArray* shi_array = NULL;
 	if (CreateShellItemArrayFromPaths(aPath, shi_array) == S_OK)
 	{
@@ -1668,7 +1722,7 @@ void CFileListCtrl::RenameSelectedItem()
 			if (pifo->SetOperationFlags(flag) == S_OK &&
 				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
 			{
-				pifo->RenameItems(shi_array, dlg.m_strInput);
+				pifo->RenameItems(shi_array, strNewPath);
 				WatchCurrentDirectory(FALSE);
 				SetRedraw(FALSE);
 				::ATL::CComPtr<::MyProgress> pSink; //이름이 바뀌었을때 가져오기

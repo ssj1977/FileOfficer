@@ -214,3 +214,105 @@ CString PathBackSlash(CString strPath, BOOL bUseBackSlash)
 	}
 	return strPath;
 }
+
+////////////////////////////////////////////////////////
+//풀어쓰기 방식의 한글을 모아쓰기로 바꾸기 위한 코드
+WCHAR Hangeul_NFDtoNFC(CString strNFD)
+{
+	// 초성 19개 0x1100 ~ 0x1112
+	// 중성 21개 0x1161 ~ 0x1175
+	// 종성 27개 0x11A8 ~ 0x11C2  => 종성이 없는 경우까지 28개 경우
+	// 완성형 시작 코드 : 가 = 0xAC00 
+	WCHAR cNFC = L'\0';
+	if (strNFD.GetLength() >= 2)
+	{
+		cNFC = (strNFD.GetAt(0) - 0x1100) * 28 * 21 + (strNFD.GetAt(1) - 0x1161) * 28;
+		if (strNFD.GetLength() == 3) cNFC += (strNFD.GetAt(2) - 0x11A7);
+		cNFC += 0xAC00;
+	}
+	return cNFC;
+}
+CString ConvertNFD(CString strSrc)
+{
+	CString strRet, strTemp;
+	CString strNFD; //TCHAR NFD[3] = {}; //[0]=초성, [1]=중성, [2]=종성
+	for (int i = 0; i < strSrc.GetLength(); i++)
+	{
+		TCHAR c = strSrc.GetAt(i);
+		if (0x1100 <= c && c <= 0x1112) //초성 발견
+		{
+			if (strNFD.GetLength() == 0) //처음 발견
+			{
+				strNFD = c; //토큰을 버퍼에 저장
+			}
+			else if (strNFD.GetLength() == 1) // 중성을 찾고 있는데 초성이 발견된 경우
+			{
+				strRet += strNFD; //이전까지를 그대로 출력(단일 초성)
+				strNFD = c; //초성이 처음 발견된 경우로 초기화
+			}
+			else if (strNFD.GetLength() == 2) // 종성을 찾고 있는데 초성이 발견된 경우
+			{
+				strRet += Hangeul_NFDtoNFC(strNFD); //이전까지를 종성이 없는 문자로 해석하여 출력
+				strNFD = c; //초성이 처음 발견된 경우로 초기화
+			}
+		}
+		else if (0x1161 <= c && c <= 0x1175) // 중성(모음) 발견
+		{
+			if (strNFD.GetLength() == 0) //초성을 찾고 있는데 중성이 발견된 경우
+			{
+				strRet += c; //현재 토큰을 그대로 출력
+			}
+			else if (strNFD.GetLength() == 1) //원하는 시점에 발견된 경우
+			{
+				strNFD += c; //토큰을 버퍼에 저장
+			}
+			else if (strNFD.GetLength() == 2) //종성을 찾고 있는데 중성이 발견된 경우
+			{
+				strRet += Hangeul_NFDtoNFC(strNFD); //이전까지를 종성이 없는 문자로 해석하여 출력
+				strRet += c; //현재 토큰을 그대로 출력
+			}
+		}
+		else if (0x11A8 <= c && c <= 0x11C2) // 종성 발견
+		{
+			if (strNFD.GetLength() == 0) //초성을 찾고 있는데 종성이 발견된 경우
+			{
+				strRet += c; //현재 토큰을 그대로 출력
+			}
+			else if (strNFD.GetLength() == 1) //중성을 찾고 있는데 종성이 발견된 경우
+			{
+				strRet += strNFD; //저장된 토큰(초성만 있는 경우) 그대로 출력
+				strRet += c; //발견된 종성 그대로 출력
+			}
+			else if (strNFD.GetLength() == 2) //적합한 시점에 발견된 경우
+			{
+				strNFD += c; //토큰을 버퍼에 저장
+				strRet += Hangeul_NFDtoNFC(strNFD); //변환하여 출력
+				strNFD.Empty(); // 버퍼 초기화
+			}
+		}
+		else //조합형 한글이 아닌 경우
+		{
+			if (strNFD.GetLength() < 2) //저장된 토큰이 한글자 이하라면
+			{
+				strRet += strNFD; //그대로 출력
+			}
+			else //저장된 토큰이 두글자 이상이라면
+			{
+				strRet += Hangeul_NFDtoNFC(strNFD);  //변환해서 출력
+			}
+			strNFD.Empty(); //버퍼를 비움
+			strRet += c; //현재 토큰을 그대로 출력
+		}
+	}
+	//끝나고 남은 토큰 처리
+	if (strNFD.GetLength() == 1) //저장된 토큰이 한글자라면
+	{
+		strRet += strNFD; //그대로 출력
+	}
+	else if (strNFD.GetLength() > 1) //저장된 토큰이 두글자 이상이라면
+	{
+		strRet += Hangeul_NFDtoNFC(strNFD);  //변환해서 출력
+	}
+	return strRet;
+}
+////////////////////////////////////////////////////////

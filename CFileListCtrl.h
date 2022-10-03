@@ -89,6 +89,9 @@ public:
 	void ProcessDropFiles(HDROP hDropInfo, BOOL bMove);
 	void DeleteSelected(BOOL bRecycle);
 	void RenameSelectedItem();
+	void ConvertNFDNames();
+	void RenameFiles(CStringArray& aPath, CString strNewPath);
+	void ClearSelected();
 	static UINT DisplayFolder_Thread(void* lParam);
 	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
 	static BOOL IsLoading(CFileListCtrl* pList);
