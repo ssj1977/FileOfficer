@@ -74,6 +74,7 @@ public:
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
 	BOOL m_bLoading; //IsLoading과 중복되지만 OnLvnItemchanged의 빠른 처리를 위해 사용
+	BOOL m_bWatching; // 폴더의 변경사항을 모니터링하는 쓰레드의 작동 여부
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	BOOL m_bUseFileIcon;
 	CUIntArray m_aColWidth;
@@ -92,6 +93,8 @@ public:
 	void ConvertNFDNames();
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
 	void ClearSelected();
+	void WatchFolder(BOOL bWatch);
+	static UINT WatchFolder_Thread(void* lParam);
 	static UINT DisplayFolder_Thread(void* lParam);
 	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
 	static BOOL IsLoading(CFileListCtrl* pList);

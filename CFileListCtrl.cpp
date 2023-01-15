@@ -405,6 +405,7 @@ CFileListCtrl::CFileListCtrl()
 	m_bLoading = FALSE;
 	m_bUseFileType = TRUE;
 	m_bUseFileIcon = TRUE;
+	m_bWatching = FALSE;
 }
 
 CFileListCtrl::~CFileListCtrl()
@@ -771,6 +772,137 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	return 0;
 }
 
+/*typedef void (CALLBACK* FileChangeCallback)(LPTSTR, DWORD, LPARAM);
+typedef struct tagDIR_MONITOR
+{
+	OVERLAPPED ol;
+	HANDLE     hDir;
+	BYTE       buffer[32 * 1024];
+	LPARAM     lParam;
+	DWORD      notifyFilter;
+	BOOL       fStop;
+	FileChangeCallback callback;
+} *HDIR_MONITOR;
+
+VOID CALLBACK WatchFolder_CompletionRoutine(DWORD dwErrorCode, 
+	DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
+{
+	TCHAR szFile[MAX_PATH];
+	PFILE_NOTIFY_INFORMATION pNotify;
+	HDIR_MONITOR pMonitor = (HDIR_MONITOR)lpOverlapped;
+	size_t offset = 0;
+	BOOL RefreshMonitoring(HDIR_MONITOR pMonitor);
+
+	if (dwErrorCode == ERROR_SUCCESS)
+	{
+		do
+		{
+			pNotify = (PFILE_NOTIFY_INFORMATION)&pMonitor->buffer[offset];
+			offset += pNotify->NextEntryOffset;
+
+#			if defined(UNICODE)
+			{
+				lstrcpynW(szFile, pNotify->FileName,
+					min(MAX_PATH, pNotify->FileNameLength / sizeof(WCHAR) + 1));
+			}
+#			else
+			{
+				int count = WideCharToMultiByte(CP_ACP, 0, pNotify->FileName,
+					pNotify->FileNameLength / sizeof(WCHAR),
+					szFile, MAX_PATH - 1, NULL, NULL);
+				szFile[count] = TEXT('\0');
+			}
+#			endif
+
+			pMonitor->callback(szFile, pNotify->Action, pMonitor->lParam);
+
+		} while (pNotify->NextEntryOffset != 0);
+	}
+
+	if (!pMonitor->fStop)
+	{
+		RefreshMonitoring(pMonitor);
+	}
+}*/
+
+
+void CFileListCtrl::WatchFolder(BOOL bWatch)
+{
+	m_bWatching = bWatch;
+	if (m_bWatching == FALSE)
+	{
+		return;
+	}
+	CString strDir = PathBackSlash(m_strFolder);
+	HANDLE hDir = CreateFile(strDir, GENERIC_READ,
+		FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
+		OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, 0);
+	DWORD nBufferLength = 1024 * 1024;
+	LPVOID lpBuffer = (PBYTE)malloc(nBufferLength);
+	BOOL bWatchSubtree = FALSE;
+	DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
+		FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
+		FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
+	DWORD dwBytesReturned = 0;
+	OVERLAPPED ov;
+	LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine = NULL;
+
+	WCHAR filepath[MAX_PATH] = { 0 };
+	while (m_bWatching)
+	{
+		FILE_NOTIFY_INFORMATION* pfni = NULL;
+		if (ReadDirectoryChangesW(hDir, lpBuffer, nBufferLength
+			, bWatchSubtree, dwNotifyFilter, &dwBytesReturned
+			, &ov, lpCompletionRoutine) != FALSE)
+		{
+			pfni = (FILE_NOTIFY_INFORMATION*)lpBuffer;
+			if (pfni && m_bWatching)
+			{
+				do
+				{
+					ZeroMemory(filepath, MAX_PATH * sizeof(WCHAR));
+					StringCbCopyNW(filepath, sizeof(filepath), pfni->FileName, pfni->FileNameLength);
+					switch (pfni->Action)
+					{
+					case FILE_ACTION_ADDED:
+						TRACE(L"Added : %s\n", filepath);
+						break;
+					case FILE_ACTION_REMOVED:
+						TRACE(L"Removed : %s\n", filepath);
+						break;
+					case FILE_ACTION_MODIFIED:
+						TRACE(L"Modified : %s\n", filepath);
+						break;
+					case FILE_ACTION_RENAMED_OLD_NAME:
+						TRACE(L"Renamed_Old : %s\n", filepath);
+						break;
+					case FILE_ACTION_RENAMED_NEW_NAME:
+						TRACE(L"Renamed_New : %s\n", filepath);
+						break;
+					}
+					pfni = (FILE_NOTIFY_INFORMATION*)((PBYTE)pfni + pfni->NextEntryOffset);
+				} while (pfni->NextEntryOffset > 0);
+			}
+		}
+		else
+		{
+			DWORD dwLastError = GetLastError();
+			TRACE(L"An error from ReadDirectoryChanges: %d\n", dwLastError);
+			m_bWatching = FALSE;
+		}
+	}
+	free(lpBuffer);
+}
+
+UINT CFileListCtrl::WatchFolder_Thread(void* lParam)
+{
+	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
+	CFileListCtrl* pList = (CFileListCtrl*)lParam;
+	pList->WatchFolder(!(pList->m_bWatching));
+	CoUninitialize();
+	return 0;
+}
+
 COLORREF GetDimColor(COLORREF clr)
 {
 	COLORREF clrDim = clr;
@@ -1058,7 +1190,21 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 
 void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 {
+	if (m_strFolder.IsEmpty()) return;
+	//m_nType == LIST_TYPE_FOLDER
 	CString strDirectory = PathBackSlash(m_strFolder); // "D:" 의 경우 오동작, "D:\"로 하여야 함
+/*	//새로 직접 만든 코드
+	if (bOn == FALSE)
+	{
+		m_bWatching = FALSE;
+	}
+	else
+	{
+		m_bWatching = TRUE;
+		AfxBeginThread(WatchFolder_Thread, this);
+	}
+	return;*/
+	//과거 가져온 코드
 	if (bOn == FALSE)
 	{
 		m_DirWatcher.UnwatchDirectory(strDirectory);
