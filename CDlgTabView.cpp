@@ -32,8 +32,8 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_bFindMode = FALSE;
 	m_nFocusedImage = 1;
 	m_lfHeight = 12;
-	m_btnsize_text = 0;
-	m_btnsize_icon = 0;
+	//m_btnsize_text = 0;
+	//m_btnsize_icon = 0;
 }
 
 CDlgTabView::~CDlgTabView()
@@ -165,9 +165,11 @@ void CDlgTabView::InitToolBar()
 {
 	//툴바를 두개 만든다 텍스트 있는것/없는것
 	//텍스트를 동적으로 넣었다 빼는 경우 빼더라도 버튼 크기가 완전히 줄어들지 않음(MFC의 버그)
+	m_pTool = &m_toolIcon;
 	m_toolIcon.LoadToolBar(IDR_TB_TAB);
-	m_toolText.LoadToolBar(IDR_TB_TAB);
-	UINT nStyle;
+	ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
+	//m_toolText.LoadToolBar(IDR_TB_TAB);
+/*	UINT nStyle;
 	int nCount = m_toolText.GetCount();
 	int nTextIndex = 0;
 	for (int i = 0; i < nCount; i++)
@@ -179,16 +181,16 @@ void CDlgTabView::InitToolBar()
 			nTextIndex++;
 		}
 	}
-	m_btnsize_text = m_toolText.GetToolBarCtrl().GetButtonSize();
-	m_btnsize_icon = m_toolIcon.GetToolBarCtrl().GetButtonSize();
+	m_btnsize_text = m_toolText.GetToolBarCtrl().GetButtonSize();*/
+	//m_btnsize_icon = m_toolIcon.GetToolBarCtrl().GetButtonSize();
 }
 
 BOOL CDlgTabView::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 	InitFont();
-	m_toolIcon.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
-	m_toolText.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
+	m_toolIcon.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
+	//m_toolText.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	UpdateChildFont();
 	InitToolBar();
 	m_editPath.EnableFolderBrowseButton();
@@ -475,23 +477,36 @@ void CDlgTabView::ArrangeCtrl()
 	rc.top += BH;
 	rc.top += 2;
 	//Toolbar
-	DWORD btnsize = (APP()->m_bToolBarText ? m_btnsize_text : m_btnsize_icon);
-	//DWORD btnsize = m_pTool->GetToolBarCtrl().GetButtonSize();
+	//DWORD btnsize = (APP()->m_bToolBarText ? m_btnsize_text : m_btnsize_icon);
+	DWORD btnsize = m_pTool->GetToolBarCtrl().GetButtonSize();
 	int nHP = 0, nVP = 0; //Horizontal / Vertical
 	m_pTool->GetToolBarCtrl().GetPadding(nHP, nVP);
 	int nBtnW = LOWORD(btnsize);
 	int nBtnH = HIWORD(btnsize);
-	int nBtnLineCount = TW / nBtnW; if (nBtnLineCount == 0) nBtnLineCount = 1;
-	int nBtnTotalCount = m_pTool->GetToolBarCtrl().GetButtonCount(); //Separator를 쓰지 않아야 함
-	int nRow = (nBtnTotalCount % nBtnLineCount == 0) ? nBtnTotalCount / nBtnLineCount : (nBtnTotalCount / nBtnLineCount) + 1;
-	int nToolH = nBtnH * nRow + nVP;
-	m_pTool->MoveWindow(rc.left, rc.top, TW, nToolH);
- 	m_pTool->Invalidate();
-	rc.top += nToolH;
-	rc.top += 2;
+	if (APP()->m_bToolBarVertical == FALSE)
+	{
+		//가로로 배치할때는 여러줄로 배치 가능하도록
+		int nBtnLineCount = TW / nBtnW; if (nBtnLineCount == 0) nBtnLineCount = 1;
+		int nBtnTotalCount = m_pTool->GetToolBarCtrl().GetButtonCount(); //Separator를 쓰지 않아야 함
+		int nRow = (nBtnTotalCount % nBtnLineCount == 0) ? nBtnTotalCount / nBtnLineCount : (nBtnTotalCount / nBtnLineCount) + 1;
+		int nToolH = nBtnH * nRow + nVP;
+		m_pTool->MoveWindow(rc.left, rc.top, TW, nToolH);
+ 		m_pTool->Invalidate();
+		rc.top += nToolH;
+		rc.top += 2;
+	}
+	else
+	{
+		//세로로 배치할때는 그냥 한줄로
+		int nToolW = nBtnW + nHP;
+		m_pTool->MoveWindow(rc.left, rc.top, nToolW, rc.Height()); 
+		m_pTool->Invalidate();
+		rc.left += nToolW;
+		rc.left += 2;
+	}
 	//찾기 기능 
 	if (m_bFindMode == FALSE)
-	{
+	{	
 		GetDlgItem(IDC_EDIT_FIND)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_BTN_FIND)->ShowWindow(SW_HIDE);
 	}
@@ -517,6 +532,54 @@ void CDlgTabView::ArrangeCtrl()
 	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH + 2, TW, BH - 2);
 	GetDlgItem(IDC_ST_BAR)->Invalidate();
 }
+
+static void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH)
+{
+	//출처: https://stackoverflow.com/questions/2770855/how-do-you-scale-a-cbitmap-object
+	BITMAP bm = { 0 };
+	bmp_src.GetBitmap(&bm);
+	auto size = CSize(bm.bmWidth, bm.bmHeight);
+	CWindowDC wndDC(NULL);
+	CDC srcDC;
+	srcDC.CreateCompatibleDC(&wndDC);
+	auto oldSrcBmp = srcDC.SelectObject(&bmp_src);
+
+	CDC destDC;
+	destDC.CreateCompatibleDC(&wndDC);
+	bmp_dst.CreateCompatibleBitmap(&wndDC, dstW, dstH);
+	auto oldDestBmp = destDC.SelectObject(&bmp_dst);
+	destDC.StretchBlt(0, 0, dstW, dstH, &srcDC, 0, 0, size.cx, size.cy, SRCCOPY);
+}
+
+void CDlgTabView::ResizeToolBar(int width, int height)
+{
+	if (m_pTool == NULL) return;
+	//DWORD dwSize = m_toolIcon.GetToolBarCtrl().GetButtonSize();
+	//int nHP = 0, nVP = 0; //Horizontal / Vertical
+	//m_toolIcon.GetToolBarCtrl().GetPadding(nHP, nVP);
+	//CSize btnsize(LOWORD(dwSize), HIWORD(dwSize));
+	//btnsize.cx = width;
+	//btnsize.cy = height;
+	//m_pTool->GetToolBarCtrl().SetButtonSize(CSize(width, height));
+	int nCount = m_pTool->GetToolBarCtrl().GetButtonCount();
+	CImageList imgList;
+	CBitmap bm_original, bm_resized;
+	bm_original.LoadBitmap(IDR_TB_TAB);
+	int size_x = width * nCount;
+	int size_y = height;
+	ResizeBitmap(bm_original, bm_resized, size_x, size_y);
+	imgList.Create(width, height, ILC_COLORDDB | ILC_MASK, nCount, 0);
+	imgList.Add(&bm_resized, RGB(255, 0, 255));
+	m_pTool->SendMessage(TB_SETIMAGELIST, 0, (LPARAM)imgList.m_hImageList);
+	imgList.Detach();
+	bm_original.Detach();
+	bm_resized.Detach();
+	DWORD dwSize;
+	dwSize = m_pTool->GetToolBarCtrl().GetButtonSize();
+	int cx = LOWORD(dwSize);
+	int cy = LOWORD(dwSize);
+}
+
 
 
 BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
@@ -546,7 +609,6 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 		{
 			return TRUE;
 		}
-
 	}
 	if (pMsg->message == WM_LBUTTONDOWN)
 	{
@@ -756,12 +818,12 @@ void CDlgTabView::InitFont()
 
 void CDlgTabView::UpdateChildFont()
 {
-	if (::IsWindow(m_toolText.GetSafeHwnd()))
+/*	if (::IsWindow(m_toolText.GetSafeHwnd()))
 	{
 		m_toolIcon.SetFont(&m_font);
 		m_toolText.SetFont(&m_font);
 		InitToolBar();
-	}
+	}*/
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) m_tabPath.SetFont(&m_font);
 	if (::IsWindow(m_editPath.GetSafeHwnd())) m_editPath.SetFont(&m_font);
 	GetDlgItem(IDC_ST_BAR)->SetFont(&m_font);
@@ -779,9 +841,10 @@ void CDlgTabView::UpdateChildFont()
 
 void CDlgTabView::UpdateToolBar()
 {
-	m_pTool = (APP()->m_bToolBarText) ? &m_toolText : &m_toolIcon;
-	m_toolText.ShowWindow((APP()->m_bToolBarText) ? SW_SHOW : SW_HIDE);
-	m_toolIcon.ShowWindow((APP()->m_bToolBarText) ? SW_HIDE : SW_SHOW);
+	//m_pTool = (APP()->m_bToolBarText) ? &m_toolText : &m_toolIcon;
+	//m_toolText.ShowWindow((APP()->m_bToolBarText) ? SW_SHOW : SW_HIDE);
+	//m_toolIcon.ShowWindow((APP()->m_bToolBarText) ? SW_HIDE : SW_SHOW);
+	m_pTool = &m_toolIcon;
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	if (pList)
 	{

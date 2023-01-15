@@ -17,8 +17,8 @@ public:
 	int m_nCurrentTab;
 	int m_lfHeight;
 	int m_nFocusedImage;
-	DWORD m_btnsize_text;
-	DWORD m_btnsize_icon;
+	//DWORD m_btnsize_text;
+	//DWORD m_btnsize_icon;
 	CToolBar* m_pTool;
 	CToolBar m_toolIcon;
 	CToolBar m_toolText;
@@ -26,6 +26,7 @@ public:
 	BOOL m_bSelected;
 	BOOL m_bFindMode;
 	void ArrangeCtrl();
+	void ResizeToolBar(int width, int height);
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
 	void UpdateTabByWnd(CWnd* pWnd);

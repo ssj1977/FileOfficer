@@ -108,30 +108,29 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 	}
 	//나머지 파일에 대해서는 맵에서 우선 찾아서 속도 향상
 	CExtMap::iterator it = mapExt.find(strExt);
+	int nImage = 0;
 	if (it == mapExt.end())
 	{
-		int nImage = 0;
-		//네트워크 드라이브에서 경우에 따라 오류가 나는 확장자는 로컬에서 임시파일을 만들어서 가져온다.
-		if (strExt.CompareNoCase(_T(".jpg")) == 0 
-			|| strExt.CompareNoCase(_T(".jpeg")) == 0	
-			|| strExt.CompareNoCase(_T(".bmp")) == 0
-			|| strExt.CompareNoCase(_T(".png")) == 0
-			|| strExt.CompareNoCase(_T(".gif")) == 0
-			)
-		{
-			CString strTempPath = L"_tmp00_" + strExt;
-			HANDLE hFile = CreateFile(strTempPath, GENERIC_READ, FILE_SHARE_READ, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-			nImage = GetFileImageIndex(strTempPath);
-			if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
-		}
-		else
-		{
-			nImage = GetFileImageIndex(strPath);
-		}
+		//미디어 파일의 경우 네트워크 드라이브에서 경우에 따라 오류가 나는 경우가 많음
+		//위의 exe등을 제외하고는 모두 로컬에서 임시파일을 만들어서 처리하는 방식으로 변경
+		//	if (strExt.CompareNoCase(_T(".jpg")) == 0
+		//	|| strExt.CompareNoCase(_T(".jpeg")) == 0	
+		//{} else nImage = GetFileImageIndex(strPath);
+		//맵에 없으면 현재 폴더에 임시 파일을 만들어서 아이콘 식별
+		TCHAR dir[256];
+		GetCurrentDirectory(256, dir);
+		CString strTempPath = L"_tmp00_" + strExt; // 현재 폴더가 리모트일 경우가 있는지 미확인
+		HANDLE hFile = CreateFile(strTempPath, GENERIC_READ, FILE_SHARE_READ, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+		nImage = GetFileImageIndex(strTempPath);
+		if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
+		DeleteFile(strTempPath);
 		mapExt.insert(CExtMap::value_type(strExt, nImage));
-		return nImage;
 	}
-	return (*it).second;
+	else
+	{
+		nImage = (*it).second;
+	}
+	return nImage;
 }
 /////////////////////////////////////////////////
 
@@ -282,16 +281,21 @@ IFACEMETHODIMP MyProgress::PostRenameItem(DWORD dwFlags, IShellItem* psiItem,
 	PCWSTR pszNewName, HRESULT hrRename, IShellItem* psiNewlyCreated)
 { 
 	if (m_pList == NULL) return S_OK;
-	LPWSTR pszOldName;
-	psiItem->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &pszOldName);
-	size_t nOldSize = _tcslen(pszOldName);
-	size_t nNewSize = _tcslen(pszNewName);
-	size_t nCompareSize = (nOldSize > nNewSize) ? nOldSize : nNewSize;
-	if (_tcsnicmp(pszOldName, pszNewName, nCompareSize) != 0)
+	LPWSTR pszOldName = NULL;
+	if (SUCCEEDED(psiItem->GetDisplayName(SIGDN_PARENTRELATIVEEDITING, &pszOldName)))
 	{
-		m_pList->UpdateItemByPath(pszOldName, pszNewName, TRUE);
+		if (pszOldName != NULL)
+		{
+			size_t nOldSize = _tcslen(pszOldName);
+			size_t nNewSize = _tcslen(pszNewName);
+			size_t nCompareSize = (nOldSize > nNewSize) ? nOldSize : nNewSize;
+			if (_tcsnicmp(pszOldName, pszNewName, nCompareSize) != 0)
+			{
+				m_pList->UpdateItemByPath(pszOldName, pszNewName, TRUE);
+			}
+			CoTaskMemFree(pszOldName);
+		}
 	}
-	CoTaskMemFree(pszOldName);
 	return S_OK;
 }
 
@@ -443,12 +447,16 @@ void CFileListCtrl::SetColTexts(int* pStringId, int* pColFmt, int size)
 	col.mask = LVCF_TEXT | LVCF_FMT;
 	for (int i = 0; i < size; i++)
 	{
-		strText.LoadString(*(pStringId+i));
-		col.pszText = strText.GetBuffer();
-		col.fmt = *(pColFmt+i);
-		SetColumn(i, &col);
-		strText.ReleaseBuffer();
+		BOOL b = strText.LoadString(*(pStringId+i));
+		if (b)
+		{
+			col.pszText = strText.GetBuffer();
+			col.fmt = *(pColFmt + i);
+			SetColumn(i, &col);
+			strText.ReleaseBuffer();
+		}
 	}
+
 }
 
 
@@ -665,21 +673,30 @@ CString GetFileSizeString(ULONGLONG nSize)
 {
 	TCHAR pBuf[100];
 	ZeroMemory(pBuf, 100);
-	CString strSize;
+	CString strSize, strReturn;
 	strSize.Format(_T("%I64u"), nSize);
 	int nLen = strSize.GetLength();
-	int nPos = 0;
-	for (int i = 0; i < nLen; i++)
+	if (nLen < 100)
 	{
-		pBuf[nPos] = strSize.GetAt(i);
-		nPos += 1;
-		if (i < nLen - 3 && (nLen - i - 1) % 3 == 0)
+		int nPos = 0;
+		for (int i = 0; i < nLen; i++)
 		{
-			pBuf[nPos] = _T(',');
+			pBuf[nPos] = strSize.GetAt(i);
 			nPos += 1;
+			if (i < nLen - 3 && (nLen - i - 1) % 3 == 0)
+			{
+				pBuf[nPos] = _T(',');
+				nPos += 1;
+			}
 		}
+		pBuf[99] = _T('\0');
+		strReturn = (LPCTSTR)pBuf;
 	}
-	return (LPCTSTR)pBuf;
+	else
+	{
+		strReturn = _T("The size is too large.");
+	}
+	return strReturn;
 }
 
 CString GetDriveSizeString(ULARGE_INTEGER size)
@@ -737,7 +754,7 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 
 UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 {
-	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
+	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
 	//APP()->UpdateThreadLocale();
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
 	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
@@ -1059,16 +1076,17 @@ void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
 void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
-	TCHAR szFilePath[MY_MAX_PATH];
+	//TCHAR szFilePath[MY_MAX_PATH];
+	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH];
 	size_t bufsize = sizeof(TCHAR) * MY_MAX_PATH;
-	memset(szFilePath, 0, bufsize);
+	if (bufsize > 0) ZeroMemory(pszFilePath, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);
 	int nStart = GetItemCount();
 	CStringArray aPath;
 	for (int i = 0; i < cFiles; i++)
 	{
-		DragQueryFile(hDropInfo, i, szFilePath, MY_MAX_PATH);
-		aPath.Add(szFilePath);
+		DragQueryFile(hDropInfo, i, pszFilePath, MY_MAX_PATH);
+		aPath.Add(pszFilePath);
 	}
 	PasteFiles(aPath, bMove);
 	int nEnd = GetItemCount();
@@ -1078,6 +1096,7 @@ void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 		SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	}
 	if (nStart<nEnd && nEnd>1) EnsureVisible(nEnd-1, FALSE);
+	delete[] pszFilePath;
 	//DragFinish(hDropInfo); //실제로 마우스 드래그 메시지를 받은 경우에만 이 방식으로 메모리 해제
 	//CMFCListCtrl::OnDropFiles(hDropInfo);
 }
@@ -1543,13 +1562,13 @@ HGLOBAL CFileListCtrl::GetOleDataForClipboard(int nState)
 		}
 		pDrop->pFiles = sizeof(DROPFILES);
 		pDrop->fWide = TRUE;
-		TCHAR* pszBuff;
+		TCHAR* pszBuff = NULL;
 		POSITION pos = aFiles.GetHeadPosition();
 		pszBuff = (TCHAR*)(LPBYTE(pDrop) + sizeof(DROPFILES));
-		while (NULL != pos)
+		while (NULL != pos && pszBuff != NULL)
 		{
 			lstrcpy(pszBuff, (LPCTSTR)aFiles.GetNext(pos));
-			pszBuff = 1 + _tcschr(pszBuff, _T('\0'));
+			pszBuff = _tcschr(pszBuff, _T('\0')) + 1;
 		}
 		GlobalUnlock(hgDrop);
 	}
@@ -1569,7 +1588,7 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 		{
 			DROPEFFECT effect = bMove ? DROPEFFECT_MOVE : DROPEFFECT_COPY;
 			DWORD* pdw1 = (DWORD*)GlobalLock(hEffect);
-			(*pdw1) = effect;
+			if  (pdw1 != NULL) (*pdw1) = effect;
 			GlobalUnlock(hEffect);
 			SetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), hEffect);
 		}
@@ -1592,8 +1611,11 @@ void CFileListCtrl::ClipBoardImport()
 		if (hMemEffect)
 		{
 			pEffect = (DWORD*)GlobalLock(hMemEffect);
-			if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
-			GlobalUnlock(hMemEffect);
+			if (pEffect != NULL)
+			{
+				if (((*pEffect) & DROPEFFECT_MOVE) != 0) bMove = TRUE;
+				GlobalUnlock(hMemEffect);
+			}
 		}
 		HGLOBAL hGlobal = (HGLOBAL)GetClipboardData(CF_HDROP);
 		if (hGlobal)
@@ -1683,7 +1705,7 @@ void CFileListCtrl::RenameSelectedItem()
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
 	CDlgInput dlg;
-	dlg.m_strTitle.LoadString(IDS_RENAME);
+	BOOL b = dlg.m_strTitle.LoadString(IDS_RENAME);
 	dlg.m_strInput = GetItemText(nItem, 0);
 	dlg.m_nMode = INPUT_MODE_FILENAME;
 	if (dlg.DoModal() != IDOK) return;
@@ -1703,7 +1725,7 @@ void CFileListCtrl::ConvertNFDNames()
 	CStringArray aPath;
 	while (nItem != -1)
 	{
-		int nIndex= aPath.Add(GetItemFullPath(nItem));
+		int nIndex= (int) aPath.Add(GetItemFullPath(nItem));
 		RenameFiles(aPath, ConvertNFD(GetItemText(nItem, 0))); //한개씩 호출
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 		aPath.RemoveAll(); 
@@ -1943,7 +1965,7 @@ COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
 void CFileListCtrl::UpdateCount()
 {
 	CString strTemp;
-	strTemp.Format(_T("%d%s / %d%s"), GetItemCount(), IDSTR(IDS_ITEM_COUNT), GetSelectedCount(), IDSTR(IDS_SELECTED_COUNT)); // , IDSTR(IDS_LOADING_TIME), endTime - startTime);
+	strTemp.Format(_T("%d%s / %d%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT), GetSelectedCount(), (LPCTSTR)IDSTR(IDS_SELECTED_COUNT)); // , IDSTR(IDS_LOADING_TIME), endTime - startTime);
 	SetBarMsg(strTemp);
 }
 

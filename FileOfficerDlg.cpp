@@ -252,7 +252,10 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			dlg.m_nLayoutSizePercent = APP()->m_nLayoutSizePercent;
 			dlg.m_nLayoutSizeFixed1 = APP()->m_nLayoutSizeFixed1;
 			dlg.m_nLayoutSizeFixed2 = APP()->m_nLayoutSizeFixed2;
-			dlg.m_bToolBarText = APP()->m_bToolBarText;
+			dlg.m_nToolBarButtonSize = APP()->m_nToolBarButtonSize;
+			dlg.m_bToolBarVertical = APP()->m_bToolBarVertical;
+			//dlg.m_bToolBarText = APP()->m_bToolBarText;
+
 			if (dlg.DoModal() == IDOK)
 			{
 				APP()->m_nLayoutType = dlg.m_nLayoutType;
@@ -260,11 +263,22 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 				APP()->m_nLayoutSizePercent = dlg.m_nLayoutSizePercent;
 				APP()->m_nLayoutSizeFixed1 = dlg.m_nLayoutSizeFixed1;
 				APP()->m_nLayoutSizeFixed2 = dlg.m_nLayoutSizeFixed2;
-				if (APP()->m_bToolBarText != dlg.m_bToolBarText)
+				BOOL bArrangeChild = FALSE;
+				if (APP()->m_nToolBarButtonSize != dlg.m_nToolBarButtonSize)
 				{
-					APP()->m_bToolBarText = dlg.m_bToolBarText;
-					m_tv1.UpdateToolBar();
-					m_tv2.UpdateToolBar();
+					bArrangeChild = TRUE;
+					APP()->m_nToolBarButtonSize = dlg.m_nToolBarButtonSize;
+					m_tv1.ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
+					m_tv2.ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
+				}
+
+				if (APP()->m_bToolBarVertical != dlg.m_bToolBarVertical)
+				{
+					bArrangeChild = TRUE;
+					APP()->m_bToolBarVertical = dlg.m_bToolBarVertical;
+				}
+				if (bArrangeChild == TRUE)
+				{
 					m_tv1.ArrangeCtrl();
 					m_tv2.ArrangeCtrl();
 				}
