@@ -234,7 +234,7 @@ IFACEMETHODIMP MyProgress::PostCopyItem(DWORD dwFlags, IShellItem* psiItem,
 	if (m_pList)
 	{
 		m_pList->AddItemByPath(strPath, TRUE, FALSE);
-		m_pList->UpdateCount();
+		m_pList->UpdateMsgBar();
 	}
 	return S_OK;
 }
@@ -754,13 +754,13 @@ void CFileListCtrl::WatchEventHandler()
 				//TRACE(L"Added : %s\n", szFile);
 				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
 				AddItemByPath(strPath, TRUE, FALSE);
-				UpdateCount();
+				UpdateMsgBar();
 				break;
 			case FILE_ACTION_REMOVED:
 				//TRACE(L"Removed : %s\n", szFile);
 				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
 				DeleteInvalidPath(strPath);
-				UpdateCount();
+				UpdateMsgBar();
 				break;
 			case FILE_ACTION_MODIFIED:
 				//TRACE(L"Modified : %s\n", szFile);
@@ -1120,7 +1120,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
-	UpdateCount();
+	UpdateMsgBar();
 	/*
 	endTime = clock();
 	CString strTemp;
@@ -1662,12 +1662,6 @@ void CFileListCtrl::ShowContextMenu(CPoint pt)
 }
 
 
-void CFileListCtrl::SetBarMsg(CString strMsg)
-{
-	m_strBarMsg = strMsg;
-	if (CMD_UpdateBar!=0) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateBar, (DWORD_PTR)this);
-}
-
 BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID)
 {
 	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
@@ -1849,7 +1843,7 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 		if (bDeleted == TRUE) nItem -= 1;
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 	}
-	UpdateCount();
+	UpdateMsgBar();
 	this->SetRedraw(TRUE);
 }
 
@@ -2142,11 +2136,41 @@ COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
 	return ApplyColorRule(nRow, nColumn, TRUE);
 }
 
-void CFileListCtrl::UpdateCount()
+void CFileListCtrl::UpdateMsgBar()
 {
-	CString strTemp;
-	strTemp.Format(_T("%d%s / %d%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT), GetSelectedCount(), (LPCTSTR)IDSTR(IDS_SELECTED_COUNT)); // , IDSTR(IDS_LOADING_TIME), endTime - startTime);
+	//if (::IsWindow(m_hWnd) == FALSE) return;
+	CString strTemp, strInfo;
+	int nTotal = GetItemCount();
+	int nSelected = GetSelectedCount();
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (m_nType == LIST_TYPE_FOLDER)
+	{
+		if (nSelected == 1 && GetItemData(nItem) == ITEM_TYPE_FILE)
+		{
+			// 선택이 한개인 경우 최종 갱신 시점, 크기 표시
+			strInfo.Format(_T(" / %s / %s"), GetItemText(nItem, COL_DATE), GetItemText(nItem, COL_SIZE));
+		}
+		else if (nSelected > 1)
+		{
+			ULONGLONG total_size = 0;
+			while (nItem != -1)
+			{
+				// 선택이 여러개인 경우 크기 합산하여 출력
+				total_size += Str2Size(GetItemText(nItem, COL_SIZE));
+				nItem = GetNextItem(nItem, LVNI_SELECTED);
+			}
+			GetFileSizeString(total_size);
+			if (total_size > 0) strInfo.Format(_T(" / %s"), GetFileSizeString(total_size));
+		}
+	}
+	strTemp.Format(_T("%d%s / %d%s%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT), GetSelectedCount(), (LPCTSTR)IDSTR(IDS_SELECTED_COUNT), strInfo); // , IDSTR(IDS_LOADING_TIME), endTime - startTime);
 	SetBarMsg(strTemp);
+}
+
+void CFileListCtrl::SetBarMsg(CString strMsg)
+{
+	m_strBarMsg = strMsg;
+	if (CMD_UpdateBar != 0) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateBar, (DWORD_PTR)this);
 }
 
 void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
@@ -2154,7 +2178,7 @@ void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 	if (IsLoading(this)) return;
 	//if (!m_bLoading) return;
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
-	UpdateCount();
+	UpdateMsgBar();
 	*pResult = 0;
 }
 

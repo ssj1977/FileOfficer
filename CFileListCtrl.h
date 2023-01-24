@@ -103,7 +103,7 @@ public:
 
 	HANDLE m_hLoadFinished; //디렉토리 모니터링을 중단할때 필요한 이벤트
 	void ClearThread(); // 현재 작동중인 쓰레드들을 중단
-	void UpdateCount();
+	void UpdateMsgBar();
 	void SortCurrentList();
 	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
 
