@@ -6,27 +6,6 @@
 #include <set>
 typedef set<CString> CPathSet; //중복이름 체크용 맵 해당하는 이미지맵의 번호를 기억*/
 
-class CDirectoryChangeWatcher;
-class CFileListCtrl;
-
-// From https://www.codeproject.com/Articles/950/CDirectoryChangeWatcher-ReadDirectoryChangesW-all
-#include "DirectoryChanges.h"
-class CMyDirectoryChangeHandler : public CDirectoryChangeHandler
-{
-public:
-	CMyDirectoryChangeHandler(CFileListCtrl* pList);
-	CFileListCtrl* m_pList;
-	virtual void On_FileAdded(const CString& strFileName);
-	virtual void On_FileRemoved(const CString& strFileName);
-	virtual void On_FileModified(const CString& strFileName);
-	virtual void On_FileNameChanged(const CString& strOldFileName, const CString& strNewFileName);
-	//virtual void On_ReadDirectoryChangesError(DWORD dwError);
-	//virtual void On_WatchStarted(DWORD dwError, const CString& strDirectoryName);
-	//virtual void On_WatchStopped(const CString& strDirectoryName);
-	//Filter related:
-	//virtual bool On_FilterNotification(DWORD dwNotifyAction, LPCTSTR szFileName, LPCTSTR szNewFileName);
-};
-
 class CFileListCtrl : public CMFCListCtrl
 {
 	DECLARE_DYNAMIC(CFileListCtrl)
@@ -73,8 +52,7 @@ public:
 	//	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn;
-	BOOL m_bLoading; //IsLoading과 중복되지만 OnLvnItemchanged의 빠른 처리를 위해 사용
-	BOOL m_bWatching; // 폴더의 변경사항을 모니터링하는 쓰레드의 작동 여부
+	//BOOL m_bLoading; //IsLoading과 중복되지만 OnLvnItemchanged의 빠른 처리를 위해 사용
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	BOOL m_bUseFileIcon;
 	CUIntArray m_aColWidth;
@@ -93,22 +71,39 @@ public:
 	void ConvertNFDNames();
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
 	void ClearSelected();
-	void WatchFolder(BOOL bWatch);
-	static UINT WatchFolder_Thread(void* lParam);
+	
+	//기타 static 함수들
+	static void ClearPreviousSelection(); // 잘라내기 기능의 아이콘 음영 처리 초기화
+	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
+	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
+
+	// 파일목록 불러오기 쓰레드 처리
+	CWinThread* m_pThreadLoad;
 	static UINT DisplayFolder_Thread(void* lParam);
 	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
 	static BOOL IsLoading(CFileListCtrl* pList);
 	static void DeleteLoadingStatus(CFileListCtrl* pList);
-	static void ClearPreviousSelection();
 
-	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
-	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
+	// 변경사항 모니터링용 쓰레드 처리
+	void WatchFolder_Begin();
+	void WatchFolder_Work();
+	void WatchFolder_End();
+	void WatchFolder_Resume();
+	void WatchFolder_Suspend();
+	void WatchEventHandler();
+	static UINT WatchFolder_Thread(void* lParam);
+	static void SetWatchingStatus(CFileListCtrl* pList, BOOL bLoading);
+	static BOOL IsWatching(CFileListCtrl* pList);
+	static void DeleteWatchingStatus(CFileListCtrl* pList);
+	HANDLE m_hWatchBreak; //디렉토리 모니터링을 중단할때 필요한 이벤트
+	CWinThread* m_pThreadWatch;
+	OVERLAPPED	m_overlap_watch; //비동기 IO를 위한 OVERLAPPED개체 상속 구조체, Callback을 위한 객체 포인터 포함
+	HANDLE		m_hDirectory;	//디렉토리 변경사항 모니터링을 위한 I/O Handle
+	LPVOID		m_pWatchBuffer; // ReadDirectoryChangesW 를 위한 버퍼
+
+	HANDLE m_hLoadFinished; //디렉토리 모니터링을 중단할때 필요한 이벤트
+	void ClearThread(); // 현재 작동중인 쓰레드들을 중단
 	void UpdateCount();
-	void ClearThread();
-	HANDLE m_hThreadLoad;
-	CDirectoryChangeWatcher m_DirWatcher;
-	CMyDirectoryChangeHandler m_DirHandler;
-	void WatchCurrentDirectory(BOOL bOn);
 	void SortCurrentList();
 	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
 

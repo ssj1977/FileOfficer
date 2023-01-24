@@ -224,37 +224,6 @@ CString GetPathTypeFromMap(CString strPath, BOOL bIsDirectory)
 	}
 }*/
 
-// From https://www.codeproject.com/Articles/950/CDirectoryChangeWatcher-ReadDirectoryChangesW-all
-
-CMyDirectoryChangeHandler::CMyDirectoryChangeHandler(CFileListCtrl* pList)
-{
-	m_pList = pList;
-}
-
-void CMyDirectoryChangeHandler::On_FileAdded(const CString& strFileName)
-{
-	m_pList->AddItemByPath(strFileName, TRUE, FALSE);
-	m_pList->UpdateCount();
-}
-
-void CMyDirectoryChangeHandler::On_FileRemoved(const CString& strFileName)
-{
-	m_pList->DeleteInvalidPath(strFileName);
-	m_pList->UpdateCount();
-}
-
-void CMyDirectoryChangeHandler::On_FileModified(const CString& strFileName)
-{
-	m_pList->UpdateItemByPath(strFileName, strFileName);
-}
-
-void CMyDirectoryChangeHandler::On_FileNameChanged(const CString& strOldFileName, const CString& strNewFileName)
-{
-	m_pList->UpdateItemByPath(strOldFileName, strNewFileName);
-}
-
-void ClearAllNotification();
-
 // IFileOperation 에서 변경된 파일명을 받아오기 위한 IFileOperationProgressSink 구현
 
 IFACEMETHODIMP MyProgress::PostCopyItem(DWORD dwFlags, IShellItem* psiItem,
@@ -347,46 +316,64 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_COMP_PATH 1
 #define COL_COMP_SIZE 2
 
-typedef std::map<CFileListCtrl*, BOOL> CLoadingMap;
-static CLoadingMap st_mapLoading;
+//쓰레드의 상태를 관리하기 위한 static 변수
+typedef std::map<CFileListCtrl*, BOOL> ThreadStatusMap;
+
+static void SetThreadStatus(ThreadStatusMap& mythread, CFileListCtrl* pList, BOOL bLoading)
+{
+	ThreadStatusMap::iterator it = mythread.find(pList);
+	if (it == mythread.end())	mythread.insert(ThreadStatusMap::value_type(pList, bLoading));
+	else						mythread.at(pList) = bLoading;
+}
+
+static BOOL IsThreadOn(ThreadStatusMap& mythread, CFileListCtrl* pList)
+{
+	ThreadStatusMap::iterator it = mythread.find(pList);
+	if (it == mythread.end())	return FALSE;
+	else						return (*it).second;
+}
+
+static void DeleteThreadStatus(ThreadStatusMap& mythread, CFileListCtrl* pList)
+{
+	ThreadStatusMap::iterator it = mythread.find(pList);
+	if (it != mythread.end())
+	{
+		mythread.erase(pList);
+	}
+}
+
+static ThreadStatusMap st_mapLoading;
+static ThreadStatusMap st_mapWatching;
 
 void CFileListCtrl::SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading)
 {
-	CLoadingMap::iterator it = st_mapLoading.find(pList);
-	if (it == st_mapLoading.end())
-	{
-		st_mapLoading.insert(CLoadingMap::value_type(pList, bLoading));
-	}
-	else
-	{
-		st_mapLoading.at(pList) = bLoading;
-	}
+	SetThreadStatus(st_mapLoading, pList, bLoading);
+	//pList->m_bLoading = bLoading;
 }
-
 BOOL CFileListCtrl::IsLoading(CFileListCtrl* pList)
 {
-	CLoadingMap::iterator it = st_mapLoading.find(pList);
-	if (it == st_mapLoading.end())
-	{
-		return FALSE;
-	}
-	else
-	{
-		return (*it).second;
-	}
+	return IsThreadOn(st_mapLoading, pList);
 }
-
 void CFileListCtrl::DeleteLoadingStatus(CFileListCtrl* pList)
 {
-	CLoadingMap::iterator it = st_mapLoading.find(pList);
-	if (it != st_mapLoading.end())
-	{
-		st_mapLoading.erase(pList);
-	}
+	DeleteThreadStatus(st_mapLoading, pList);
+}
+void CFileListCtrl::SetWatchingStatus(CFileListCtrl* pList, BOOL bLoading)
+{
+	SetThreadStatus(st_mapWatching, pList, bLoading);
+}
+BOOL CFileListCtrl::IsWatching(CFileListCtrl* pList)
+{
+	return IsThreadOn(st_mapWatching, pList);
+}
+void CFileListCtrl::DeleteWatchingStatus(CFileListCtrl* pList)
+{
+	DeleteThreadStatus(st_mapWatching, pList);
 }
 
+#define WATCH_BUFFER_SIZE 32 * 1024 //네트워크 드라이브에서 버퍼 크기가 64KB 이상이 되면 오류발생(패킷 크기 제한 때문)
+
 CFileListCtrl::CFileListCtrl()
-: m_DirHandler(this) , m_DirWatcher(true)
 {
 	m_strFolder = L"";
 	m_nType = LIST_TYPE_DRIVE;
@@ -397,20 +384,27 @@ CFileListCtrl::CFileListCtrl()
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
 	m_nIconType = SHIL_SMALL;
-	m_hThreadLoad = NULL;
+	m_pThreadLoad = NULL;
+	m_pThreadWatch = NULL;
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
 	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
-	m_bLoading = FALSE;
+//	m_bLoading = FALSE;
 	m_bUseFileType = TRUE;
 	m_bUseFileIcon = TRUE;
-	m_bWatching = FALSE;
+	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
+	m_hDirectory = NULL;
+	m_hWatchBreak = NULL;
+	m_hLoadFinished = NULL;
 }
 
 CFileListCtrl::~CFileListCtrl()
 {
-	ClearAllNotification();
+	CFileListCtrl::DeleteWatchingStatus(this);
+	CFileListCtrl::DeleteLoadingStatus(this);
+	free(m_pWatchBuffer);
+	CloseHandle(m_hLoadFinished);
 }
 
 static int CMD_DirWatch = IDM_START_DIRWATCH;
@@ -740,165 +734,172 @@ ULONGLONG Str2Size(CString str)
 	return size;
 }
 
-void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory)
-{
-	if (IsLoading(this) == TRUE) return;
-	if (::IsWindow(m_hWnd) == FALSE) return;
-	ClearThread();
-	m_strPrevFolder = m_strFolder;
-	m_strFolder = strFolder;
-	m_bUpdatePathHistory = bUpdatePathHistory;
-//	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
-//		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
-	AfxBeginThread(DisplayFolder_Thread, this);
-}
-
-UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
-{
-	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
-	//APP()->UpdateThreadLocale();
-	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
-	ResetEvent(pList->m_hThreadLoad);
-	pList->SetBarMsg(IDSTR(IDS_NOW_LOADING));
-	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
-	if (IsLoading(pList) == TRUE)
-	{   // 정상적으로 끝난 경우, IsLoading이 FALSE면 중단된 경우로 아래와 같은 처리가 추가로 필요
-		SetLoadingStatus(pList, FALSE);
-		if (pList->IsWatchable()) pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
-	}
-	SetEvent(pList->m_hThreadLoad);
-	CoUninitialize();
-	return 0;
-}
-
-/*typedef void (CALLBACK* FileChangeCallback)(LPTSTR, DWORD, LPARAM);
-typedef struct tagDIR_MONITOR
-{
-	OVERLAPPED ol;
-	HANDLE     hDir;
-	BYTE       buffer[32 * 1024];
-	LPARAM     lParam;
-	DWORD      notifyFilter;
-	BOOL       fStop;
-	FileChangeCallback callback;
-} *HDIR_MONITOR;
-
-VOID CALLBACK WatchFolder_CompletionRoutine(DWORD dwErrorCode, 
-	DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
+void CFileListCtrl::WatchEventHandler()
 {
 	TCHAR szFile[MAX_PATH];
-	PFILE_NOTIFY_INFORMATION pNotify;
-	HDIR_MONITOR pMonitor = (HDIR_MONITOR)lpOverlapped;
-	size_t offset = 0;
-	BOOL RefreshMonitoring(HDIR_MONITOR pMonitor);
-
-	if (dwErrorCode == ERROR_SUCCESS)
+	VOID* pBuffer = m_pWatchBuffer;
+	if (pBuffer == NULL) return;
+	FILE_NOTIFY_INFORMATION* pNotify = (FILE_NOTIFY_INFORMATION*)pBuffer;
+	size_t offset = 0; //버퍼 iteration 용 offset;
+	CString strPath;
+	BOOL bRename = FALSE;
+	do
 	{
-		do
+		pNotify = (FILE_NOTIFY_INFORMATION*)((BYTE*)pBuffer + offset);
+		if (lstrcpynW(szFile, pNotify->FileName, min(MAX_PATH, pNotify->FileNameLength / sizeof(WCHAR) + 1)) != NULL)
 		{
-			pNotify = (PFILE_NOTIFY_INFORMATION)&pMonitor->buffer[offset];
-			offset += pNotify->NextEntryOffset;
-
-#			if defined(UNICODE)
+			switch (pNotify->Action)
 			{
-				lstrcpynW(szFile, pNotify->FileName,
-					min(MAX_PATH, pNotify->FileNameLength / sizeof(WCHAR) + 1));
+			case FILE_ACTION_ADDED:
+				//TRACE(L"Added : %s\n", szFile);
+				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
+				AddItemByPath(strPath, TRUE, FALSE);
+				UpdateCount();
+				break;
+			case FILE_ACTION_REMOVED:
+				//TRACE(L"Removed : %s\n", szFile);
+				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
+				DeleteInvalidPath(strPath);
+				UpdateCount();
+				break;
+			case FILE_ACTION_MODIFIED:
+				//TRACE(L"Modified : %s\n", szFile);
+				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
+				UpdateItemByPath(strPath, strPath);
+				break;
+			case FILE_ACTION_RENAMED_OLD_NAME:
+				//TRACE(L"Renamed_Old : %s\n", szFile);
+				//strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
+				strPath = szFile;
+				bRename = TRUE;
+				break;
+			case FILE_ACTION_RENAMED_NEW_NAME:
+				//TRACE(L"Renamed_New : %s\n", szFile);
+				if (bRename == TRUE)
+				{
+					//CString strNewPath = PathBackSlash(m_strFolder, TRUE) + szFile;
+					UpdateItemByPath(strPath, szFile, TRUE);
+					bRename = FALSE;
+				}
+				break;
 			}
-#			else
-			{
-				int count = WideCharToMultiByte(CP_ACP, 0, pNotify->FileName,
-					pNotify->FileNameLength / sizeof(WCHAR),
-					szFile, MAX_PATH - 1, NULL, NULL);
-				szFile[count] = TEXT('\0');
-			}
-#			endif
-
-			pMonitor->callback(szFile, pNotify->Action, pMonitor->lParam);
-
-		} while (pNotify->NextEntryOffset != 0);
-	}
-
-	if (!pMonitor->fStop)
-	{
-		RefreshMonitoring(pMonitor);
-	}
-}*/
+		}
+		offset += pNotify->NextEntryOffset;
+	} while (pNotify->NextEntryOffset != 0);
+}
 
 
-void CFileListCtrl::WatchFolder(BOOL bWatch)
+void CFileListCtrl::WatchFolder_Suspend() // 별도 쓰레드 방식용
 {
-	m_bWatching = bWatch;
-	if (m_bWatching == FALSE)
+	if (m_pThreadWatch == NULL || IsWatching(this) == FALSE) return;
+	DWORD dwCount = m_pThreadWatch->SuspendThread();
+	if (dwCount > 1)
 	{
-		return;
+		TRACE(_T("Too many suspended thread: %d\r\n"), dwCount);
 	}
+}
+
+void CFileListCtrl::WatchFolder_Resume() // 별도 쓰레드 방식용
+{
+	if (m_pThreadWatch == NULL || IsWatching(this) == FALSE) return;
+	DWORD dwCount = m_pThreadWatch->ResumeThread();
+	if (dwCount > 1)
+	{
+		TRACE(_T("Too many suspended thread: %d\r\n"), dwCount);
+	}
+}
+
+
+void CFileListCtrl::WatchFolder_End() // 별도 쓰레드 방식용
+{
+	if (IsWatching(this) == FALSE) return;
+	HANDLE hThread = m_pThreadWatch->m_hThread;
+	if (m_hWatchBreak != NULL ) SetEvent(m_hWatchBreak);
+	DWORD ret = WaitForSingleObject(hThread, 3000);
+	if (ret != WAIT_OBJECT_0)
+	{
+		AfxMessageBox(L"Error:Watching thread is not cleared properly");
+	}
+	m_pThreadWatch = NULL;
+}
+
+void CFileListCtrl::WatchFolder_Work() // 별도 쓰레드 방식용
+{
+	if (IsWatching(this) == TRUE) return;
 	CString strDir = PathBackSlash(m_strFolder);
-	HANDLE hDir = CreateFile(strDir, GENERIC_READ,
+	m_hDirectory = CreateFile(strDir, GENERIC_READ,
 		FILE_SHARE_READ | FILE_SHARE_WRITE, 0,
 		OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, 0);
-	DWORD nBufferLength = 1024 * 1024;
-	LPVOID lpBuffer = (PBYTE)malloc(nBufferLength);
-	BOOL bWatchSubtree = FALSE;
 	DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
 		FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
 		FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
-	DWORD dwBytesReturned = 0;
-	OVERLAPPED ov;
-	LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine = NULL;
-
-	WCHAR filepath[MAX_PATH] = { 0 };
-	while (m_bWatching)
+	OVERLAPPED* pOverlapped = &m_overlap_watch;
+	if (pOverlapped->hEvent == NULL) pOverlapped->hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (m_hWatchBreak == NULL) m_hWatchBreak = CreateEvent(NULL, TRUE, FALSE, NULL);
+	if (pOverlapped->hEvent == NULL || m_hWatchBreak == NULL) return;
+	HANDLE hEvents[2] = { pOverlapped->hEvent, m_hWatchBreak };
+	
+	SetWatchingStatus(this, TRUE);
+	FILE_NOTIFY_INFORMATION* pNotify = NULL;
+	while (TRUE)
 	{
-		FILE_NOTIFY_INFORMATION* pfni = NULL;
-		if (ReadDirectoryChangesW(hDir, lpBuffer, nBufferLength
-			, bWatchSubtree, dwNotifyFilter, &dwBytesReturned
-			, &ov, lpCompletionRoutine) != FALSE)
+		if (ReadDirectoryChangesW(m_hDirectory, m_pWatchBuffer, WATCH_BUFFER_SIZE
+			, FALSE, dwNotifyFilter, NULL, pOverlapped, NULL) != FALSE)
 		{
-			pfni = (FILE_NOTIFY_INFORMATION*)lpBuffer;
-			if (pfni && m_bWatching)
+			DWORD dwWait = WaitForMultipleObjectsEx(2, hEvents, FALSE, INFINITE, TRUE);
+			if (dwWait == WAIT_OBJECT_0)
 			{
-				do
+				WatchEventHandler();
+/*				DWORD NumberOfBytesTransferred = 0;
+				BOOL bOK = GetOverlappedResult(m_hDirectory, pOverlapped, &NumberOfBytesTransferred, FALSE);
+				if (bOK != FALSE) WatchEventHandler();
+				else
 				{
-					ZeroMemory(filepath, MAX_PATH * sizeof(WCHAR));
-					StringCbCopyNW(filepath, sizeof(filepath), pfni->FileName, pfni->FileNameLength);
-					switch (pfni->Action)
-					{
-					case FILE_ACTION_ADDED:
-						TRACE(L"Added : %s\n", filepath);
-						break;
-					case FILE_ACTION_REMOVED:
-						TRACE(L"Removed : %s\n", filepath);
-						break;
-					case FILE_ACTION_MODIFIED:
-						TRACE(L"Modified : %s\n", filepath);
-						break;
-					case FILE_ACTION_RENAMED_OLD_NAME:
-						TRACE(L"Renamed_Old : %s\n", filepath);
-						break;
-					case FILE_ACTION_RENAMED_NEW_NAME:
-						TRACE(L"Renamed_New : %s\n", filepath);
-						break;
-					}
-					pfni = (FILE_NOTIFY_INFORMATION*)((PBYTE)pfni + pfni->NextEntryOffset);
-				} while (pfni->NextEntryOffset > 0);
+					DWORD err = GetLastError();
+					if (err == ERROR_IO_INCOMPLETE)	TRACE(_T("ERROR_IO_INCOMPLETE: %d\r\n"), err);
+					else				TRACE(_T("GetOverlappedResult: %d\r\n"), err);
+				}*/
+			}
+			else if (dwWait == (WAIT_OBJECT_0 + 1))
+			{
+				ResetEvent(m_hWatchBreak);
+				break;
 			}
 		}
-		else
-		{
-			DWORD dwLastError = GetLastError();
-			TRACE(L"An error from ReadDirectoryChanges: %d\n", dwLastError);
-			m_bWatching = FALSE;
-		}
+		else break;
 	}
-	free(lpBuffer);
+	if (m_hDirectory != NULL)
+	{
+		CancelIo(m_hDirectory);
+		if (!HasOverlappedIoCompleted(&m_overlap_watch))
+		{
+			SleepEx(5, TRUE);
+		}
+		if (m_overlap_watch.hEvent)
+		{
+			CloseHandle(m_overlap_watch.hEvent);
+			m_overlap_watch.hEvent = NULL;
+			CloseHandle(m_hWatchBreak);
+			m_hWatchBreak = NULL;
+		}
+		CloseHandle(m_hDirectory);
+		m_hDirectory = NULL;
+	}
+	SetWatchingStatus(this, FALSE);
+}
+
+void CFileListCtrl::WatchFolder_Begin()
+{
+	if (IsWatchable() == FALSE) return;
+	if (IsWatching(this)) return;
+	m_pThreadWatch = AfxBeginThread(WatchFolder_Thread, this);
 }
 
 UINT CFileListCtrl::WatchFolder_Thread(void* lParam)
 {
 	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	pList->WatchFolder(!(pList->m_bWatching));
+	pList->WatchFolder_Work();
 	CoUninitialize();
 	return 0;
 }
@@ -918,11 +919,49 @@ COLORREF GetDimColor(COLORREF clr)
 	return RGB(R, G, B);
 }
 
+
+void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory)
+{
+	if (::IsWindow(m_hWnd) == FALSE) return;
+	ClearThread();
+	if (IsLoading(this) == TRUE || IsWatching(this) == TRUE) return;
+	m_strPrevFolder = m_strFolder;
+	m_strFolder = strFolder;
+	m_bUpdatePathHistory = bUpdatePathHistory;
+	//	if (GetParent()!=NULL && ::IsWindow(GetParent()->GetSafeHwnd()))
+	//		GetParent()->PostMessage(WM_COMMAND, CMD_UpdateTabCtrl, (DWORD_PTR)this);
+	m_pThreadLoad = AfxBeginThread(DisplayFolder_Thread, this);
+}
+
+UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
+{
+	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
+	//APP()->UpdateThreadLocale();
+	CFileListCtrl* pList = (CFileListCtrl*)lParam;
+	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
+	ResetEvent(pList->m_hLoadFinished);
+	pList->SetBarMsg(IDSTR(IDS_NOW_LOADING));
+	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
+	if (IsLoading(pList) == TRUE)
+	{   // 중단 없이 정상적으로 끝난 경우 
+		// 일반 폴더인 경우 변경사항 모니터링 쓰레드 시작
+		if (pList->IsWatchable()) pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
+		SetLoadingStatus(pList, FALSE);
+	}
+	else
+	{	//로딩이 중단된 경우
+		TRACE(_T("[[[ break loading ]]]\r\n"));
+	}
+	SetEvent(pList->m_hLoadFinished);
+	CoUninitialize();
+	return 0;
+}
+
 void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 {
-	m_bLoading = TRUE;
+	//m_bLoading = TRUE;
 	//clock_t startTime, endTime;
-	//startTime = clock();
+	// startTime = clock();
 	DeleteAllItems();
 	//m_setPath.clear();
 	COLORREF clrBk = GetBkColor();
@@ -1081,12 +1120,17 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
-	//endTime = clock();
 	UpdateCount();
+	/*
+	endTime = clock();
+	CString strTemp;
+	strTemp.Format(_T("%s %d"), IDSTR(IDS_LOADING_TIME), endTime - startTime);
+	SetBarMsg(strTemp);
+	*/
 	SetBkColor(clrBk);
 	SetTextColor(clrText);
 	RedrawWindow();
-	m_bLoading = FALSE;
+	//m_bLoading = FALSE;
 }
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
@@ -1122,6 +1166,11 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	}*/
 	if (pMsg->message == WM_KEYDOWN)
 	{
+		if (pMsg->wParam == VK_F7)
+		{
+			ClearThread();
+			return TRUE;
+		}
 		if (pMsg->wParam == VK_F5)
 		{
 			DisplayFolder_Start(m_strFolder);
@@ -1168,7 +1217,7 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	{
 		if (pMsg->wParam == CMD_DirWatch && m_strFolder.IsEmpty() == FALSE)
 		{
-			WatchCurrentDirectory(TRUE);
+			WatchFolder_Begin();
 			return TRUE;
 		}
 	}
@@ -1186,37 +1235,6 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 		return TRUE;
 	}
 	return CMFCListCtrl::PreTranslateMessage(pMsg);
-}
-
-void CFileListCtrl::WatchCurrentDirectory(BOOL bOn)
-{
-	if (m_strFolder.IsEmpty()) return;
-	//m_nType == LIST_TYPE_FOLDER
-	CString strDirectory = PathBackSlash(m_strFolder); // "D:" 의 경우 오동작, "D:\"로 하여야 함
-/*	//새로 직접 만든 코드
-	if (bOn == FALSE)
-	{
-		m_bWatching = FALSE;
-	}
-	else
-	{
-		m_bWatching = TRUE;
-		AfxBeginThread(WatchFolder_Thread, this);
-	}
-	return;*/
-	//과거 가져온 코드
-	if (bOn == FALSE)
-	{
-		m_DirWatcher.UnwatchDirectory(strDirectory);
-	}
-	else
-	{
-		DWORD dwNotifyFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME |
-			FILE_NOTIFY_CHANGE_ATTRIBUTES | FILE_NOTIFY_CHANGE_SIZE |
-			FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION;
-		if (m_DirWatcher.IsWatchingDirectory(strDirectory)) m_DirWatcher.UnwatchDirectory(strDirectory);
-		m_DirWatcher.WatchDirectory(strDirectory, dwNotifyFilter, &m_DirHandler, FALSE, m_strFilterInclude, m_strFilterExclude);
-	}
 }
 
 void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
@@ -1274,7 +1292,7 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 				{
 					if (bMove)	pifo->MoveItems(shi_array, pisi);
 					else		pifo->CopyItems(shi_array, pisi);
-					WatchCurrentDirectory(FALSE);
+					WatchFolder_Suspend();
 					SetRedraw(FALSE);
 					::ATL::CComPtr<::MyProgress> pSink; //이름이 바뀌었을때 가져오기
 					pSink.Attach(new MyProgress{});
@@ -1285,7 +1303,7 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 					pifo->Unadvise(dwCookie);
 					pSink.Release();
 					SetRedraw(TRUE);
-					WatchCurrentDirectory(TRUE);
+					WatchFolder_Resume();
 				}
 				if (pisi) pisi->Release();
 			}
@@ -1306,7 +1324,7 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOO
 	CString strNewName = bRelativePath ? strNewPath : Get_Name(strNewPath);
 	if (bRelativePath == FALSE)
 	{
-		if (strOldFolder.CompareNoCase(m_strFolder) != 0) return;
+		if (strOldFolder.CompareNoCase(PathBackSlash(m_strFolder, TRUE)) != 0) return;
 		if (strOldFolder.CompareNoCase(strNewFolder) != 0) return;
 	}
 	int nItem = -1;
@@ -1380,7 +1398,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 	BOOL bSelect = !(strSelectByName.IsEmpty());
 	while (b)
 	{
-		if (bAllowBreak == TRUE && IsLoading(this) == FALSE)
+		if (bAllowBreak == TRUE && IsLoading(this) == FALSE) // && m_bLoading == FALSE)
 		{
 			break;
 		}
@@ -1653,7 +1671,7 @@ void CFileListCtrl::SetBarMsg(CString strMsg)
 BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID)
 {
 	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
-	m_hThreadLoad = CreateEvent(NULL, TRUE, FALSE, NULL);
+	m_hLoadFinished = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (b)
 	{
 		BOOL bd = m_DropTarget.Register(this);
@@ -1813,9 +1831,9 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
 			{
 				pifo->DeleteItems(shi_array);
-				WatchCurrentDirectory(FALSE);
+				WatchFolder_Suspend();
 				pifo->PerformOperations();
-				WatchCurrentDirectory(TRUE);
+				WatchFolder_Resume();
 			}
 			if (pifo) pifo->Release();
 		}
@@ -1891,7 +1909,7 @@ void CFileListCtrl::RenameFiles(CStringArray& aPath, CString strNewPath)
 				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
 			{
 				pifo->RenameItems(shi_array, strNewPath);
-				WatchCurrentDirectory(FALSE);
+				WatchFolder_Suspend();
 				SetRedraw(FALSE);
 				::ATL::CComPtr<::MyProgress> pSink; //이름이 바뀌었을때 가져오기
 				pSink.Attach(new MyProgress{});
@@ -1902,7 +1920,7 @@ void CFileListCtrl::RenameFiles(CStringArray& aPath, CString strNewPath)
 				pifo->Unadvise(dwCookie);
 				pSink.Release();
 				SetRedraw(TRUE);
-				WatchCurrentDirectory(TRUE);
+				WatchFolder_Resume();
 			}
 			if (pifo) pifo->Release();
 		}
@@ -1910,22 +1928,38 @@ void CFileListCtrl::RenameFiles(CStringArray& aPath, CString strNewPath)
 	}
 }
 
-
 void CFileListCtrl::ClearThread()
 {
-	if (m_strFolder.IsEmpty() == FALSE) //&& m_nType == LIST_TYPE_FOLDER)
+	if (IsWatching(this) != FALSE && m_pThreadWatch != NULL)
 	{
-		m_DirWatcher.UnwatchAllDirectories();
-		//if (m_DirWatcher.IsWatchingDirectory(m_strFolder)) m_DirWatcher.UnwatchDirectory(m_strFolder);
+		WatchFolder_End();
 	}
 	if (IsLoading(this) == TRUE)
 	{
 		SetLoadingStatus(this, FALSE);
-		DWORD ret = WaitForSingleObject(m_hThreadLoad, 10000);
-		if (ret != WAIT_OBJECT_0)
+		//로딩 쓰레드의 경우 UI를 건드리므로 단순 WaitSingleObject로 하면 UI 메시지 Deadlock 발생
+		BOOL bLoop = TRUE;
+		MSG msg;
+		while (bLoop)
 		{
-			AfxMessageBox(L"Error:Loading thread is not cleared properly");
+			//UI 메시지를 수동으로 처리하면서 루프를 돈다
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) 
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+			//CWinThread의 Handle로는 정상작동하지 않으므로 별도의 이벤트 Handle(m_hLoadFinished) 필요
+			DWORD dwWait = MsgWaitForMultipleObjects(1, &m_hLoadFinished, FALSE, 3000, QS_ALLEVENTS);
+			if (dwWait == WAIT_OBJECT_0)
+			{
+				bLoop = FALSE; 
+			}
+			else if (dwWait == WAIT_TIMEOUT)
+			{
+				AfxMessageBox(L"Timeout:Loading thread was not cleared properly.");
+			}
 		}
+		m_pThreadLoad = NULL;
 	}
 }
 
@@ -2117,14 +2151,16 @@ void CFileListCtrl::UpdateCount()
 
 void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	if (m_bLoading) return;
+	if (IsLoading(this)) return;
+	//if (!m_bLoading) return;
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	UpdateCount();
 	*pResult = 0;
 }
 
-BOOL CFileListCtrl::IsWatchable()
+BOOL CFileListCtrl::IsWatchable() //모니터링 가능한 일반적인 폴더인 경우 TRUE 반환
 {
+	if (m_strFolder.IsEmpty()) return FALSE;
 	if (::IsWindow(GetSafeHwnd()) == FALSE) return FALSE;
 	if (m_nType != LIST_TYPE_FOLDER) return FALSE;
 	if (GetItemCount() == 1 && GetItemData(0) == ITEM_TYPE_INVALID) return FALSE;

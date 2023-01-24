@@ -38,7 +38,6 @@ public:
 	void AddFileListTab(CString strFolder);
 	void CloseFileListTab(int nTab);
 	void Clear();
-	BOOL BreakThreads();
 	void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
 	int GetIconType();
 	void SetIconType(int nIconType);

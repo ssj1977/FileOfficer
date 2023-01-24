@@ -57,12 +57,6 @@
     <ClInclude Include="CDlgInput.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="DelayedDirectoryChangeHandler.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="DirectoryChanges.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="CDlgCFG_Layout.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -102,12 +96,6 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CDlgInput.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DelayedDirectoryChangeHandler.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="DirectoryChanges.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CDlgCFG_Layout.cpp">

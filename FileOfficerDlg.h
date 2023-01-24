@@ -14,6 +14,7 @@ public:
 	BOOL m_bShow2;
 	//CRect m_rcMain;
 	int m_nDefault_FontSize;
+	void ArrangeTabLayout();
 	void ArrangeCtrl();
 	void InitDefaultListOption(CWnd* pWnd);
 #ifdef AFX_DESIGN_TIME

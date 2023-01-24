@@ -12,6 +12,7 @@ void CMyEditBrowseCtrl::SetBkColor(COLORREF clr)
     m_clrBk = clr;
     m_brush.DeleteObject();
     m_brush.CreateSolidBrush(clr);
+    CMD_UpdateList = 0;
 }
 
 void CMyEditBrowseCtrl::SetTextColor(COLORREF clr)

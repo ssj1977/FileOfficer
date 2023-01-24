@@ -57,27 +57,6 @@ END_MESSAGE_MAP()
 
 
 // CDlgTabView 메시지 처리기
-BOOL CDlgTabView::BreakThreads()
-{
-	BOOL bRet = FALSE;
-	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
-	{
-		if (m_aTabInfo[i].pWnd != NULL)
-		{
-			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;;
-			if (IsWindow(pList->GetSafeHwnd()))
-			{
-				if (CFileListCtrl::IsLoading(pList) == TRUE)
-				{
-					CFileListCtrl::SetLoadingStatus(pList, FALSE);
-					bRet = TRUE;
-				}
-			}
-		}
-	}
-	return bRet;
-}
-
 void CDlgTabView::Clear()
 {
 	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
@@ -213,7 +192,6 @@ BOOL CDlgTabView::OnInitDialog()
 		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath), 1);
 	}
 	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
-	SetCurrentTab(m_nCurrentTab);
 	//ArrangeCtrl(); //SetCurrentTab 안에 포함되어 있음
 	return TRUE;
 }
@@ -232,8 +210,8 @@ void CDlgTabView::CloseFileListTab(int nTab)
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	//if (pList->m_bLoading == TRUE) return;
+	pList->ClearThread();
 	pList->DestroyWindow();
-	CFileListCtrl::DeleteLoadingStatus(pList);
 	delete pList;
 	m_aTabInfo.RemoveAt(nTab);
 	m_tabPath.DeleteItem(nTab);

@@ -83,36 +83,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
-	m_tv1.ShowWindow(SW_SHOW);
-	m_tv2.ShowWindow(SW_SHOW);
-	//Set Default Size
-/*	if ((APP()->m_rcMain.IsRectEmpty()) == FALSE)
-	{
-		CRect rcWindow;
-		CRect rcTemp;
-		GetDesktopWindow()->GetClientRect(rcWindow);
-		rcTemp.IntersectRect(rcWindow, APP()->m_rcMain);
-		if (rcTemp.Width() < 100 || rcTemp.Height() < 100)
-		{
-			APP()->m_rcMain = CRect(0, 0, 400, 300);
-		}
-		MoveWindow(APP()->m_rcMain, TRUE);
-	}*/
-/*	if (APP()->m_rcMain.IsRectEmpty() == FALSE)
-	{
-		APP()->m_rcMain.NormalizeRect();
-		CRect rcVirtualScreen = CRect(
-			GetSystemMetrics(SM_XVIRTUALSCREEN),
-			GetSystemMetrics(SM_YVIRTUALSCREEN),
-			GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CXVIRTUALSCREEN),
-			GetSystemMetrics(SM_XVIRTUALSCREEN) + GetSystemMetrics(SM_CYVIRTUALSCREEN));
-		CRect rcVisible;
-		rcVisible.IntersectRect(APP()->m_rcMain, rcVirtualScreen);
-		if (rcVisible.Width() > 200 && rcVisible.Height() > 100)
-		{
-			MoveWindow(APP()->m_rcMain, TRUE);
-		}
-	}*/
+
+	ArrangeTabLayout();
 	MoveWindow(APP()->m_rcMain, TRUE);
 
 	ArrangeCtrl();
@@ -120,6 +92,29 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }
 	else if (APP()->m_nFocus == 2) { m_tv2.CurrentList()->SetFocus(); return FALSE; }
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.
+}
+
+void CFileOfficerDlg::ArrangeTabLayout()
+{
+	if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE1)
+	{
+		m_tv1.ShowWindow(SW_SHOW);
+		m_tv2.ShowWindow(SW_HIDE);
+		m_tv1.SetCurrentTab(m_tv1.m_nCurrentTab);
+	}
+	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
+	{
+		m_tv1.ShowWindow(SW_HIDE);
+		m_tv2.ShowWindow(SW_SHOW);
+		m_tv2.SetCurrentTab(m_tv2.m_nCurrentTab);
+	}
+	else
+	{
+		m_tv1.ShowWindow(SW_SHOW);
+		m_tv2.ShowWindow(SW_SHOW);
+		m_tv1.SetCurrentTab(m_tv1.m_nCurrentTab);
+		m_tv2.SetCurrentTab(m_tv2.m_nCurrentTab);
+	}
 }
 
 void CFileOfficerDlg::ArrangeCtrl()
@@ -153,8 +148,8 @@ void CFileOfficerDlg::ArrangeCtrl()
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
 	{
-		m_tv1.ShowWindow(SW_SHOW);
-		m_tv2.ShowWindow(SW_SHOW);
+		//m_tv1.ShowWindow(SW_SHOW);
+		//m_tv2.ShowWindow(SW_SHOW);
 		int TABHEIGHT1 = rc.Height();
 		int TABHEIGHT2 = rc.Height();
 		if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
@@ -177,16 +172,16 @@ void CFileOfficerDlg::ArrangeCtrl()
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE1)
 	{
-		m_tv1.ShowWindow(SW_SHOW);
-		m_tv2.ShowWindow(SW_HIDE);
+		//m_tv1.ShowWindow(SW_SHOW);
+		//m_tv2.ShowWindow(SW_HIDE);
 		int TABWIDTH = rc.Width();
 		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH, rc.Height());
 		m_tv2.MoveWindow(0,0,0,0);
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
 	{
-		m_tv1.ShowWindow(SW_HIDE);
-		m_tv2.ShowWindow(SW_SHOW);
+		//m_tv1.ShowWindow(SW_HIDE);
+		//m_tv2.ShowWindow(SW_SHOW);
 		int TABWIDTH = rc.Width();
 		m_tv1.MoveWindow(0, 0, 0, 0);
 		m_tv2.MoveWindow(rc.left, rc.top, TABWIDTH, rc.Height());
@@ -258,7 +253,11 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 
 			if (dlg.DoModal() == IDOK)
 			{
-				APP()->m_nLayoutType = dlg.m_nLayoutType;
+				if (APP()->m_nLayoutType != dlg.m_nLayoutType)
+				{
+					APP()->m_nLayoutType = dlg.m_nLayoutType;
+					ArrangeTabLayout();
+				}
 				APP()->m_nLayoutSizeType = dlg.m_nLayoutSizeType;
 				APP()->m_nLayoutSizePercent = dlg.m_nLayoutSizePercent;
 				APP()->m_nLayoutSizeFixed1 = dlg.m_nLayoutSizeFixed1;
@@ -361,14 +360,6 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
 	APP()->m_aTabViewOption.SetAt(0, m_tv1.m_tvo);
 	APP()->m_aTabViewOption.SetAt(1, m_tv2.m_tvo);
-	if (m_tv1.BreakThreads() == TRUE)
-	{
-		Sleep(500);
-	}
-	if (m_tv2.BreakThreads() == TRUE)
-	{
-		Sleep(500);
-	}
 	m_tv1.Clear();
 	m_tv2.Clear();
 	CDialogEx::OnCancel();
