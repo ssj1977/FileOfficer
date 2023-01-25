@@ -1166,11 +1166,6 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	}*/
 	if (pMsg->message == WM_KEYDOWN)
 	{
-		if (pMsg->wParam == VK_F7)
-		{
-			ClearThread();
-			return TRUE;
-		}
 		if (pMsg->wParam == VK_F5)
 		{
 			DisplayFolder_Start(m_strFolder);
