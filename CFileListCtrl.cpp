@@ -769,8 +769,8 @@ void CFileListCtrl::WatchEventHandler()
 					TRACE(L"Modified : %s\n", szFile);
 					UpdateItemByPath(strPath, strPath, TRUE);
 				}
-			case FILE_ACTION_RENAM
-				break;ED_OLD_NAME:
+				break;
+			case FILE_ACTION_RENAMED_OLD_NAME:
 				TRACE(L"Renamed_Old : %s\n", szFile);
 				strPath = szFile;
 				bRename = TRUE;
