@@ -751,34 +751,56 @@ void CFileListCtrl::WatchEventHandler()
 			switch (pNotify->Action)
 			{
 			case FILE_ACTION_ADDED:
-				//TRACE(L"Added : %s\n", szFile);
+				TRACE(L"Added : %s\n", szFile);
 				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
 				AddItemByPath(strPath, TRUE, FALSE);
 				UpdateMsgBar();
 				break;
 			case FILE_ACTION_REMOVED:
-				//TRACE(L"Removed : %s\n", szFile);
+				TRACE(L"Removed : %s\n", szFile);
 				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
 				DeleteInvalidPath(strPath);
 				UpdateMsgBar();
 				break;
 			case FILE_ACTION_MODIFIED:
-				//TRACE(L"Modified : %s\n", szFile);
 				strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
-				UpdateItemByPath(strPath, strPath);
-				break;
-			case FILE_ACTION_RENAMED_OLD_NAME:
-				//TRACE(L"Renamed_Old : %s\n", szFile);
-				//strPath = PathBackSlash(m_strFolder, TRUE) + szFile;
+				if (PathFileExists(strPath))
+				{
+					TRACE(L"Modified : %s\n", szFile);
+					UpdateItemByPath(strPath, strPath, TRUE);
+				}
+			case FILE_ACTION_RENAM
+				break;ED_OLD_NAME:
+				TRACE(L"Renamed_Old : %s\n", szFile);
 				strPath = szFile;
 				bRename = TRUE;
 				break;
 			case FILE_ACTION_RENAMED_NEW_NAME:
-				//TRACE(L"Renamed_New : %s\n", szFile);
 				if (bRename == TRUE)
 				{
-					//CString strNewPath = PathBackSlash(m_strFolder, TRUE) + szFile;
-					UpdateItemByPath(strPath, szFile, TRUE);
+					TRACE(L"Renamed_New : %s\n", szFile);
+					int nItem = -1;
+					//오피스 파일의 저장과정 등 임시파일의 생성과 삭제가 빨리 진행되면 제대로 처리되지 않는 문제
+					//해당 문제를 해결하기 위해 일단 이름을 먼저 바꾸고 나머지 업데이트
+					CString& strOldName = strPath;
+					CString strNewName = szFile;
+					for (int i = 0; i < GetItemCount(); i++)
+					{
+						CString strTemp = GetItemText(i, 0);
+						if (GetItemText(i, 0).CompareNoCase(strOldName) == 0)
+						{
+							nItem = i;
+							break;
+						}
+					}
+					if (nItem != -1)
+					{
+						SetItemText(nItem, COL_NAME, strNewName); //이름부터
+						if (Get_Ext(strOldName).CompareNoCase(Get_Ext(strNewName)) != 0)
+						{	//확장자가 바뀐 경우에 대한 처리, 이미 목록을 갱신했으므로 강제 업데이트
+							UpdateItem(nItem,_T(""), TRUE);
+						}
+					}
 					bRename = FALSE;
 				}
 				break;
@@ -850,7 +872,7 @@ void CFileListCtrl::WatchFolder_Work() // 별도 쓰레드 방식용
 			if (dwWait == WAIT_OBJECT_0)
 			{
 				WatchEventHandler();
-/*				DWORD NumberOfBytesTransferred = 0;
+				/*DWORD NumberOfBytesTransferred = 0;
 				BOOL bOK = GetOverlappedResult(m_hDirectory, pOverlapped, &NumberOfBytesTransferred, FALSE);
 				if (bOK != FALSE) WatchEventHandler();
 				else
@@ -1309,40 +1331,14 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 	return;
 }
 
-
-void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath)
+void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 {
-	if (m_nType != LIST_TYPE_FOLDER) return;
-	CString strOldFolder = bRelativePath ? PathBackSlash(m_strFolder, TRUE) : Get_Folder(strOldPath, TRUE);
-	CString strNewFolder = bRelativePath ? PathBackSlash(m_strFolder, TRUE) : Get_Folder(strNewPath, TRUE);
-	CString strOldName = bRelativePath ? strOldPath : Get_Name(strOldPath);
-	CString strNewName = bRelativePath ? strNewPath : Get_Name(strNewPath);
-	if (bRelativePath == FALSE)
-	{
-		if (strOldFolder.CompareNoCase(PathBackSlash(m_strFolder, TRUE)) != 0) return;
-		if (strOldFolder.CompareNoCase(strNewFolder) != 0) return;
-	}
-	int nItem = -1;
-	for (int i = 0; i < GetItemCount(); i++)
-	{
-		CString strTemp = GetItemText(i, 0);
-		if (GetItemText(i, 0).CompareNoCase(strOldName) == 0)
-		{
-			nItem = i;
-			break;
-		}
-	}
-	if (nItem == -1) return;
-	if (bRelativePath)
-	{
-		strOldPath = strOldFolder + strOldName;
-		strNewPath = strNewFolder + strNewName;
-	}
+	if (strPath.IsEmpty()) strPath = GetItemFullPath(nItem); //strPath는 전체경로
 	WIN32_FIND_DATA fd;
 	HANDLE hFind;
-	hFind = FindFirstFileExW(strNewPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
 	if (hFind == INVALID_HANDLE_VALUE) return;
-	DWORD itemData = ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0 ) ? ITEM_TYPE_FILE : ITEM_TYPE_DIRECTORY;
+	DWORD itemData = ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) ? ITEM_TYPE_FILE : ITEM_TYPE_DIRECTORY;
 	//시각
 	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
 	CString strTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
@@ -1354,19 +1350,79 @@ void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOO
 		filesize.LowPart = fd.nFileSizeLow;
 		CString strSize = GetFileSizeString(filesize.QuadPart);
 		SetItemText(nItem, COL_SIZE, strSize);
-		if (Get_Ext(strOldName).CompareNoCase(Get_Ext(strNewName)) != 0)
+		if (bUpdateIcon) //시간이 걸릴수 있고 확장자가 바뀌지 않은 경우 필요가 없으므로 옵션 처리
 		{
 			//종류
-			CString strType = GetPathTypeFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY));
+			CString strType = GetPathTypeFromMap(strPath, (itemData == ITEM_TYPE_DIRECTORY));
 			SetItemText(nItem, COL_TYPE, strType);
 			//아이콘
-			int nImage = GetFileImageIndexFromMap(strNewPath, (itemData == ITEM_TYPE_DIRECTORY));
+			int nImage = GetFileImageIndexFromMap(strPath, (itemData == ITEM_TYPE_DIRECTORY));
 			SetItem(nItem, COL_NAME, LVIF_IMAGE, NULL, nImage, 0, 0, 0);
 		}
 	}
-	SetItemText(nItem, COL_NAME, strNewName);
+	SetItemText(nItem, COL_NAME, Get_Name(strPath));
 	SetItemText(nItem, COL_DATE, strTime);
 	FindClose(hFind);
+}
+
+
+void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath, BOOL bForceUpdate)
+{
+	if (m_nType != LIST_TYPE_FOLDER) return;
+	BOOL bSame = FALSE;
+	if (strOldPath.Compare(strNewPath) == 0) //대소문자도 구분하여 같을때
+	{
+		bSame = TRUE;
+	}
+	CString strOldName = bRelativePath ? strOldPath : Get_Name(strOldPath);
+	CString strNewName = bRelativePath ? strNewPath : Get_Name(strNewPath);
+	if (bRelativePath == FALSE)
+	{
+		CString strOldFolder = Get_Folder(strOldPath, TRUE);
+		CString strNewFolder = Get_Folder(strNewPath, TRUE);
+		if (strOldFolder.CompareNoCase(PathBackSlash(m_strFolder, TRUE)) != 0) return;
+		if (strOldFolder.CompareNoCase(strNewFolder) != 0) return;
+	}
+	else
+	{
+		strOldPath = PathBackSlash(m_strFolder, TRUE) + strOldName;
+		strNewPath = PathBackSlash(m_strFolder, TRUE) + strNewName;
+	}
+	int nItem = -1, nItemNew = -1;
+	for (int i = 0; i < GetItemCount(); i++)
+	{
+		CString strTemp = GetItemText(i, 0);
+		if (strTemp.CompareNoCase(strOldName) == 0)
+		{
+			nItem = i;
+			if (bSame) break; //이름 변경이 없다면 그만 찾는다
+		}
+		if (bSame == FALSE) //이름 변경이 있다면
+		{	//새로운 파일명이 이미 목록에 있는 경우 식별
+			if (strTemp.CompareNoCase(strNewName) == 0)
+			{
+				nItemNew = i;
+				if (nItem != -1) break; //양쪽 다 찾은 경우 중단
+			}
+		}
+	}
+	if (nItemNew != -1)
+	{
+		if (nItem == -1)
+		{ //원래 파일명은 없고 새로운 파일명은 있는 경우
+			nItem = nItemNew;
+		}
+		else if (nItemNew != nItem)
+		{ //원래 파일명과 새로운 파일명이 모두 존재하는 경우
+			if (bForceUpdate == FALSE) return; //강제갱신이 아니면 중단
+			nItem = nItemNew; //강제갱신인 경우 새로운 아이템을 갱신
+		}
+		//else  //원래 파일명과 새로운 파일명이 같은 항목인 경우
+	}
+	if (nItem == -1) return;
+	BOOL bUpdateIcon = FALSE;
+	if (Get_Ext(strOldName).CompareNoCase(Get_Ext(strNewName)) != 0) bUpdateIcon = TRUE;
+	UpdateItem(nItem, strNewPath, bUpdateIcon);
 }
 
 
@@ -1526,7 +1582,12 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 			if (PathFileExists(strPath) == FALSE)
 			{
 				DeleteItem(i);
+				TRACE(_T("Delete Succeeded: %s\n"), strPath);
 //				m_setPath.erase(GetItemText(i, COL_NAME));
+			}
+			else
+			{
+				TRACE(_T("Delete Failed: %s\n"), strPath);
 			}
 			return;
 		}

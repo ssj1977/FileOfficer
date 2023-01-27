@@ -18,7 +18,8 @@ public:
 	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
 	int AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
-	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE);
+	void UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon);
+	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE, BOOL bForceUpdate = FALSE);
 	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void InitColumns(int nType);
