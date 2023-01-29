@@ -481,6 +481,7 @@ void CDlgTabView::ArrangeCtrl()
 		m_pTool->Invalidate();
 		rc.left += nToolW;
 		rc.left += 2;
+		TW = TW - (nToolW + 2);
 	}
 	//찾기 기능 
 	if (m_bFindMode == FALSE)
@@ -591,6 +592,10 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 	if (pMsg->message == WM_LBUTTONDOWN)
 	{
 		CurrentList()->SetFocus();
+	}
+	else if (pMsg->message == WM_RBUTTONUP)
+	{
+		((CFileListCtrl*)CurrentList())->ShowContextMenu(NULL);
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }

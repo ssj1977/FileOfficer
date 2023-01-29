@@ -24,7 +24,7 @@ public:
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void InitColumns(int nType);
 	void SetColTexts(int* pStringId, int* pColFmt, int size);
-	void ShowContextMenu(CPoint pt);
+	void ShowContextMenu(CPoint* pPoint); //pPoint가 NULL인 경우 현재 마우스 위치로 처리
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
 	CString GetCurrentItemPath();
@@ -52,7 +52,7 @@ public:
 	BOOL IsWatchable();
 	//	CPathSet m_setPath;
 	BOOL m_bAsc;
-	BOOL m_bMenuOn;
+	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
 	//BOOL m_bLoading; //IsLoading과 중복되지만 OnLvnItemchanged의 빠른 처리를 위해 사용
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	BOOL m_bUseFileIcon;

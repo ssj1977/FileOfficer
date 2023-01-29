@@ -1693,21 +1693,43 @@ void CFileListCtrl::OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CFileListCtrl::ShowContextMenu(CPoint pt)
+void CFileListCtrl::ShowContextMenu(CPoint* pPoint)
 {
-	int nIndex = GetNextItem(-1, LVNI_SELECTED);
-
+	CPoint pt;
 	CStringArray aSelectedPath;
-
-	while (nIndex != -1)
-	{
-		aSelectedPath.Add(GetItemFullPath(nIndex));
-		nIndex = GetNextItem(nIndex, LVNI_SELECTED);
+	if (pPoint == NULL)
+	{	//pPoint가 NULL인 경우 무조건 빈 공간 클릭시 나오는 메뉴로 처리
+		GetCursorPos(&pt);
 	}
-	/*if (aSelectedPath.GetSize() == 0)
-	{
-		aSelectedPath.Add(m_strFolder);
-	}*/
+	else
+	{	//pPoint가 NULL이 아니라면 현재 선택된 항목을 확인하여 처리
+		int nIndex = GetNextItem(-1, LVNI_SELECTED);
+		while (nIndex != -1)
+		{
+			aSelectedPath.Add(GetItemFullPath(nIndex));
+			nIndex = GetNextItem(nIndex, LVNI_SELECTED);
+		}
+		//현재 마우스의 좌표와 pPoint의 좌표를 비교하여 다른 경우
+		//주로 키보드의 메뉴 키를 누른 경우에 해당
+		//이 경우 pPoint 값이 (-1, -1)로 나오므로 좌표를 다시 계산해야 함
+		GetCursorPos(&pt);
+		if (pPoint->x != pt.x || pPoint->y != pt.y)
+		{
+			if (aSelectedPath.GetSize() > 0)
+			{	//선택된 항목이 있는 경우에는 첫 항목의 좌표 이용
+				nIndex = GetNextItem(-1, LVNI_SELECTED);
+				if (nIndex != -1)
+				{
+					CRect rc;
+					GetItemRect(nIndex, rc, LVIR_LABEL);
+					ClientToScreen(rc);
+					pt.SetPoint(rc.left + 5, rc.bottom - 3);    
+				}
+			}
+			//else 선택된 항목이 없는 경우에는 그냥 마우스 좌표 이용
+		}
+	}
+	//현재 마우스의 좌표와 point의 좌표를 비교
 	m_bMenuOn = TRUE;
 	CFileListContextMenu context_menu;
 	context_menu.SetParent(this);
@@ -2023,7 +2045,9 @@ void CFileListCtrl::OnDestroy()
 
 void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
 {
-	if (m_bMenuOn == FALSE)	ShowContextMenu(point);
+	//메뉴가 이미 떠있는지 체크하고 표시	
+	if (m_bMenuOn == TRUE) return;
+	ShowContextMenu(&point);
 }
 
 
