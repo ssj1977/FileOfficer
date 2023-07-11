@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "CMyEditBrowseCtrl.h"
+#include "CWndDragBar.h"
 // CDlgTabView 대화 상자
 
 class CDlgTabView : public CDialogEx
@@ -10,6 +11,8 @@ public:
 	CDlgTabView(CWnd* pParent = nullptr);   // 표준 생성자입니다.
 	virtual ~CDlgTabView();
 	CMyEditBrowseCtrl m_editPath;
+	CWndDragBar m_wndDragTab;
+	int m_nDragBarPos;
 	CTabCtrl m_tabPath;
 	CImageList m_tabImgList;
 	PathTabInfoArray m_aTabInfo;
@@ -72,4 +75,6 @@ public:
 	afx_msg void OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedBtnFind();
 //	afx_msg void OnSetFocus(CWnd* pOldWnd);
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	CMFCShellTreeCtrl m_wndFolderTree;
 };

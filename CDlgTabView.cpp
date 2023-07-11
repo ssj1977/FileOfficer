@@ -32,6 +32,7 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_bFindMode = FALSE;
 	m_nFocusedImage = 1;
 	m_lfHeight = 12;
+	m_nDragBarPos = 200;
 	//m_btnsize_text = 0;
 	//m_btnsize_icon = 0;
 }
@@ -45,6 +46,7 @@ void CDlgTabView::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_EDIT_PATH, m_editPath);
 	DDX_Control(pDX, IDC_TAB_PATH, m_tabPath);
+	DDX_Control(pDX, IDC_TREE_FOLDER, m_wndFolderTree);
 }
 
 
@@ -53,6 +55,7 @@ BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_NOTIFY(TCN_SELCHANGE, IDC_TAB_PATH, &CDlgTabView::OnTcnSelchangeTabPath)
 	ON_BN_CLICKED(IDC_BTN_FIND, &CDlgTabView::OnBnClickedBtnFind)
 //	ON_WM_SETFOCUS()
+ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 
@@ -123,6 +126,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_CFG_LAYOUT: GetParent()->PostMessage(WM_COMMAND, wParam, lParam); break;
 	case IDM_CONFIG: ConfigViewOption(); break;
 	case IDM_TOGGLE_FIND: ToggleFindMode(); break;
+	case IDM_ARRANGECTRL:	ArrangeCtrl();		return TRUE;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
@@ -167,11 +171,14 @@ void CDlgTabView::InitToolBar()
 BOOL CDlgTabView::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	ModifyStyle(0, WS_CLIPCHILDREN);
 	InitFont();
 	m_toolIcon.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	//m_toolText.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	UpdateChildFont();
 	InitToolBar();
+	m_wndDragTab.CreateDragBar(FALSE, this, 35100);
+	m_wndDragTab.m_pBarPos = &(m_nDragBarPos);
 	m_editPath.EnableFolderBrowseButton();
 	m_editPath.CMD_UpdateList = IDM_REFRESH_LIST;
 	m_tabImgList.Create(IDB_TABICON, 16, 2, RGB(255, 0, 255));
@@ -445,13 +452,14 @@ void CDlgTabView::SetTabTitle(int nTab, CString strTitle)
 void CDlgTabView::ArrangeCtrl()
 {
 	if (m_pTool == NULL) return;
+	if (::IsWindow(m_wndDragTab.GetSafeHwnd()) == FALSE) return;
 	CRect rc;
 	GetClientRect(rc);
 	rc.DeflateRect(3, 3, 3, 3);
 	int BH = m_lfHeight * 2;
 	int TW = rc.Width();
 	//Edit Control
-	m_editPath.MoveWindow(rc.left, rc.top, TW, BH);
+	m_editPath.MoveWindow(rc.left, rc.top, TW, BH, TRUE); 	//m_editPath.Invalidate(TRUE);
 	rc.top += BH;
 	rc.top += 2;
 	//Toolbar
@@ -468,8 +476,8 @@ void CDlgTabView::ArrangeCtrl()
 		int nBtnTotalCount = m_pTool->GetToolBarCtrl().GetButtonCount(); //Separator를 쓰지 않아야 함
 		int nRow = (nBtnTotalCount % nBtnLineCount == 0) ? nBtnTotalCount / nBtnLineCount : (nBtnTotalCount / nBtnLineCount) + 1;
 		int nToolH = nBtnH * nRow + nVP;
-		m_pTool->MoveWindow(rc.left, rc.top, TW, nToolH);
- 		m_pTool->Invalidate();
+		m_pTool->MoveWindow(rc.left, rc.top, TW, nToolH, TRUE);
+ 		m_pTool->Invalidate(TRUE);
 		rc.top += nToolH;
 		rc.top += 2;
 	}
@@ -477,8 +485,8 @@ void CDlgTabView::ArrangeCtrl()
 	{
 		//세로로 배치할때는 그냥 한줄로
 		int nToolW = nBtnW + nHP;
-		m_pTool->MoveWindow(rc.left, rc.top, nToolW, rc.Height()); 
-		m_pTool->Invalidate();
+		m_pTool->MoveWindow(rc.left, rc.top, nToolW, rc.Height(), TRUE);
+		m_pTool->Invalidate(TRUE);
 		rc.left += nToolW;
 		rc.left += 2;
 		TW = TW - (nToolW + 2);
@@ -494,22 +502,32 @@ void CDlgTabView::ArrangeCtrl()
 		int nFindBtnW = BH * 3;
 		GetDlgItem(IDC_EDIT_FIND)->ShowWindow(SW_SHOW);
 		GetDlgItem(IDC_BTN_FIND)->ShowWindow(SW_SHOW);
-		GetDlgItem(IDC_EDIT_FIND)->MoveWindow(rc.left, rc.top, TW - nFindBtnW, BH);
-		GetDlgItem(IDC_BTN_FIND)->MoveWindow(rc.left + TW - nFindBtnW + 1, rc.top, nFindBtnW - 1, BH);
+		GetDlgItem(IDC_EDIT_FIND)->MoveWindow(rc.left, rc.top, TW - nFindBtnW, BH, TRUE);
+		//GetDlgItem(IDC_EDIT_FIND)->Invalidate(TRUE);
+		GetDlgItem(IDC_BTN_FIND)->MoveWindow(rc.left + TW - nFindBtnW + 1, rc.top, nFindBtnW - 1, BH, TRUE);
+		//GetDlgItem(IDC_BTN_FIND)->Invalidate(TRUE);
 		rc.top += BH;
 		rc.top += 2;
 	}
 	//Tab Part
-	m_tabPath.MoveWindow(rc.left, rc.top, TW, BH);
+	int nDragBarSize = 4;
+	CRect rcTree = CRect(rc.left, rc.top, rc.left + m_nDragBarPos - 1, rc.bottom - BH);
+	CRect rcBar = CRect(rcTree.right + 1, rc.top, rcTree.right + nDragBarSize, rc.bottom - BH);
+	CRect rcTab = CRect(rcBar.right + 1, rc.top, rc.right, rc.top + BH -1);
+	
+	m_wndFolderTree.MoveWindow(rcTree, TRUE); //m_wndFolderTree.Invalidate(TRUE);
+	m_wndDragTab.MoveWindow(rcBar, TRUE); //m_wndFolderTree.Invalidate(TRUE);
+	m_tabPath.MoveWindow(rcTab, TRUE); //m_wndFolderTree.Invalidate(TRUE);
 	rc.top += BH;
 	CWnd* pWnd = CurrentList();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
-		pWnd->MoveWindow(rc.left, rc.top, TW, rc.Height() - BH);
-		pWnd->Invalidate();
+		CRect rcList = CRect(rcTab.left, rcTab.bottom + 1, rcTab.right, rc.bottom - BH);
+		pWnd->MoveWindow(rcList, TRUE);
+		//pWnd->Invalidate(TRUE);
 	}
-	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH + 2, TW, BH - 2);
-	GetDlgItem(IDC_ST_BAR)->Invalidate();
+	GetDlgItem(IDC_ST_BAR)->MoveWindow(rc.left, rc.bottom - BH + 4, TW, BH - 4, FALSE);
+	GetDlgItem(IDC_ST_BAR)->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN);
 }
 
 static void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH)
@@ -901,4 +919,14 @@ void CDlgTabView::UpdateListItemByClipboard()
 			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
 		}
 	}
+}
+
+
+BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
+{
+	/*CRect rc;
+	GetClientRect(rc);
+	pDC->FillSolidRect(rc, m_tvo.clrBk);
+	return TRUE;*/
+	return CDialogEx::OnEraseBkgnd(pDC);
 }

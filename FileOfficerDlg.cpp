@@ -27,6 +27,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
 	m_nDefault_FontSize = -1;
+	m_nDragBarPos = 500;
 }
 
 void CFileOfficerDlg::DoDataExchange(CDataExchange* pDX)
@@ -39,6 +40,7 @@ BEGIN_MESSAGE_MAP(CFileOfficerDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_WM_SIZE()
 	ON_WM_CLIPBOARDUPDATE()
+	ON_WM_ERASEBKGND()
 END_MESSAGE_MAP()
 
 // CFileOfficerDlg 메시지 처리기
@@ -64,7 +66,11 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	CDialogEx::OnInitDialog();
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
+	ModifyStyle(0, WS_CLIPCHILDREN);
 	//Create Temporary List for Default Option Values
+	m_wndDragMain.CreateDragBar(TRUE, this, 35000);
+	m_wndDragMain.m_pBarPos = &(m_nDragBarPos);
+
 	CFileListCtrl list;
 	if (list.Create(WS_CHILD | LVS_REPORT | LVS_SHAREIMAGELISTS, CRect(0, 0, 0, 0), this, 0) == TRUE)
 	{
@@ -96,20 +102,27 @@ BOOL CFileOfficerDlg::OnInitDialog()
 
 void CFileOfficerDlg::ArrangeTabLayout()
 {
+	if (::IsWindow(m_wndDragMain.m_hWnd) == FALSE) return;
+	if (::IsWindow(m_tv1.m_hWnd) == FALSE) return;
+	if (::IsWindow(m_tv2.m_hWnd) == FALSE) return;
+
 	if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE1)
 	{
+		m_wndDragMain.ShowWindow(SW_HIDE);
 		m_tv1.ShowWindow(SW_SHOW);
 		m_tv2.ShowWindow(SW_HIDE);
 		m_tv1.SetCurrentTab(m_tv1.m_nCurrentTab);
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
 	{
+		m_wndDragMain.ShowWindow(SW_HIDE);
 		m_tv1.ShowWindow(SW_HIDE);
 		m_tv2.ShowWindow(SW_SHOW);
 		m_tv2.SetCurrentTab(m_tv2.m_nCurrentTab);
 	}
 	else
 	{
+		m_wndDragMain.ShowWindow(SW_SHOW);
 		m_tv1.ShowWindow(SW_SHOW);
 		m_tv2.ShowWindow(SW_SHOW);
 		m_tv1.SetCurrentTab(m_tv1.m_nCurrentTab);
@@ -119,73 +132,44 @@ void CFileOfficerDlg::ArrangeTabLayout()
 
 void CFileOfficerDlg::ArrangeCtrl()
 {
+	if (IsIconic() == TRUE) return;
 	CRect rc; 
 	GetClientRect(rc);
 	int BW = 0; 
+	int nBarSize = 6;
 	if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
 	{
-		m_tv1.ShowWindow(SW_SHOW);
-		m_tv2.ShowWindow(SW_SHOW);
-		int TABWIDTH1 = rc.Width();
-		int TABWIDTH2 = rc.Width();
-		if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
-		{
-			TABWIDTH1 = int((float)TABWIDTH1 * ((float)(APP()->m_nLayoutSizePercent) / 100.0F));
-			TABWIDTH2 = TABWIDTH2 -TABWIDTH1;
-		}
-		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_1)
-		{
-			TABWIDTH1 = APP()->m_nLayoutSizeFixed1;
-			TABWIDTH2 = TABWIDTH2 - TABWIDTH1;
-		}
-		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_2)
-		{
-			TABWIDTH2 = APP()->m_nLayoutSizeFixed2;
-			TABWIDTH1 = TABWIDTH1 - TABWIDTH2;
-		}
-		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH1 - BW, rc.Height());
-		m_tv2.MoveWindow(rc.right - TABWIDTH2 + BW, rc.top, TABWIDTH2 - BW, rc.Height());
+		CRect rcTab1 = CRect(0, 0, m_nDragBarPos - 1, rc.bottom);
+		CRect rcTab2 = CRect(m_nDragBarPos + nBarSize, 0, rc.right, rc.bottom);
+		m_wndDragMain.m_bVertical = FALSE;
+		m_tv1.MoveWindow(rcTab1, FALSE);
+		m_wndDragMain.MoveWindow(rcTab1.right + 1, rc.top, nBarSize, rc.Height(), FALSE);
+		m_tv2.MoveWindow(rcTab2, FALSE);
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
 	{
-		//m_tv1.ShowWindow(SW_SHOW);
-		//m_tv2.ShowWindow(SW_SHOW);
-		int TABHEIGHT1 = rc.Height();
-		int TABHEIGHT2 = rc.Height();
-		if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
-		{
-			TABHEIGHT1 = int((float)TABHEIGHT1 * ((float)(APP()->m_nLayoutSizePercent) / 100.0F));
-			TABHEIGHT2 = TABHEIGHT2 - TABHEIGHT1;
-		}
-		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_1)
-		{
-			TABHEIGHT1 = APP()->m_nLayoutSizeFixed1;
-			TABHEIGHT2 = TABHEIGHT2 - TABHEIGHT1;
-		}
-		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED_2)
-		{
-			TABHEIGHT2 = APP()->m_nLayoutSizeFixed2;
-			TABHEIGHT1 = TABHEIGHT1 - TABHEIGHT2;
-		}
-		m_tv1.MoveWindow(rc.left, rc.top, rc.Width(), TABHEIGHT1 - BW);
-		m_tv2.MoveWindow(rc.left, rc.bottom - TABHEIGHT2 + BW, rc.Width(), TABHEIGHT2 - BW);
+		if (m_nDragBarPos < rc.top) m_nDragBarPos = rc.top + 100;
+		if (m_nDragBarPos > rc.bottom) m_nDragBarPos = rc.bottom - 100;
+		CRect rcTab1 = CRect(0, 0, rc.right, m_nDragBarPos - 1);
+		CRect rcTab2 = CRect(0, m_nDragBarPos + nBarSize, rc.right, rc.bottom);
+		m_wndDragMain.m_bVertical = TRUE;
+		m_tv1.MoveWindow(rcTab1, FALSE);
+		m_wndDragMain.MoveWindow(rc.left, rcTab1.bottom, rc.Width(), nBarSize, FALSE);
+		m_tv2.MoveWindow(rcTab2, FALSE);
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE1)
 	{
-		//m_tv1.ShowWindow(SW_SHOW);
-		//m_tv2.ShowWindow(SW_HIDE);
-		int TABWIDTH = rc.Width();
-		m_tv1.MoveWindow(rc.left, rc.top, TABWIDTH, rc.Height());
-		m_tv2.MoveWindow(0,0,0,0);
+		m_wndDragMain.MoveWindow(0, 0, 0, 0, FALSE);
+		m_tv1.MoveWindow(rc, FALSE);
+		m_tv2.MoveWindow(0, 0, 0, 0, FALSE);
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
 	{
-		//m_tv1.ShowWindow(SW_HIDE);
-		//m_tv2.ShowWindow(SW_SHOW);
-		int TABWIDTH = rc.Width();
-		m_tv1.MoveWindow(0, 0, 0, 0);
-		m_tv2.MoveWindow(rc.left, rc.top, TABWIDTH, rc.Height());
+		m_wndDragMain.MoveWindow(0, 0, 0, 0, FALSE);
+		m_tv1.MoveWindow(0, 0, 0, 0, FALSE);
+		m_tv2.MoveWindow(rc, FALSE);
 	}
+	RedrawWindow(NULL, NULL, RDW_ALLCHILDREN | RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE);
 }
 
 // 대화 상자에 최소화 단추를 추가할 경우 아이콘을 그리려면
@@ -230,6 +214,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 {
 	switch (wParam)
 	{
+	case IDM_ARRANGECTRL:	ArrangeCtrl();		return TRUE;
 /*	case IDM_OPEN_PARENT:
 	case IDM_REFRESH_LIST:
 	case IDM_ADD_LIST:
@@ -379,4 +364,10 @@ void CFileOfficerDlg::OnClipboardUpdate()
 //	m_tv2.UpdateListItemByClipboard();
 
 	CDialogEx::OnClipboardUpdate();
+}
+
+
+BOOL CFileOfficerDlg::OnEraseBkgnd(CDC* pDC)
+{
+	return CDialogEx::OnEraseBkgnd(pDC);
 }

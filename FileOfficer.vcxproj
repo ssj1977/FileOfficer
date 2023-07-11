@@ -204,6 +204,8 @@
     <ClInclude Include="CFileListCtrl.h" />
     <ClInclude Include="CMyDropTarget.h" />
     <ClInclude Include="CMyEditBrowseCtrl.h" />
+    <ClInclude Include="CWndDragBar.h" />
+    <ClInclude Include="CWndDragPane.h" />
     <ClInclude Include="EtcFunctions.h" />
     <ClInclude Include="FileOfficer.h" />
     <ClInclude Include="FileOfficerDlg.h" />
@@ -222,6 +224,8 @@
     <ClCompile Include="CFileListCtrl.cpp" />
     <ClCompile Include="CMyDropTarget.cpp" />
     <ClCompile Include="CMyEditBrowseCtrl.cpp" />
+    <ClCompile Include="CWndDragBar.cpp" />
+    <ClCompile Include="CWndDragPane.cpp" />
     <ClCompile Include="EtcFunctions.cpp" />
     <ClCompile Include="FileOfficer.cpp" />
     <ClCompile Include="FileOfficerDlg.cpp" />

@@ -3,11 +3,15 @@
 #pragma once
 
 #include "CDlgTabView.h"
+#include "CWndDragBar.h"
+
 
 class CFileOfficerDlg : public CDialogEx
 {
 public:
 	CFileOfficerDlg(CWnd* pParent = nullptr);
+	CWndDragBar m_wndDragMain;
+	int m_nDragBarPos; // 배치 방향에 따라 높이 또는 폭
 	CDlgTabView m_tv1;
 	CDlgTabView m_tv2;
 	CWnd* m_pWndFocus;
@@ -35,4 +39,5 @@ public:
 	virtual void OnCancel();
 	virtual void OnOK();
 	afx_msg void OnClipboardUpdate();
+	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 };

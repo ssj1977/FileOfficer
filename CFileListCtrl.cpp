@@ -666,8 +666,8 @@ void CFileListCtrl::ResizeColumns()
 
 CString GetFileSizeString(ULONGLONG nSize)
 {
-	TCHAR pBuf[100];
-	ZeroMemory(pBuf, 100);
+	TCHAR pBuf[135];
+	ZeroMemory(pBuf, 135);
 	CString strSize, strReturn;
 	strSize.Format(_T("%I64u"), nSize);
 	int nLen = strSize.GetLength();
@@ -694,10 +694,9 @@ CString GetFileSizeString(ULONGLONG nSize)
 	return strReturn;
 }
 
-CString GetDriveSizeString(ULARGE_INTEGER size)
+CString GetFileSizeString2(ULONGLONG nSize)
 {
 	CString str;
-	ULONGLONG nSize = size.QuadPart;
 	if (nSize > 1073741824)  // 2^30 = GB
 	{
 		nSize = nSize / 1073741824;
@@ -719,6 +718,14 @@ CString GetDriveSizeString(ULARGE_INTEGER size)
 	}
 	return str;
 }
+
+CString GetDriveSizeString(ULARGE_INTEGER size)
+{
+	ULONGLONG nSize = size.QuadPart;
+	return GetFileSizeString2(nSize);
+}
+
+
 
 ULONGLONG Str2Size(CString str)
 {
