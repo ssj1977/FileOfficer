@@ -48,6 +48,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_hIcon = NULL;
 	m_bUseFileIcon = TRUE;
 	m_bUseFileType = TRUE;
+	m_nListType = 1;
 }
 
 
@@ -214,6 +215,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab1_Path=%s\r\n"), (LPCTSTR)m_aTab1[i].strPath);	strData += strLine;
+		strLine.Format(_T("Tab1_CtrlType=%d\r\n"), m_aTab1[i].nCtrlType); strData += strLine;
 		strLine.Format(_T("Tab1_SortCol=%d\r\n"), m_aTab1[i].iSortColumn);	strData += strLine;
 		strLine.Format(_T("Tab1_SortAscend=%d\r\n"), m_aTab1[i].bSortAscend); strData += strLine;
 		strLine.Format(_T("Tab1_ColWidths=%s\r\n"), UIntArray2String(m_aTab1[i].aColWidth)); strData += strLine;
@@ -222,6 +224,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	for (int i = 0; i < m_aTab2.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab2_Path=%s\r\n"), (LPCTSTR)m_aTab2[i].strPath);	strData += strLine;
+		strLine.Format(_T("Tab2_CtrlType=%d\r\n"), m_aTab2[i].nCtrlType); strData += strLine;
 		strLine.Format(_T("Tab2_SortCol=%d\r\n"), m_aTab2[i].iSortColumn);	strData += strLine;
 		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
 		strLine.Format(_T("Tab2_ColWidths=%s\r\n"), UIntArray2String(m_aTab2[i].aColWidth)); strData += strLine;
@@ -258,10 +261,12 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("ToolBarButtonSize")) == 0) m_nToolBarButtonSize = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ToolBarVertical")) == 0) m_bToolBarVertical = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0)	nTabCount1 = (int)m_aTab1.Add(PathTabInfo(PathBackSlash(str2, FALSE), 0, TRUE));
+		else if (str1.CompareNoCase(_T("Tab1_CtrlType")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].nCtrlType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_ColWidths")) == 0 && nTabCount1 != -1) String2UIntArray(str2, m_aTab1[nTabCount1].aColWidth);
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount2 = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
+		else if (str1.CompareNoCase(_T("Tab2_CtrlType")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].nCtrlType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);

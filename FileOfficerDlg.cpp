@@ -360,9 +360,6 @@ void CFileOfficerDlg::OnOK()
 
 void CFileOfficerDlg::OnClipboardUpdate()
 {
-//	m_tv1.UpdateListItemByClipboard();
-//	m_tv2.UpdateListItemByClipboard();
-
 	CDialogEx::OnClipboardUpdate();
 }
 

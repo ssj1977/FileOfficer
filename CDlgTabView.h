@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "CMyEditBrowseCtrl.h"
 #include "CWndDragBar.h"
+#include "CMyShellTreeCtrl.h"
+#include "CMyShellListCtrl.h"
 // CDlgTabView 대화 상자
 
 class CDlgTabView : public CDialogEx
@@ -12,6 +14,7 @@ public:
 	virtual ~CDlgTabView();
 	CMyEditBrowseCtrl m_editPath;
 	CWndDragBar m_wndDragTab;
+	CMyShellListCtrl m_listShell;
 	int m_nDragBarPos;
 	CTabCtrl m_tabPath;
 	CImageList m_tabImgList;
@@ -32,16 +35,17 @@ public:
 	void ResizeToolBar(int width, int height);
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
-	void UpdateTabByWnd(CWnd* pWnd);
+	int CurrentListType();
+	void UpdatePathEditor(CWnd* pWnd);
 	void UpdateSortInfo(CWnd* pWnd);
 	void UpdateTabByPathEdit();
-	void UpdateListItemByClipboard();
 	void SetTabTitle(int nTab, CString strTitle);
 	void SetSelected(BOOL bSelected);
 	void AddFileListTab(CString strFolder);
 	void CloseFileListTab(int nTab);
 	void Clear();
-	void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
+	void SetCtrlColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
+	//void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
 	int GetIconType();
 	void SetIconType(int nIconType);
 	COLORREF GetMyClrText();
@@ -76,5 +80,5 @@ public:
 	afx_msg void OnBnClickedBtnFind();
 //	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	CMFCShellTreeCtrl m_wndFolderTree;
+	CMyShellTreeCtrl m_wndFolderTree;
 };

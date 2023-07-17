@@ -62,7 +62,7 @@ public:
 	int m_nIconType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;
-	int CMD_UpdateTabCtrl;
+	int CMD_UpdatePathEditor;
 	int CMD_UpdateBar;
 	int CMD_OpenNewTab;
 	CMyDropTarget m_DropTarget;
@@ -126,6 +126,7 @@ public:
 	virtual COLORREF OnGetCellTextColor(int nRow, int nColumn);
 	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
 	afx_msg void OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult);
+	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 };
 
 class MyProgress : public IFileOperationProgressSink

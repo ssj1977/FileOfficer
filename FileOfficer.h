@@ -15,9 +15,12 @@
 #endif
 
 #ifndef PathTabInfo
+#define TABTYPE_CUSTOM_LIST 0
+#define TABTYPE_SHELL_LIST 1
 struct PathTabInfo
 {
 	CWnd* pWnd;
+	int nCtrlType;
 	CString strPath;
 	int iSortColumn;
 	BOOL bSortAscend;
@@ -27,12 +30,14 @@ struct PathTabInfo
 		pWnd = NULL;
 		iSortColumn = 0;
 		bSortAscend = TRUE;
+		nCtrlType = TABTYPE_CUSTOM_LIST;
 	};
 	PathTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
 	{
 		this->strPath = strPath;
 		this->iSortColumn = iSortColumn;
 		this->bSortAscend = bSortAscend;
+		nCtrlType = TABTYPE_CUSTOM_LIST;
 		pWnd = NULL;
 	};
 	void UpdateColWidth()
@@ -52,6 +57,7 @@ struct PathTabInfo
 		this->iSortColumn = pti.iSortColumn;
 		this->bSortAscend = pti.bSortAscend;
 		this->pWnd = pti.pWnd;
+		this->nCtrlType = pti.nCtrlType;
 		this->aColWidth.RemoveAll();
 		this->aColWidth.Copy(pti.aColWidth);
 	};
@@ -135,6 +141,7 @@ public:
 	CFont m_fontDefault;
 	TabViewOption m_DefaultViewOption;
 	TabViewOptionArray m_aTabViewOption;
+	int m_nListType; // ShellListCtrl을 쓸지 옵션
 	 
 	HICON m_hIcon;
 	CRect m_rcMain;
