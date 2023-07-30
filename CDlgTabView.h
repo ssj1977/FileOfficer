@@ -81,4 +81,5 @@ public:
 //	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	CMyShellTreeCtrl m_wndFolderTree;
+	afx_msg void OnDropFiles(HDROP hDropInfo);
 };

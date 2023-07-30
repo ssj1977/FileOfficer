@@ -59,6 +59,7 @@ BEGIN_MESSAGE_MAP(CDlgTabView, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_FIND, &CDlgTabView::OnBnClickedBtnFind)
 //	ON_WM_SETFOCUS()
 ON_WM_ERASEBKGND()
+ON_WM_DROPFILES()
 END_MESSAGE_MAP()
 
 
@@ -82,6 +83,11 @@ void CDlgTabView::Clear()
 			else
 			{
 				CMyShellListCtrl* pList = (CMyShellListCtrl*)m_aTabInfo[i].pWnd;
+				if (IsWindow(pList->GetSafeHwnd()))
+				{
+					pList->ClearThread();
+					pList->DestroyWindow();
+				}
 				delete pList;
 			}
 
@@ -239,6 +245,7 @@ BOOL CDlgTabView::OnInitDialog()
 	}
 	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
 	m_wndFolderTree.CMD_TreeSelChanged = IDM_TREE_SELCHANGED;
+	DragAcceptFiles(TRUE);
 	//ArrangeCtrl(); //SetCurrentTab 안에 포함되어 있음
 	return TRUE;
 }
@@ -266,6 +273,8 @@ void CDlgTabView::CloseFileListTab(int nTab)
 	else
 	{
 		CMyShellListCtrl* pList = (CMyShellListCtrl*)pti.pWnd;
+		pList->ClearThread();
+		pList->DestroyWindow();
 		delete pList;
 	}
 	m_aTabInfo.RemoveAt(nTab);
@@ -349,6 +358,8 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		else
 		{
 			CMyShellListCtrl* pMyList = (CMyShellListCtrl*)pList;
+			pMyList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
+
 			m_wndFolderTree.SelectPath(pti.strPath);
 			m_wndFolderTree.SetRelatedList(pMyList);
 			pMyList->Refresh();
@@ -534,9 +545,9 @@ void CDlgTabView::UpdateTabByPathEdit()
 	}
 	else
 	{
-		CMFCShellListCtrl* pList = (CMFCShellListCtrl*)CurrentList();
+		CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
 		m_aTabInfo[m_nCurrentTab].strPath = strPath;
-		pList->DisplayFolder(strPath);
+		pList->LoadFolder(strPath);
 	}
 }
 
@@ -1028,4 +1039,22 @@ BOOL CDlgTabView::OnEraseBkgnd(CDC* pDC)
 	pDC->FillSolidRect(rc, m_tvo.clrBk);
 	return TRUE;*/
 	return CDialogEx::OnEraseBkgnd(pDC);
+}
+
+
+void CDlgTabView::OnDropFiles(HDROP hDropInfo)
+{
+	CWnd* pList = CurrentList();
+	pList->SendMessage(WM_DROPFILES, (WPARAM)hDropInfo, 0);
+	/*if (CurrentListType() == TABTYPE_CUSTOM_LIST)
+	{
+		CurrentList()->SendMessage(WM_COMMAND, wParam, lParam);
+	}
+	else
+	{
+		CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
+		pList->DisplayParentFolder();
+	}*/
+
+	CDialogEx::OnDropFiles(hDropInfo);
 }

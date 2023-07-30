@@ -89,12 +89,13 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
-
 	ArrangeTabLayout();
 	MoveWindow(APP()->m_rcMain, TRUE);
-
 	ArrangeCtrl();
+
 	AddClipboardFormatListener(GetSafeHwnd());
+	DragAcceptFiles(TRUE);
+
 	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }
 	else if (APP()->m_nFocus == 2) { m_tv2.CurrentList()->SetFocus(); return FALSE; }
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.

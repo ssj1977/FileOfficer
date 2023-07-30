@@ -1751,7 +1751,7 @@ BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UI
 	m_hLoadFinished = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (b)
 	{
-		BOOL bd = m_DropTarget.Register(this);
+		BOOL b = m_DropTarget.Register(this);
 	}
 	return b;
 }
@@ -1923,8 +1923,8 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	while (nItem != -1)
 	{
 		bDeleted = DeleteInvalidItem(nItem); //실제로 지워졌는지 확인
-		if (bDeleted == TRUE) nItem -= 1;
-		nItem = GetNextItem(nItem, LVNI_SELECTED);
+		if (bDeleted == FALSE) SetItemState(nItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
+		nItem = GetNextItem(-1, LVNI_SELECTED);
 	}
 	UpdateMsgBar();
 	this->SetRedraw(TRUE);

@@ -1,9 +1,11 @@
 #pragma once
 #include <afxole.h>
-class CMyDropTarget :
-    public COleDropTarget
+class CMyDropTarget : public COleDropTarget
 {
 public:
+    CMyDropTarget();
+    ~CMyDropTarget();
+    BOOL m_bMFCShell;
     virtual DROPEFFECT OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
     virtual DROPEFFECT OnDragOver(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
     virtual void OnDragLeave(CWnd* pWnd);

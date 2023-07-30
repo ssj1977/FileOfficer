@@ -49,7 +49,6 @@ public:
 	BOOL IsFirstPath();
 	BOOL IsLastPath();
 	BOOL IsRootPath();
-	BOOL IsWatchable();
 	//	CPathSet m_setPath;
 	BOOL m_bAsc;
 	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
@@ -86,6 +85,7 @@ public:
 	static void DeleteLoadingStatus(CFileListCtrl* pList);
 
 	// 변경사항 모니터링용 쓰레드 처리
+	BOOL IsWatchable();
 	void WatchFolder_Begin();
 	void WatchFolder_Work();
 	void WatchFolder_End();
@@ -101,8 +101,8 @@ public:
 	OVERLAPPED	m_overlap_watch; //비동기 IO를 위한 OVERLAPPED개체 상속 구조체, Callback을 위한 객체 포인터 포함
 	HANDLE		m_hDirectory;	//디렉토리 변경사항 모니터링을 위한 I/O Handle
 	LPVOID		m_pWatchBuffer; // ReadDirectoryChangesW 를 위한 버퍼
-
 	HANDLE m_hLoadFinished; //디렉토리 모니터링을 중단할때 필요한 이벤트
+
 	void ClearThread(); // 현재 작동중인 쓰레드들을 중단
 	void UpdateMsgBar();
 	void SortCurrentList();

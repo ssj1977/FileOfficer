@@ -1,7 +1,18 @@
 #include "pch.h"
 #include "CMyDropTarget.h"
 #include "CFileListCtrl.h"
+#include "CMyShellListCtrl.h"
 
+
+CMyDropTarget::CMyDropTarget()
+{
+	m_bMFCShell = FALSE;
+}
+
+CMyDropTarget::~CMyDropTarget()
+{
+
+}
 
 DROPEFFECT CMyDropTarget::OnDragEnter(CWnd* pWnd, COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
 {
@@ -32,7 +43,6 @@ void CMyDropTarget::OnDragLeave(CWnd* pWnd)
 
 BOOL CMyDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT dropEffect, CPoint point)
 {
-	CFileListCtrl* pList = (CFileListCtrl*)pWnd;
 	FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
 	HGLOBAL hg = pDataObject->GetGlobalData(CF_HDROP, &etc);
 	if (hg == NULL) return FALSE;
@@ -44,11 +54,13 @@ BOOL CMyDropTarget::OnDrop(CWnd* pWnd, COleDataObject* pDataObject, DROPEFFECT d
 	}
 	if ((dropEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
 	{
-		pList->ProcessDropFiles(hdrop, TRUE);
+		if (m_bMFCShell) ((CMyShellListCtrl*)(pWnd))->ProcessDropFiles(hdrop, TRUE);
+		else			 ((CFileListCtrl*)(pWnd))->ProcessDropFiles(hdrop, TRUE);
 	}
 	else if ((dropEffect & DROPEFFECT_COPY) == DROPEFFECT_COPY)
 	{
-		pList->ProcessDropFiles(hdrop, FALSE);
+		if (m_bMFCShell) ((CMyShellListCtrl*)(pWnd))->ProcessDropFiles(hdrop, FALSE);
+		else			 ((CFileListCtrl*)(pWnd))->ProcessDropFiles(hdrop, FALSE);
 	}
 	GlobalUnlock(hg);
 	return TRUE;
