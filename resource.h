@@ -132,7 +132,6 @@
 #define IDM_ADD_LIST                    32774
 #define IDM_CLOSE_LIST                  32775
 #define IDM_CONFIG                      32776
-#define IDM_SET_PATH                    32777
 #define IDM_REFRESH_LIST                32779
 #define IDM_TOGGLE_VIEW                 32780
 #define IDM_CFG_LAYOUT                  32780

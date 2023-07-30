@@ -12,7 +12,7 @@
 #include "CDlgCFG_Layout.h"
 
 #define IDC_LIST_FILE 50000
-#define IDM_UPDATE_PATHEDITOR 55000
+#define IDM_UPDATE_FROMLIST 55000
 #define IDM_UPDATE_SORTINFO 55001
 #define IDM_UPDATE_BAR 55002
 #define IDM_OPEN_NEWTAB 55003
@@ -110,15 +110,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_NEXT:
 	case IDM_PLAY_ITEM:
 	case IDM_OPEN_PARENT:
-		if (CurrentListType() == TABTYPE_CUSTOM_LIST)
-		{
-			CurrentList()->SendMessage(WM_COMMAND, wParam, lParam);
-		}
-		else
-		{
-			CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
-			pList->DisplayParentFolder();
-		}
+		CurrentList()->SendMessage(WM_COMMAND, wParam, lParam);
 		break;
 	case IDM_OPEN_NEWTAB: 
 		if (lParam && ::IsWindow(((CWnd*)lParam)->GetSafeHwnd()) )
@@ -158,16 +150,20 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_TREE_SELCHANGED:
 		if (CurrentListType() == TABTYPE_SHELL_LIST)
 		{
-			CString strPath;
-			m_wndFolderTree.GetItemPath(strPath, (HTREEITEM)lParam);
-			m_editPath.SetWindowTextW(strPath);
-			UpdateTabByPathEdit();
+			CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
+			CString strPath; m_wndFolderTree.GetItemPath(strPath, (HTREEITEM)lParam);
+			CString strCurrentFolder;  pList->GetCurrentFolder(strCurrentFolder);
+			if (strPath.CompareNoCase(strCurrentFolder) != 0)
+			{
+				pList->LoadFolder(strPath);
+			}
 		}
 		break;
-	case IDM_UPDATE_PATHEDITOR: UpdatePathEditor((CWnd*)lParam); break; // lParam validation은 함수 안에서 처리
+	case IDM_UPDATE_FROMLIST: 
+		if (lParam != NULL && (CWnd*)lParam == CurrentList()) UpdateFromCurrentList();
+		break; 
 	case IDM_UPDATE_SORTINFO: UpdateSortInfo((CWnd*)lParam); break;
 	case IDM_REFRESH_LIST: UpdateTabByPathEdit(); break;
-	case IDM_SET_PATH: UpdateTabByPathEdit(); break;
 	case IDM_ADD_LIST: AddFileListTab(APP()->m_strPath_Default); break;
 	case IDM_CLOSE_LIST: CloseFileListTab(m_nCurrentTab); break;
 	case IDM_CONFIG: ConfigViewOption(); break;
@@ -325,12 +321,25 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	CRect rc = CRect(0, 0, 40, 30);
 	if (pList == NULL)
 	{
-		if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)	pList = new CFileListCtrl;
-		else										pList = new CMyShellListCtrl;
-		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
+		if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
 		{
-			delete pList;
-			return;
+			CFileListCtrl* pMyList = new CFileListCtrl;
+			if (pMyList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
+			{
+				delete pMyList;
+				return;
+			}
+			pList = pMyList;
+		}
+		else
+		{
+			CMyShellListCtrl* pMyList = new CMyShellListCtrl;
+			if (pMyList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
+			{
+				delete pMyList;
+				return;
+			}
+			pList = pMyList;
 		}
 		pList->SetFont(&m_font);
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
@@ -345,7 +354,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
 			pMyList->m_nIconType = GetIconType();
 			pMyList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
-			pMyList->CMD_UpdatePathEditor = IDM_UPDATE_PATHEDITOR;
+			pMyList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
 			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
 			pMyList->CMD_UpdateBar = IDM_UPDATE_BAR;
 			pMyList->m_nSortCol = pti.iSortColumn;
@@ -359,10 +368,14 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		{
 			CMyShellListCtrl* pMyList = (CMyShellListCtrl*)pList;
 			pMyList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
-
-			m_wndFolderTree.SelectPath(pti.strPath);
-			m_wndFolderTree.SetRelatedList(pMyList);
-			pMyList->Refresh();
+			pMyList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
+			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
+			//pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
+			//pMyList->m_nSortCol = pti.iSortColumn;
+			//pMyList->m_bAsc = pti.bSortAscend;
+			//pMyList->m_aColWidth.Copy(pti.aColWidth);
+			//m_wndFolderTree.SetRelatedList(pMyList);
+			pMyList->LoadFolder(pti.strPath, TRUE);
 		}
 	}
 	CMFCListCtrl* pListOld = (CMFCListCtrl*)CurrentList();
@@ -381,10 +394,11 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	else
 	{
 		CMyShellListCtrl* pMyList = (CMyShellListCtrl*)pList;
-		m_wndFolderTree.SelectPath(pti.strPath);
-		m_wndFolderTree.SetRelatedList(pMyList);
+		//m_wndFolderTree.SetRelatedList(NULL);
+		//m_wndFolderTree.SelectPath(pti.strPath);
+		//m_wndFolderTree.SetRelatedList(pMyList);
 	}
-
+	UpdateFromCurrentList();
 	UpdateToolBar();
 	ArrangeCtrl();
 }
@@ -401,8 +415,9 @@ int CDlgTabView::CurrentListType()
 	return -1;
 }
 
-void CDlgTabView::UpdatePathEditor(CWnd* pWnd)
+void CDlgTabView::UpdateFromCurrentList()
 {
+	CWnd* pWnd = CurrentList();
 	if (pWnd == NULL || ::IsWindow(pWnd->GetSafeHwnd()) == FALSE) return;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
@@ -436,6 +451,7 @@ void CDlgTabView::UpdatePathEditor(CWnd* pWnd)
 					SetTabTitle(i, GetPathName(pti.strPath));
 					m_editPath.SetWindowText(pti.strPath);
 					m_editPath.SetSel(-1); //커서를 끝으로
+					m_wndFolderTree.SelectPath(pti.strPath);
 				}
 			}
 			break;

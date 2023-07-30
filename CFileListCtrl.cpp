@@ -378,7 +378,7 @@ CFileListCtrl::CFileListCtrl()
 	m_strFolder = L"";
 	m_nType = LIST_TYPE_DRIVE;
 	CMD_UpdateSortInfo = 0;
-	CMD_UpdatePathEditor = 0;
+	CMD_UpdateFromList = 0;
 	CMD_UpdateBar = 0;
 	CMD_OpenNewTab = 0;
 	m_bAsc = TRUE;
@@ -1027,7 +1027,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	{
 		//strFolder가 빈 값 = 루트이므로 모든 드라이브와 특수 폴더(다운로드 등) 표시
 		m_strFolder = strFolder;
-		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdatePathEditor, (DWORD_PTR)this);
+		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 		//드라이브 
 		InitColumns(LIST_TYPE_DRIVE);
 		DWORD drives = GetLogicalDrives();
@@ -1085,7 +1085,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	else if (PathIsUNCServerW(strFolder))
 	{
 		m_strFolder = strFolder;
-		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdatePathEditor, (DWORD_PTR)this);
+		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 		
 		InitColumns(LIST_TYPE_UNCSERVER);
 		PSHARE_INFO_0 pBuffer, pTemp;
@@ -1133,7 +1133,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			m_strFilterExclude = L"";
 		}
 		//AddItemByPath으로 로딩 시작 전에 경로 에디트 박스 갱신
-		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdatePathEditor, (DWORD_PTR)this);
+		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 		if (AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder) == -1)
 		{ // 해당 경로가 존재하지 않는 오류가 발생한 경우
 			InsertItem(0, IDSTR(IDS_INVALIDPATH));

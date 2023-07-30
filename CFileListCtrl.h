@@ -61,7 +61,7 @@ public:
 	int m_nIconType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;
-	int CMD_UpdatePathEditor;
+	int CMD_UpdateFromList;
 	int CMD_UpdateBar;
 	int CMD_OpenNewTab;
 	CMyDropTarget m_DropTarget;

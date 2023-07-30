@@ -174,12 +174,17 @@ IMPLEMENT_DYNAMIC(CMyShellListCtrl, CMFCShellListCtrl)
 CMyShellListCtrl::CMyShellListCtrl()
 {
 	CMD_OpenNewTab = 0;
+	CMD_UpdateSortInfo = 0;
+	CMD_UpdateFromList = 0;
+
 	m_hDirectory = NULL;
 	m_hWatchBreak = NULL;
 	m_pThreadWatch = NULL;
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
 
 	m_posPathHistory = NULL;
+
+
 }
 
 CMyShellListCtrl::~CMyShellListCtrl()
@@ -606,13 +611,13 @@ void CMyShellListCtrl::BrowsePathHistory(BOOL bPrevious)
 	{
 		m_aPathHistory.GetPrev(m_posPathHistory);
 		CString strFolder = m_aPathHistory.GetAt(m_posPathHistory);
-		LoadFolder(strFolder);
+		LoadFolder(strFolder, FALSE);
 	}
 	else if (bPrevious == FALSE && m_posPathHistory != m_aPathHistory.GetTailPosition())
 	{
 		m_aPathHistory.GetNext(m_posPathHistory);
 		CString strFolder = m_aPathHistory.GetAt(m_posPathHistory);
-		LoadFolder(strFolder);
+		LoadFolder(strFolder, FALSE);
 	}
 }
 
@@ -972,19 +977,21 @@ void CMyShellListCtrl::OpenParentFolder()
 			AddPathHistory(m_strCurrentFolder);
 			WatchFolder_Begin();
 		}
+		GetParent()->SendMessage(WM_COMMAND, CMD_UpdateFromList, (LPARAM)this);
 	}
 }
 
-void CMyShellListCtrl::LoadFolder(CString strFolder)
+void CMyShellListCtrl::LoadFolder(CString strFolder, BOOL bAddHistory)
 {
 	WatchFolder_End();
 	if (SUCCEEDED(DisplayFolder(strFolder)))
 	{
 		if (GetCurrentFolder(m_strCurrentFolder))
 		{
-			AddPathHistory(strFolder);
+			if (bAddHistory) AddPathHistory(strFolder);
 			WatchFolder_Begin();
 		}
+		GetParent()->SendMessage(WM_COMMAND, CMD_UpdateFromList, (LPARAM)this);
 	}
 }
 

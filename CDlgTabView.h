@@ -36,7 +36,7 @@ public:
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
 	int CurrentListType();
-	void UpdatePathEditor(CWnd* pWnd);
+	void UpdateFromCurrentList();
 	void UpdateSortInfo(CWnd* pWnd);
 	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);

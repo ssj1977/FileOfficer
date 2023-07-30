@@ -11,7 +11,7 @@ public:
 	CMyShellListCtrl();
 	virtual ~CMyShellListCtrl();
 	void ClearThread();
-	void LoadFolder(CString strFolder);
+	void LoadFolder(CString strFolder, BOOL bAddHistory = TRUE);
 	void OpenParentFolder();
 	void OpenSelectedItem();
 	void DeleteSelected(BOOL bRecycle);
@@ -19,6 +19,8 @@ public:
 	void ConvertNFDNames();
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
 	int CMD_OpenNewTab;
+	int CMD_UpdateSortInfo;
+	int CMD_UpdateFromList;
 	CString m_strCurrentFolder;
 
 	//히스토리 기능
