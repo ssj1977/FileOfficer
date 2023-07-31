@@ -23,6 +23,12 @@ public:
 	int CMD_UpdateFromList;
 	CString m_strCurrentFolder;
 
+	//컬럼별 폭 및 정렬 기준 기억
+	void InitColumns(int nType);
+	CUIntArray m_aColWidth;
+	int m_nSortCol;
+	BOOL m_bAsc;
+
 	//히스토리 기능
 	CList<CString> m_aPathHistory;
 	POSITION m_posPathHistory;

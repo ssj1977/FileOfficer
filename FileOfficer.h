@@ -159,7 +159,7 @@ public:
 	int m_nLayoutSizeType;
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed1;
-	int m_nLayoutSizeFixed2;
+	//int m_nLayoutSizeFixed2;
 	BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요? 
 	BOOL m_bUseFileIcon;
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;

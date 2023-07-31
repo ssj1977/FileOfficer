@@ -25,7 +25,7 @@ public:
 	int m_nLayoutSizeType;
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed1;
-	int m_nLayoutSizeFixed2;
+//	int m_nLayoutSizeFixed2;
 	int m_nToolBarButtonSize;
 	BOOL m_bToolBarVertical;
 //	BOOL m_bToolBarText;

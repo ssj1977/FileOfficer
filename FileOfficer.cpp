@@ -40,7 +40,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizeType = 0;
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed1 = 600;
-	m_nLayoutSizeFixed2 = 600;
+	//m_nLayoutSizeFixed2 = 600;
 	m_bUseFileType = FALSE;
 	//m_bToolBarText = TRUE;
 	m_nToolBarButtonSize = 20;
@@ -48,7 +48,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_hIcon = NULL;
 	m_bUseFileIcon = TRUE;
 	m_bUseFileType = TRUE;
-	m_nListType = 1;
+	m_nListType = TABTYPE_SHELL_LIST;
 }
 
 
@@ -202,7 +202,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("LayoutSizeType=%d\r\n"), m_nLayoutSizeType); strData += strLine;
 	strLine.Format(_T("LayoutSizePercent=%d\r\n"), m_nLayoutSizePercent); strData += strLine;
 	strLine.Format(_T("LayoutSizeFixed1=%d\r\n"), m_nLayoutSizeFixed1); strData += strLine;
-	strLine.Format(_T("LayoutSizeFixed2=%d\r\n"), m_nLayoutSizeFixed2); strData += strLine;
+	//strLine.Format(_T("LayoutSizeFixed2=%d\r\n"), m_nLayoutSizeFixed2); strData += strLine;
 	//strLine.Format(_T("ToolBarText=%d\r\n"), m_bToolBarText); strData += strLine;
 	strLine.Format(_T("ToolBarButtonSize=%d\r\n"), m_nToolBarButtonSize); strData += strLine;
 	strLine.Format(_T("ToolBarVertical=%d\r\n"), m_bToolBarVertical); strData += strLine;
@@ -256,7 +256,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("LayoutSizeType")) == 0) m_nLayoutSizeType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizePercent")) == 0) m_nLayoutSizePercent = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed1")) == 0) m_nLayoutSizeFixed1 = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2);
+		//else if (str1.CompareNoCase(_T("LayoutSizeFixed2")) == 0) m_nLayoutSizeFixed2 = _ttoi(str2);
 		//else if (str1.CompareNoCase(_T("ToolBarText")) == 0) m_bToolBarText = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ToolBarButtonSize")) == 0) m_nToolBarButtonSize = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ToolBarVertical")) == 0) m_bToolBarVertical = _ttoi(str2);

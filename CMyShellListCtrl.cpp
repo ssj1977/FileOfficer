@@ -640,6 +640,53 @@ BOOL CMyShellListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
+void CMyShellListCtrl::InitColumns(int nType)
+{
+	int nIconWidth = 0;
+	switch (m_nIconType)
+	{
+	case SHIL_SMALL: nIconWidth = 16; break;
+	case SHIL_LARGE: nIconWidth = 32; break;
+	case SHIL_EXTRALARGE: nIconWidth = 48; break;
+	case SHIL_JUMBO: nIconWidth = 256; break;
+	}
+	int nCount = GetHeaderCtrl().GetItemCount();
+	if (nCount == 0)
+	{
+		int nWidth = 0;
+		for (int i = 0; i < 4; i++)
+		{
+			if (m_aColWidth.GetSize() > i) nWidth = m_aColWidth[i];
+			else
+			{
+				if (i == 0) nWidth = nIconWidth + 400;
+				else nWidth = 200;
+			}
+			InsertColumn(i, _T(""), LVCFMT_LEFT, nWidth);
+		}
+	}
+	//for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
+	if (nType == LIST_TYPE_DRIVE)
+	{
+		int string_id[] = { IDS_COL_DRIVE_NAME, IDS_COL_DRIVE_PATH, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT };
+		SetColTexts(string_id, col_fmt, 4);
+	}
+	else if (nType == LIST_TYPE_FOLDER)
+	{
+		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, 4);
+	}
+	else if (nType == LIST_TYPE_UNCSERVER)
+	{
+		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, 4);
+	}
+	m_nType = nType;
+}
+
 BOOL CMyShellListCtrl::PreTranslateMessage(MSG* pMsg)
 {
 	if (pMsg->message == WM_KEYDOWN)
@@ -756,7 +803,8 @@ void CMyShellListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 
 	BOOL bIsSamePath = FALSE;
 	CString strOldFolder = Get_Folder(aSrcPath[0], FALSE);
-	CString strNewFolder; GetCurrentFolder(strNewFolder);
+	CString strNewFolder; 
+	if (GetCurrentFolder(strNewFolder) == FALSE) return;
 	if (strOldFolder.CompareNoCase(strNewFolder) == 0) bIsSamePath = TRUE;
 
 	IShellItemArray* shi_array = NULL;
@@ -1088,7 +1136,6 @@ void CMyShellListCtrl::WatchFolder_Work() // 별도 쓰레드 방식용
 	//새로 생성된 쓰레드 내에서는 GetCurrentFolder 등 CMFCShellListCtrl의 함수를 호출할 수 없다.
 	//이는 MFC 객체가 Thread safe 하지 않기 때문에 자체적으로 Assertion failure를 내도록 되어 있기 때문이다.
 	//그래서 메시징 처리 등 다른 대안이 필요하다.
-	//if (GetCurrentFolder(strDir) == FALSE) return; 
 	CString strDir = m_strCurrentFolder;
 	PathBackSlash(strDir);
 	m_hDirectory = CreateFile(strDir, GENERIC_READ,

@@ -18,7 +18,7 @@ CDlgCFG_Layout::CDlgCFG_Layout(CWnd* pParent /*=nullptr*/)
 	m_nLayoutSizeType = LIST_LAYOUT_SIZE_PERCENT;
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed1 = 600;
-	m_nLayoutSizeFixed2 = 600;
+//	m_nLayoutSizeFixed2 = 600;
 	m_nToolBarButtonSize = 20;
 	m_bToolBarVertical = FALSE;
 //	m_bToolBarText = TRUE;
@@ -75,8 +75,8 @@ BOOL CDlgCFG_Layout::OnInitDialog()
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_PERCENT))->SetWindowText(strTemp);
 	strTemp.Format(L"%d", m_nLayoutSizeFixed1);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1))->SetWindowText(strTemp);
-	strTemp.Format(L"%d", m_nLayoutSizeFixed2);
-	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2))->SetWindowText(strTemp);
+	//strTemp.Format(L"%d", m_nLayoutSizeFixed2);
+	//((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2))->SetWindowText(strTemp);
 	strTemp.Format(L"%d", m_nToolBarButtonSize);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_BTNSIZE))->SetWindowText(strTemp);
 	((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->SetCheck(m_bToolBarVertical ? BST_CHECKED : BST_UNCHECKED);
@@ -101,7 +101,7 @@ void CDlgCFG_Layout::OnOK()
 	CString strTemp;
 	GetDlgItemText(IDC_EDIT_LAYOUT_PERCENT, strTemp); m_nLayoutSizePercent = _ttoi(strTemp);
 	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_1, strTemp); m_nLayoutSizeFixed1 = _ttoi(strTemp);
-	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_2, strTemp); m_nLayoutSizeFixed2 = _ttoi(strTemp);
+	//GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_2, strTemp); m_nLayoutSizeFixed2 = _ttoi(strTemp);
 	GetDlgItemText(IDC_EDIT_LAYOUT_BTNSIZE, strTemp); m_nToolBarButtonSize = _ttoi(strTemp);
 	m_bToolBarVertical = (((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 //	m_bToolBarText = (((CButton*)GetDlgItem(IDC_CHECK_TOOLBARTEXT))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
@@ -145,7 +145,6 @@ void CDlgCFG_Layout::OnBnClickedRadioLayoutPercent()
 {
 	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(FALSE);
-	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(FALSE);
 }
 
 
@@ -153,7 +152,7 @@ void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed1()
 {
 	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(TRUE);
-	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(FALSE);
+//	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(FALSE);
 }
 
 
@@ -161,5 +160,5 @@ void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed2()
 {
 	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(FALSE);
-	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(TRUE);
+//	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(TRUE);
 }

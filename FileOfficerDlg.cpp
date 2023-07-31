@@ -232,7 +232,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			dlg.m_nLayoutSizeType = APP()->m_nLayoutSizeType;
 			dlg.m_nLayoutSizePercent = APP()->m_nLayoutSizePercent;
 			dlg.m_nLayoutSizeFixed1 = APP()->m_nLayoutSizeFixed1;
-			dlg.m_nLayoutSizeFixed2 = APP()->m_nLayoutSizeFixed2;
+			//dlg.m_nLayoutSizeFixed2 = APP()->m_nLayoutSizeFixed2;
 			dlg.m_nToolBarButtonSize = APP()->m_nToolBarButtonSize;
 			dlg.m_bToolBarVertical = APP()->m_bToolBarVertical;
 			//dlg.m_bToolBarText = APP()->m_bToolBarText;
@@ -247,7 +247,7 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 				APP()->m_nLayoutSizeType = dlg.m_nLayoutSizeType;
 				APP()->m_nLayoutSizePercent = dlg.m_nLayoutSizePercent;
 				APP()->m_nLayoutSizeFixed1 = dlg.m_nLayoutSizeFixed1;
-				APP()->m_nLayoutSizeFixed2 = dlg.m_nLayoutSizeFixed2;
+				//APP()->m_nLayoutSizeFixed2 = dlg.m_nLayoutSizeFixed2;
 				BOOL bArrangeChild = FALSE;
 				if (APP()->m_nToolBarButtonSize != dlg.m_nToolBarButtonSize)
 				{

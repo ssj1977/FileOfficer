@@ -232,6 +232,7 @@ BOOL CDlgTabView::OnInitDialog()
 	if (m_aTabInfo.GetSize() == 0)
 	{
 		PathTabInfo tabInfo(L"", 0, TRUE);
+		tabInfo.nCtrlType = APP()->m_nListType;
 		m_aTabInfo.Add(tabInfo);
 	}
 	CString strTitle;
@@ -445,14 +446,12 @@ void CDlgTabView::UpdateFromCurrentList()
 			{
 				CMyShellListCtrl* pList = (CMyShellListCtrl*)pti.pWnd;
 				CString strFolder;
-				if (pList->GetCurrentFolder(strFolder))
-				{
-					pti.strPath = GetActualPath(strFolder);
-					SetTabTitle(i, GetPathName(pti.strPath));
-					m_editPath.SetWindowText(pti.strPath);
-					m_editPath.SetSel(-1); //커서를 끝으로
-					m_wndFolderTree.SelectPath(pti.strPath);
-				}
+				if (pList->GetCurrentFolder(strFolder) == FALSE) strFolder = _T("");
+				pti.strPath = GetActualPath(strFolder);
+				SetTabTitle(i, GetPathName(pti.strPath));
+				m_editPath.SetWindowText(pti.strPath);
+				m_editPath.SetSel(-1); //커서를 끝으로
+				m_wndFolderTree.SelectPath(pti.strPath);
 			}
 			break;
 		}
