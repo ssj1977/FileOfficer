@@ -24,6 +24,7 @@ public:
 	CString m_strCurrentFolder;
 	int m_nIconType;
 
+
 	//컬럼별 폭 및 정렬 기준 기억
 	void InitColumns(int nType);
 	CUIntArray m_aColWidth;
