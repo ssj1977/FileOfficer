@@ -371,10 +371,11 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
 			pMyList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
 			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
+			pMyList->m_nIconType = GetIconType();
 			//pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
-			//pMyList->m_nSortCol = pti.iSortColumn;
-			//pMyList->m_bAsc = pti.bSortAscend;
-			//pMyList->m_aColWidth.Copy(pti.aColWidth);
+			pMyList->m_nSortCol = pti.iSortColumn;
+			pMyList->m_bAsc = pti.bSortAscend;
+			pMyList->m_aColWidth.Copy(pti.aColWidth);
 			//m_wndFolderTree.SetRelatedList(pMyList);
 			pMyList->LoadFolder(pti.strPath, TRUE);
 		}

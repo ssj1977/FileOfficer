@@ -176,6 +176,7 @@ CMyShellListCtrl::CMyShellListCtrl()
 	CMD_OpenNewTab = 0;
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateFromList = 0;
+	m_nIconType = SHIL_SMALL;
 
 	m_hDirectory = NULL;
 	m_hWatchBreak = NULL;
