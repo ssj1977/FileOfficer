@@ -325,6 +325,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
 		{
 			CFileListCtrl* pMyList = new CFileListCtrl;
+			pMyList->m_aColWidth.Copy(pti.aColWidth);
 			if (pMyList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
 			{
 				delete pMyList;
@@ -335,6 +336,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		else
 		{
 			CMyShellListCtrl* pMyList = new CMyShellListCtrl;
+			pMyList->m_aColWidth.Copy(pti.aColWidth);
 			if (pMyList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
 			{
 				delete pMyList;
@@ -360,7 +362,6 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->CMD_UpdateBar = IDM_UPDATE_BAR;
 			pMyList->m_nSortCol = pti.iSortColumn;
 			pMyList->m_bAsc = pti.bSortAscend;
-			pMyList->m_aColWidth.Copy(pti.aColWidth);
 			pMyList->m_bUseFileType = APP()->m_bUseFileType;
 			pMyList->m_bUseFileIcon = APP()->m_bUseFileIcon;
 			pMyList->DisplayFolder_Start(pti.strPath);
@@ -375,7 +376,6 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			//pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
 			pMyList->m_nSortCol = pti.iSortColumn;
 			pMyList->m_bAsc = pti.bSortAscend;
-			pMyList->m_aColWidth.Copy(pti.aColWidth);
 			//m_wndFolderTree.SetRelatedList(pMyList);
 			pMyList->LoadFolder(pti.strPath, TRUE);
 		}

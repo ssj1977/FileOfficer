@@ -652,40 +652,20 @@ void CMyShellListCtrl::InitColumns(int nType)
 	case SHIL_JUMBO: nIconWidth = 256; break;
 	}
 	int nCount = GetHeaderCtrl().GetItemCount();
-	if (nCount == 0)
+	int nWidth = 0;
+	for (int i = 0; i < nCount; i++)
 	{
-		int nWidth = 0;
-		for (int i = 0; i < 4; i++)
+		if (m_aColWidth.GetSize() > i)
 		{
-			if (m_aColWidth.GetSize() > i) nWidth = m_aColWidth[i];
-			else
-			{
-				if (i == 0) nWidth = nIconWidth + 400;
-				else nWidth = 200;
-			}
-			InsertColumn(i, _T(""), LVCFMT_LEFT, nWidth);
+			nWidth = m_aColWidth[i];
 		}
+		else
+		{
+			if (i == 0) nWidth = nIconWidth + 400;
+			else nWidth = 200;
+		}
+		SetColumnWidth(i, nWidth);
 	}
-	//for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
-	if (nType == LIST_TYPE_DRIVE)
-	{
-		int string_id[] = { IDS_COL_DRIVE_NAME, IDS_COL_DRIVE_PATH, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE };
-		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT };
-		SetColTexts(string_id, col_fmt, 4);
-	}
-	else if (nType == LIST_TYPE_FOLDER)
-	{
-		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER };
-		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, 4);
-	}
-	else if (nType == LIST_TYPE_UNCSERVER)
-	{
-		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
-		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, 4);
-	}
-	m_nType = nType;
 }
 
 BOOL CMyShellListCtrl::PreTranslateMessage(MSG* pMsg)
@@ -1002,6 +982,7 @@ BOOL CMyShellListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd,
 		//m_DropTarget.m_bMFCShell = TRUE;
 		//BOOL b = m_DropTarget.Register(this);
 		DragAcceptFiles(TRUE);
+		InitColumns(m_nIconType);
 	}
 	return b;
 }

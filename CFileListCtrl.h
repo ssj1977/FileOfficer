@@ -15,7 +15,6 @@ public:
 	virtual ~CFileListCtrl();
 	void OpenSelectedItem();
 	void OpenParentFolder();
-	void ResizeColumns();
 	void SetBarMsg(CString strMsg);
 	int AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
 	void UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon);

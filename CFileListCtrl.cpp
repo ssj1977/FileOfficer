@@ -471,7 +471,10 @@ void CFileListCtrl::InitColumns(int nType)
 		int nWidth = 0;
 		for (int i = 0; i < 4; i++)
 		{
-			if (m_aColWidth.GetSize() > i) nWidth = m_aColWidth[i];
+			if (m_aColWidth.GetSize() > i)
+			{
+				nWidth = m_aColWidth[i];
+			}
 			else
 			{
 				if (i == 0) nWidth = nIconWidth + 400;
@@ -645,23 +648,6 @@ void CFileListCtrl::OpenParentFolder()
 		m_strFilterInclude.Empty();
 		DisplayFolder_Start(GetParentFolder(m_strFolder));
 	}
-}
-
-void CFileListCtrl::ResizeColumns()
-{
-	CRect rcThis;
-	GetClientRect(rcThis);
-
-	/*int nColWidthSum = 0;
-	for (int i = 0; i < GetHeaderCtrl().GetItemCount(); i++)
-	{
-		nColWidthSum += GetColumnWidth(i);
-	}
-	if (nColWidthSum < rcThis.Width())
-	{
-		int nW = GetColumnWidth(0);
-		SetColumnWidth(0, nW + rcThis.Width() - nColWidthSum);
-	}*/
 }
 
 CString GetFileSizeString(ULONGLONG nSize)
@@ -1163,7 +1149,6 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
 {
 	CMFCListCtrl::OnSize(nType, cx, cy);
-	ResizeColumns();
 }
 
 void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
