@@ -49,6 +49,8 @@ CFileOfficerApp::CFileOfficerApp()
 	m_bUseFileIcon = TRUE;
 	m_bUseFileType = TRUE;
 	m_nListType = TABTYPE_SHELL_LIST;
+	m_bShowTree1 = FALSE;
+	m_bShowTree2 = FALSE;
 }
 
 

@@ -650,11 +650,14 @@ void CFileListCtrl::OpenParentFolder()
 	}
 }
 
-CString GetFileSizeString(ULONGLONG nSize)
+CString GetFileSizeString(ULONGLONG nSize, int nUnit)
 {
 	TCHAR pBuf[135];
 	ZeroMemory(pBuf, 135);
 	CString strSize, strReturn;
+	if (nUnit > 4) nUnit = 4;
+	if (nUnit < 0) nUnit = 0;
+	nSize = nSize / (int)pow(2, 10 * nUnit);
 	strSize.Format(_T("%I64u"), nSize);
 	int nLen = strSize.GetLength();
 	if (nLen < 100)
@@ -672,6 +675,11 @@ CString GetFileSizeString(ULONGLONG nSize)
 		}
 		pBuf[99] = _T('\0');
 		strReturn = (LPCTSTR)pBuf;
+		if (nUnit == 0) strReturn += "B";
+		else if (nUnit == 1) strReturn += "KB";
+		else if (nUnit == 2) strReturn += "MB";
+		else if (nUnit == 3) strReturn += "GB";
+		else if (nUnit == 4) strReturn += "TB";
 	}
 	else
 	{
@@ -953,7 +961,7 @@ UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
 	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
 	ResetEvent(pList->m_hLoadFinished);
-	pList->SetBarMsg(IDSTR(IDS_NOW_LOADING));
+	pList->UpdateMsgBar(IDS_NOW_LOADING);
 	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
 	if (IsLoading(pList) == TRUE)
 	{   // 중단 없이 정상적으로 끝난 경우 
@@ -1128,7 +1136,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 		}
 		else
 		{
-			SortCurrentList();
+			Sort(m_nSortCol, m_bAsc);
 		}
 	}
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
@@ -1137,8 +1145,8 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	/*
 	endTime = clock();
 	CString strTemp;
-	strTemp.Format(_T("%s %d"), IDSTR(IDS_LOADING_TIME), endTime - startTime);
-	SetBarMsg(strTemp);
+	strTemp.Format(_T("%s %d\r\n"), IDSTR(IDS_LOADING_TIME), endTime - startTime);
+	TRACE(strTemp);
 	*/
 	SetBkColor(clrBk);
 	SetTextColor(clrText);
@@ -1338,7 +1346,7 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 		ULARGE_INTEGER filesize;
 		filesize.HighPart = fd.nFileSizeHigh;
 		filesize.LowPart = fd.nFileSizeLow;
-		CString strSize = GetFileSizeString(filesize.QuadPart);
+		CString strSize = GetFileSizeString(filesize.QuadPart, 0);
 		SetItemText(nItem, COL_SIZE, strSize);
 		if (bUpdateIcon) //시간이 걸릴수 있고 확장자가 바뀌지 않은 경우 필요가 없으므로 옵션 처리
 		{
@@ -1462,7 +1470,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 				bIsDir = FALSE;
 				filesize.HighPart = fd.nFileSizeHigh;
 				filesize.LowPart = fd.nFileSizeLow;
-				strSize = GetFileSizeString(filesize.QuadPart);
+				strSize = GetFileSizeString(filesize.QuadPart, 0);
 			}
 			fullpath = PathBackSlash(strDir) + fd.cFileName;
 			BOOL bExist = FALSE;
@@ -1643,11 +1651,6 @@ int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 	}
 
 	return nRet;
-}
-
-void CFileListCtrl::SortCurrentList()
-{
-	Sort(m_nSortCol, m_bAsc);
 }
 
 void CFileListCtrl::Sort(int iColumn, BOOL bAscending, BOOL bAdd)
@@ -2207,41 +2210,10 @@ COLORREF CFileListCtrl::OnGetCellBkColor(int nRow, int nColumn)
 	return ApplyColorRule(nRow, nColumn, TRUE);
 }
 
-void CFileListCtrl::UpdateMsgBar()
-{
-	//if (::IsWindow(m_hWnd) == FALSE) return;
-	CString strTemp, strInfo;
-	int nTotal = GetItemCount();
-	int nSelected = GetSelectedCount();
-	int nItem = GetNextItem(-1, LVNI_SELECTED);
-	if (m_nType == LIST_TYPE_FOLDER)
-	{
-		if (nSelected == 1 && GetItemData(nItem) == ITEM_TYPE_FILE)
-		{
-			// 선택이 한개인 경우 최종 갱신 시점, 크기 표시
-			strInfo.Format(_T(" / %s / %s"), GetItemText(nItem, COL_DATE), GetItemText(nItem, COL_SIZE));
-		}
-		else if (nSelected > 1)
-		{
-			ULONGLONG total_size = 0;
-			while (nItem != -1)
-			{
-				// 선택이 여러개인 경우 크기 합산하여 출력
-				total_size += Str2Size(GetItemText(nItem, COL_SIZE));
-				nItem = GetNextItem(nItem, LVNI_SELECTED);
-			}
-			GetFileSizeString(total_size);
-			if (total_size > 0) strInfo.Format(_T(" / %s"), GetFileSizeString(total_size));
-		}
-	}
-	strTemp.Format(_T("%d%s / %d%s%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT), GetSelectedCount(), (LPCTSTR)IDSTR(IDS_SELECTED_COUNT), strInfo); // , IDSTR(IDS_LOADING_TIME), endTime - startTime);
-	SetBarMsg(strTemp);
-}
 
-void CFileListCtrl::SetBarMsg(CString strMsg)
+void CFileListCtrl::UpdateMsgBar(int nStringID)
 {
-	m_strBarMsg = strMsg;
-	if (CMD_UpdateBar != 0) GetParent()->SendMessage(WM_COMMAND, CMD_UpdateBar, (DWORD_PTR)(&strMsg));
+	if (CMD_UpdateBar != 0 && GetParent() != NULL) GetParent()->SendMessage(WM_COMMAND, CMD_UpdateBar, nStringID);
 }
 
 void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
@@ -2278,4 +2250,39 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	default:	return CFileListCtrl::OnCommand(wParam, lParam); break;
 	}
 	return TRUE;
+}
+
+CString CFileListCtrl::GetBarString()
+{
+	if (::IsWindow(GetSafeHwnd()) == FALSE) return _T("");
+	CString strReturn, strInfo;
+	if (m_nType == LIST_TYPE_FOLDER)
+	{
+		int nSelected = GetSelectedCount();
+		int nItem = GetNextItem(-1, LVNI_SELECTED);
+		if (nSelected == 1 && GetItemData(nItem) == ITEM_TYPE_FILE)
+		{
+			// 선택이 한개인 경우 최종 갱신 시점, 크기 표시
+			strInfo.Format(_T(" / %s / %s"), GetItemText(nItem, COL_DATE), GetItemText(nItem, COL_SIZE));
+		}
+		else if (nSelected > 1)
+		{
+			ULONGLONG total_size = 0;
+			while (nItem != -1)
+			{
+				// 선택이 여러개인 경우 크기 합산하여 출력
+				total_size += Str2Size(GetItemText(nItem, COL_SIZE));
+				nItem = GetNextItem(nItem, LVNI_SELECTED);
+			}
+			if (total_size > 0) strInfo.Format(_T(" / %s"), GetFileSizeString(total_size, 0));
+		}
+		strReturn.Format(_T("%d%s / %d%s%s"), GetItemCount(),
+			(LPCTSTR)IDSTR(IDS_ITEM_COUNT), nSelected,
+			(LPCTSTR)IDSTR(IDS_SELECTED_COUNT), strInfo);
+	}
+	else
+	{
+		strReturn.Format(_T("%d%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT));
+	}
+	return strReturn;
 }

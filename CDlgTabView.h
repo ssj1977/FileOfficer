@@ -60,6 +60,7 @@ public:
 	void UpdateBkImgAll();
 	void ToggleFindMode();
 	void FindNext();
+	void UpdateMsgBarFromList();
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };

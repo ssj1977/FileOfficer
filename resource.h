@@ -127,6 +127,8 @@
 #define IDC_CHECK_TOOLBAR_VERTICAL      1043
 #define IDC_MFCSHELLTREE1               1044
 #define IDC_TREE_FOLDER                 1044
+#define IDC_CHECK_VIEW_TREE_1           1044
+#define IDC_CHECK_VIEW_TREE_2           1045
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774

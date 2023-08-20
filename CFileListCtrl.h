@@ -15,7 +15,6 @@ public:
 	virtual ~CFileListCtrl();
 	void OpenSelectedItem();
 	void OpenParentFolder();
-	void SetBarMsg(CString strMsg);
 	int AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
 	void UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon);
 	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE, BOOL bForceUpdate = FALSE);
@@ -27,6 +26,7 @@ public:
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
 	CString GetCurrentItemPath();
+	CString GetBarString();
 	BOOL DeleteInvalidItem(int nItem);
 	void DeleteInvalidPath(CString strPath);
 	BOOL IsItemExist(int nItem);
@@ -38,7 +38,6 @@ public:
 	CString m_strPrevFolder; //폴더간 이동시 하위 폴더에서 상위폴더로 이동하는 경우 자동으로 해당 하위폴더를 목록 중에서 선택하기 위해 이용
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
-	CString m_strBarMsg;
 	CList<CString> m_aPathHistory;
 	POSITION m_posPathHistory;
 	BOOL m_bUpdatePathHistory;
@@ -103,8 +102,7 @@ public:
 	HANDLE m_hLoadFinished; //디렉토리 모니터링을 중단할때 필요한 이벤트
 
 	void ClearThread(); // 현재 작동중인 쓰레드들을 중단
-	void UpdateMsgBar();
-	void SortCurrentList();
+	void UpdateMsgBar(int nStringID = 0);
 	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
 
 protected:

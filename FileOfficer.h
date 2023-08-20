@@ -164,6 +164,8 @@ public:
 	BOOL m_bUseFileIcon;
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;
 	BOOL m_bToolBarVertical;
+	BOOL m_bShowTree1;
+	BOOL m_bShowTree2;
 
 public:
 	void INISave(CString strFile);

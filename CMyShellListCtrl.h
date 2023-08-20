@@ -11,6 +11,8 @@ public:
 	CMyShellListCtrl();
 	virtual ~CMyShellListCtrl();
 	void ClearThread();
+	HRESULT DisplayFolder_CustomSort(LPAFX_SHELLITEMINFO pItemInfo);
+	HRESULT DisplayFolder_CustomSort(LPCTSTR lpszPath);
 	void LoadFolder(CString strFolder, BOOL bAddHistory = TRUE);
 	void OpenParentFolder();
 	void OpenSelectedItem();
@@ -18,18 +20,22 @@ public:
 	void RenameSelectedItem();
 	void ConvertNFDNames();
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
+	int CMD_UpdateBar;
 	int CMD_OpenNewTab;
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateFromList;
 	CString m_strCurrentFolder;
 	int m_nIconType;
-
+	CString GetBarString();
+	void UpdateMsgBar(int nStringID = 0);
+	BOOL m_bLoading;
+	
 	//컬럼별 폭 및 정렬 기준 기억
 	void InitColumns(int nType);
 	//void ResizeColumns();
 	CUIntArray m_aColWidth;
-	int m_nSortCol;
-	BOOL m_bAsc;
+	int m_nSortColInit; // 처음 초기화 용도로만 사용
+	BOOL m_bAscInit; //처음 초기화 용도로만 사용 
 
 	//히스토리 기능
 	CList<CString> m_aPathHistory;
@@ -77,7 +83,6 @@ public:
 	OVERLAPPED	m_overlap_watch; //비동기 IO를 위한 OVERLAPPED개체 상속 구조체, Callback을 위한 객체 포인터 포함
 	HANDLE		m_hDirectory;	//디렉토리 변경사항 모니터링을 위한 I/O Handle
 	LPVOID		m_pWatchBuffer; // ReadDirectoryChangesW 를 위한 버퍼
-	HANDLE m_hLoadFinished; //디렉토리 모니터링을 중단할때 필요한 이벤트
 	//
 
 protected:
@@ -90,6 +95,8 @@ public:
 	afx_msg void OnClipboardUpdate();
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult);
 };
 
 class CMyShellListProgress : public IFileOperationProgressSink

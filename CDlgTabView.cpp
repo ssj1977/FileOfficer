@@ -142,10 +142,8 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case IDM_UPDATE_BAR:
-		if (lParam && ::IsWindow(((CWnd*)lParam)->GetSafeHwnd()))
-		{
-			SetDlgItemText(IDC_ST_BAR, *((CString*)lParam));
-		}
+		if (lParam != 0) SetDlgItemText(IDC_ST_BAR, IDSTR((int)lParam));
+		else UpdateMsgBarFromList();
 		break;
 	case IDM_TREE_SELCHANGED:
 		if (CurrentListType() == TABTYPE_SHELL_LIST)
@@ -372,10 +370,11 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->CMD_OpenNewTab = IDM_OPEN_NEWTAB;
 			pMyList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
 			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
+			pMyList->CMD_UpdateBar = IDM_UPDATE_BAR;
 			pMyList->m_nIconType = GetIconType();
 			//pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
-			pMyList->m_nSortCol = pti.iSortColumn;
-			pMyList->m_bAsc = pti.bSortAscend;
+			pMyList->m_nSortColInit = pti.iSortColumn;
+			pMyList->m_bAscInit = pti.bSortAscend;
 			//m_wndFolderTree.SetRelatedList(pMyList);
 			pMyList->LoadFolder(pti.strPath, TRUE);
 		}
@@ -391,7 +390,6 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
 	{
 		CFileListCtrl* pMyList = (CFileListCtrl*)pList;
-		SetDlgItemText(IDC_ST_BAR, pMyList->m_strBarMsg);
 	}
 	else
 	{
@@ -1073,4 +1071,24 @@ void CDlgTabView::OnDropFiles(HDROP hDropInfo)
 	}*/
 
 	CDialogEx::OnDropFiles(hDropInfo);
+}
+
+void CDlgTabView::UpdateMsgBarFromList()
+{
+	if (::IsWindow(GetSafeHwnd()) == FALSE) return;
+	CMFCListCtrl* pWnd = (CMFCListCtrl*)CurrentList();
+	if (pWnd == NULL || ::IsWindow(pWnd->GetSafeHwnd()) == FALSE) return;
+
+	CString strBarMsg;
+	if (CurrentListType() == TABTYPE_CUSTOM_LIST)
+	{
+		CFileListCtrl* pList = (CFileListCtrl*)pWnd;
+		strBarMsg = pList->GetBarString();
+	}
+	else
+	{
+		CMyShellListCtrl* pList = (CMyShellListCtrl*)pWnd;
+		strBarMsg = pList->GetBarString();
+	}
+	SetDlgItemText(IDC_ST_BAR, strBarMsg);
 }

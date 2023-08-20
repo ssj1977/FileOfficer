@@ -109,7 +109,7 @@ IFACEMETHODIMP CMyShellListProgress::PostCopyItem(DWORD dwFlags, IShellItem* psi
 	if (m_pList)
 	{
 		m_pList->AddPath(pwszNewName, TRUE, TRUE);
-		//m_pList->UpdateMsgBar();
+		m_pList->UpdateMsgBar();
 	}
 	return S_OK;
 }
@@ -120,7 +120,7 @@ IFACEMETHODIMP CMyShellListProgress::PostMoveItem(DWORD dwFlags, IShellItem* psi
 	if (m_pList)
 	{
 		m_pList->AddPath(pwszNewName, TRUE, TRUE);
-		//m_pList->UpdateMsgBar();
+		m_pList->UpdateMsgBar();
 	}
 	return S_OK;
 }
@@ -176,16 +176,16 @@ CMyShellListCtrl::CMyShellListCtrl()
 	CMD_OpenNewTab = 0;
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateFromList = 0;
+	CMD_UpdateBar = 0;
 	m_nIconType = SHIL_SMALL;
-
+	m_bAscInit = TRUE;
+	m_nSortColInit = 0;
 	m_hDirectory = NULL;
 	m_hWatchBreak = NULL;
 	m_pThreadWatch = NULL;
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
-
 	m_posPathHistory = NULL;
-
-
+	m_bLoading = FALSE;
 }
 
 CMyShellListCtrl::~CMyShellListCtrl()
@@ -200,6 +200,9 @@ BEGIN_MESSAGE_MAP(CMyShellListCtrl, CMFCShellListCtrl)
 	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CMyShellListCtrl::OnLvnBegindrag)
 	ON_WM_CLIPBOARDUPDATE()
 	ON_NOTIFY_REFLECT(NM_DBLCLK, &CMyShellListCtrl::OnNMDblclk)
+	ON_NOTIFY(HDN_ITEMCLICKA, 0, &CMyShellListCtrl::OnHdnItemclick)
+	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CMyShellListCtrl::OnHdnItemclick)
+	ON_NOTIFY_REFLECT(LVN_ITEMCHANGED, &CMyShellListCtrl::OnLvnItemchanged)
 END_MESSAGE_MAP()
 
 
@@ -521,7 +524,7 @@ void CMyShellListCtrl::DeleteSelected(BOOL bRecycle)
 		if (bDeleted == FALSE) SetItemState(nItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
 		nItem = GetNextItem(-1, LVNI_SELECTED);
 	}
-	//UpdateMsgBar();
+	UpdateMsgBar();
 	this->SetRedraw(TRUE);
 }
 
@@ -1014,7 +1017,9 @@ void CMyShellListCtrl::OpenParentFolder()
 void CMyShellListCtrl::LoadFolder(CString strFolder, BOOL bAddHistory)
 {
 	WatchFolder_End();
-	if (SUCCEEDED(DisplayFolder(strFolder)))
+	UpdateMsgBar(IDS_NOW_LOADING);
+	m_bLoading = TRUE;
+	if (SUCCEEDED(DisplayFolder_CustomSort(strFolder)))
 	{
 		if (GetCurrentFolder(m_strCurrentFolder))
 		{
@@ -1023,6 +1028,13 @@ void CMyShellListCtrl::LoadFolder(CString strFolder, BOOL bAddHistory)
 		}
 		GetParent()->SendMessage(WM_COMMAND, CMD_UpdateFromList, (LPARAM)this);
 	}
+	m_bLoading = FALSE;
+	UpdateMsgBar();
+}
+
+void CMyShellListCtrl::UpdateMsgBar(int nStringID)
+{
+	if (CMD_UpdateBar != 0 && GetParent() != NULL) GetParent()->SendMessage(WM_COMMAND, CMD_UpdateBar, nStringID);
 }
 
 // 변경사항 모니터링 기능
@@ -1046,12 +1058,12 @@ void CMyShellListCtrl::WatchEventHandler()
 			case FILE_ACTION_ADDED:
 				TRACE(L"Added : %s\n", szFile);
 				AddPath(szFile, TRUE, TRUE);
-				//UpdateMsgBar();
+				UpdateMsgBar();
 				break;
 			case FILE_ACTION_REMOVED:
 				TRACE(L"Removed : %s\n", szFile);
 				DeleteInvalidName(szFile);
-				//UpdateMsgBar();
+				UpdateMsgBar();
 				break;
 			case FILE_ACTION_MODIFIED:
 				TRACE(L"Modified : %s\n", szFile);
@@ -1219,4 +1231,170 @@ BOOL CMyShellListCtrl::IsWatching(CMyShellListCtrl* pList)
 void CMyShellListCtrl::DeleteWatchingStatus(CMyShellListCtrl* pList)
 {
 	DeleteThreadStatus(st_mapWatching, pList);
+}
+
+void CMyShellListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMHEADER phdr = reinterpret_cast<LPNMHEADER>(pNMHDR);
+	Default();
+	m_bAscInit = GetHeaderCtrl().IsAscending();
+	m_nSortColInit = GetHeaderCtrl().GetSortColumn();
+	GetParent()->PostMessageW(WM_COMMAND, CMD_UpdateSortInfo, (DWORD_PTR)this);
+	*pResult = 0;
+}
+
+
+//처음 읽을때 정렬작업이 두번 발생하는 경우를 방지하기 위해 CMFCShellListCtrl의 코드를 일부 수정하여 사용
+HRESULT CMyShellListCtrl::DisplayFolder_CustomSort(LPAFX_SHELLITEMINFO pItemInfo)
+{
+	HRESULT hr = E_FAIL;
+
+	if (afxShellManager == NULL)
+	{
+		ASSERT(FALSE);
+		return hr;
+	}
+
+	if (pItemInfo != NULL)
+	{
+		ReleaseCurrFolder();
+		hr = LockCurrentFolder(pItemInfo);
+
+		if (FAILED(hr))
+		{
+			return hr;
+		}
+	}
+
+	DeleteAllItems();
+
+	if (m_psfCurFolder != NULL)
+	{
+		CWaitCursor wait;
+		SetRedraw(FALSE);
+
+		hr = EnumObjects(m_psfCurFolder, m_pidlCurFQ);
+
+		if (GetStyle() & LVS_REPORT)
+		{
+			//이부분이 다르다
+			//Sort(AFX_ShellList_ColumnName);
+			Sort(m_nSortColInit, m_bAscInit);
+		}
+
+		SetRedraw(TRUE);
+		RedrawWindow();
+	}
+
+	if (SUCCEEDED(hr) && pItemInfo != NULL)
+	{
+		CMFCShellTreeCtrl* pTree = GetRelatedTree();
+		if (pTree != NULL && !m_bNoNotify)
+		{
+			ASSERT_VALID(pTree);
+			pTree->SelectPath(m_pidlCurFQ);
+		}
+
+		if (GetParent() != NULL)
+		{
+			GetParent()->SendMessage(AFX_WM_CHANGE_CURRENT_FOLDER);
+		}
+	}
+
+	return hr;
+}
+
+HRESULT CMyShellListCtrl::DisplayFolder_CustomSort(LPCTSTR lpszPath)
+{
+	if (afxShellManager == NULL)
+	{
+		ASSERT(FALSE);
+		return E_FAIL;
+	}
+
+	ENSURE(lpszPath != NULL);
+	ASSERT_VALID(afxShellManager);
+
+	AFX_SHELLITEMINFO info;
+	HRESULT hr = afxShellManager->ItemFromPath(lpszPath, info.pidlRel);
+
+	if (FAILED(hr))
+	{
+		return hr;
+	}
+
+	LPSHELLFOLDER pDesktopFolder;
+	hr = SHGetDesktopFolder(&pDesktopFolder);
+
+	if (SUCCEEDED(hr))
+	{
+		info.pParentFolder = pDesktopFolder;
+		info.pidlFQ = info.pidlRel;
+
+		hr = DisplayFolder_CustomSort(&info);
+		pDesktopFolder->Release();
+	}
+
+	afxShellManager->FreeItem(info.pidlFQ);
+	return hr;
+}
+
+ULONGLONG Str2Size(CString str);
+CString GetFileSizeString(ULONGLONG nSize, int nUnit);
+
+CString CMyShellListCtrl::GetBarString()
+{
+	if (::IsWindow(GetSafeHwnd()) == FALSE) return _T("");
+	CString strReturn, strInfo;
+
+	int nSelected = GetSelectedCount();
+
+	if (nSelected == 0) //선택 항목이 하나도 없으면 항목 개수만 표시
+	{
+		strReturn.Format(_T("%d%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT));
+		return strReturn;
+	}
+
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	CString strSize = GetItemText(nItem, AFX_ShellList_ColumnSize);
+	CString strModified = GetItemText(nItem, AFX_ShellList_ColumnModified);
+
+	if (nSelected == 1)  // 선택 항목이 한개인 경우
+	{
+		if (strSize.IsEmpty() == FALSE && strModified.IsEmpty() == FALSE)
+		{
+			strInfo.Format(_T(" / %s / %s"), strModified, strSize);
+		}
+		else if (strSize.IsEmpty() != FALSE && strModified.IsEmpty() == FALSE)
+		{
+			strInfo.Format(_T(" / %s"), strModified);
+		}
+		else if (strSize.IsEmpty() == FALSE && strModified.IsEmpty() != FALSE)
+		{
+			strInfo.Format(_T(" / %s"), strSize);
+		}
+	}
+	else if (nSelected > 1) // 선택 항목이 여러개인 경우
+	{
+		ULONGLONG total_size = 0;
+		while (nItem != -1)
+		{
+			// 선택이 여러개인 경우 크기 합산하여 출력
+			total_size += Str2Size(GetItemText(nItem, AFX_ShellList_ColumnSize));
+			nItem = GetNextItem(nItem, LVNI_SELECTED);
+		}
+		if (total_size > 0) strInfo.Format(_T(" / %s"), GetFileSizeString(total_size, 1));
+	}
+
+	strReturn.Format(_T("%d%s / %d%s%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT),
+		 GetSelectedCount(), (LPCTSTR)IDSTR(IDS_SELECTED_COUNT), strInfo);
+	return strReturn;
+}
+
+void CMyShellListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	if (m_bLoading == TRUE) return;
+	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
+	UpdateMsgBar();
+	*pResult = 0;
 }
