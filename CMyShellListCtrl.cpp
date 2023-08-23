@@ -330,13 +330,16 @@ void CMyShellListCtrl::ReleaseItemData(int nItem)
 {
 	LPAFX_SHELLITEMINFO pItemInfo = (LPAFX_SHELLITEMINFO)GetItemData(nItem);
 	//free up the pidls that we allocated
-	afxShellManager->FreeItem(pItemInfo->pidlFQ);
-	afxShellManager->FreeItem(pItemInfo->pidlRel);
-	//this may be NULL if this is the root item
-	if (pItemInfo->pParentFolder != NULL)
+	if (pItemInfo)
 	{
-		pItemInfo->pParentFolder->Release();
-		pItemInfo->pParentFolder = NULL;
+		//this may be NULL if this is the root item
+		if (pItemInfo->pParentFolder != NULL)
+		{
+			if (pItemInfo->pidlFQ) afxShellManager->FreeItem(pItemInfo->pidlFQ);
+			if (pItemInfo->pidlRel)	afxShellManager->FreeItem(pItemInfo->pidlRel);
+			pItemInfo->pParentFolder->Release();
+			pItemInfo->pParentFolder = NULL;
+		}
 	}
 	//GlobalFree((HGLOBAL)pItemInfo);  //pItemInfo 메모리 자체는 재활용해야 하므로 지우지 않는다.
 }
@@ -681,7 +684,8 @@ BOOL CMyShellListCtrl::PreTranslateMessage(MSG* pMsg)
 	{
 		if (pMsg->wParam == VK_F5)
 		{
-			Refresh();
+			CString strPath;
+			if (GetCurrentFolder(strPath)) LoadFolder(strPath, FALSE);
 			return TRUE;
 		}
 		if (pMsg->wParam == VK_RETURN)
