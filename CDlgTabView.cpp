@@ -372,7 +372,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
 			pMyList->CMD_UpdateBar = IDM_UPDATE_BAR;
 			pMyList->m_nIconType = GetIconType();
-			//pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
+			pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
 			pMyList->m_nSortColInit = pti.iSortColumn;
 			pMyList->m_bAscInit = pti.bSortAscend;
 			//m_wndFolderTree.SetRelatedList(pMyList);
@@ -638,15 +638,35 @@ void CDlgTabView::ArrangeCtrl()
 		rc.top += 2;
 	}
 	//Tab Part
-	int nDragBarSize = 4;
-	CRect rcTree = CRect(rc.left, rc.top, rc.left + m_nDragBarPos - 1, rc.bottom - BH);
-	CRect rcBar = CRect(rcTree.right + 1, rc.top, rcTree.right + nDragBarSize, rc.bottom - BH);
-	CRect rcTab = CRect(rcBar.right + 1, rc.top, rc.right, rc.top + BH -1);
-	
-	m_wndFolderTree.MoveWindow(rcTree, TRUE); //m_wndFolderTree.Invalidate(TRUE);
-	m_wndDragTab.MoveWindow(rcBar, TRUE); //m_wndFolderTree.Invalidate(TRUE);
-	m_tabPath.MoveWindow(rcTab, TRUE); //m_wndFolderTree.Invalidate(TRUE);
-	rc.top += BH;
+	if (m_nDragBarPos < 0) m_nDragBarPos = 0;
+	CRect rcTab;
+	if (m_bViewTree)
+	{
+		int nDragBarSize = 4;
+		CRect rcTree = CRect(rc.left, rc.top, rc.left + m_nDragBarPos - 1, rc.bottom - BH);
+		CRect rcBar = CRect(rcTree.right + 1, rc.top, rcTree.right + nDragBarSize, rc.bottom - BH);
+		rcTab = CRect(rcBar.right + 1, rc.top, rc.right, rc.top + BH - 1);
+		m_wndFolderTree.ShowWindow(SW_SHOW);
+		m_wndDragTab.ShowWindow(SW_SHOW);
+		m_wndFolderTree.MoveWindow(rcTree, TRUE); //m_wndFolderTree.Invalidate(TRUE);
+		m_wndDragTab.MoveWindow(rcBar, TRUE); //m_wndFolderTree.Invalidate(TRUE);
+		m_tabPath.MoveWindow(rcTab, TRUE); //m_wndFolderTree.Invalidate(TRUE);
+		rc.top += BH;
+		CWnd* pWnd = CurrentList();
+		if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
+		{
+			CRect rcList = CRect(rcTab.left, rcTab.bottom + 1, rcTab.right, rc.bottom - BH);
+			pWnd->MoveWindow(rcList, TRUE);
+			//pWnd->Invalidate(TRUE);
+		}
+	}
+	else
+	{
+		rcTab = CRect(rc.left, rc.top, rc.right, rc.top + BH - 1);
+		m_wndFolderTree.ShowWindow(SW_HIDE);
+		m_wndDragTab.ShowWindow(SW_HIDE);
+		m_tabPath.MoveWindow(rcTab, TRUE); //m_wndFolderTree.Invalidate(TRUE);
+	}
 	CWnd* pWnd = CurrentList();
 	if (pWnd != NULL && ::IsWindow(pWnd->GetSafeHwnd()))
 	{
@@ -741,7 +761,10 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 	}
 	else if (pMsg->message == WM_RBUTTONUP)
 	{
-		if (CurrentListType() == TABTYPE_CUSTOM_LIST) ((CFileListCtrl*)CurrentList())->ShowContextMenu(NULL);
+		if (CurrentListType() == TABTYPE_CUSTOM_LIST) 
+			((CFileListCtrl*)CurrentList())->ShowContextMenu(NULL);
+		else
+			((CMyShellListCtrl*)CurrentList())->ShowContextMenu(NULL);
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }

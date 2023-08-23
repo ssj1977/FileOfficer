@@ -8,8 +8,8 @@
 #define LIST_LAYOUT_SINGLE2 3
 //Layout Size Type
 #define LIST_LAYOUT_SIZE_PERCENT 0
-#define LIST_LAYOUT_SIZE_FIXED_1 1
-#define LIST_LAYOUT_SIZE_FIXED_2 2
+#define LIST_LAYOUT_SIZE_FIXED 1
+#define LIST_LAYOUT_SIZE_DYNAMIC 2
 #endif
 // CDlgCFG_Layout 대화 상자
 
@@ -24,11 +24,11 @@ public:
 	int m_nLayoutType;
 	int m_nLayoutSizeType;
 	int m_nLayoutSizePercent;
-	int m_nLayoutSizeFixed1;
-//	int m_nLayoutSizeFixed2;
+	int m_nLayoutSizeFixed;
 	int m_nToolBarButtonSize;
 	BOOL m_bToolBarVertical;
-//	BOOL m_bToolBarText;
+	BOOL m_bViewTree1;
+	BOOL m_bViewTree2;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
@@ -48,6 +48,6 @@ public:
 	afx_msg void OnBnClickedRadioLayoutSingle1();
 	afx_msg void OnBnClickedRadioLayoutSingle2();
 	afx_msg void OnBnClickedRadioLayoutPercent();
-	afx_msg void OnBnClickedRadioLayoutFixed1();
-	afx_msg void OnBnClickedRadioLayoutFixed2();
+	afx_msg void OnBnClickedRadioLayoutFixed();
+	afx_msg void OnBnClickedRadioLayoutDynamic();
 };

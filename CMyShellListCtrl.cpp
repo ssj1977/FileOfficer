@@ -8,6 +8,7 @@
 #include <map>
 #include "CDlgInput.h"
 #include "EtcFunctions.h"
+#include "CFileListContextMenu.h"
 
 #ifndef WATCH_BUFFER_SIZE
 #define WATCH_BUFFER_SIZE 32 * 1024 //네트워크 드라이브에서 버퍼 크기가 64KB 이상이 되면 오류발생(패킷 크기 제한 때문)
@@ -186,6 +187,8 @@ CMyShellListCtrl::CMyShellListCtrl()
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
 	m_posPathHistory = NULL;
 	m_bLoading = FALSE;
+	m_pColorRuleArray = NULL;
+	m_bMenuOn = FALSE;
 }
 
 CMyShellListCtrl::~CMyShellListCtrl()
@@ -203,6 +206,7 @@ BEGIN_MESSAGE_MAP(CMyShellListCtrl, CMFCShellListCtrl)
 	ON_NOTIFY(HDN_ITEMCLICKA, 0, &CMyShellListCtrl::OnHdnItemclick)
 	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CMyShellListCtrl::OnHdnItemclick)
 	ON_NOTIFY_REFLECT(LVN_ITEMCHANGED, &CMyShellListCtrl::OnLvnItemchanged)
+	ON_WM_CONTEXTMENU()
 END_MESSAGE_MAP()
 
 
@@ -1397,4 +1401,189 @@ void CMyShellListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	UpdateMsgBar();
 	*pResult = 0;
+}
+
+COLORREF CMyShellListCtrl::OnGetCellTextColor(int nRow, int nColumn)
+{
+	return ApplyColorRule(nRow, nColumn, FALSE);
+}
+
+COLORREF CMyShellListCtrl::OnGetCellBkColor(int nRow, int nColumn)
+{
+	return ApplyColorRule(nRow, nColumn, TRUE);
+}
+
+
+
+COLORREF CMyShellListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
+{
+	COLORREF color = bBk ? GetBkColor() : GetTextColor();
+	//	return color;
+	if (m_pColorRuleArray)
+	{
+		int nCount = (int)((ColorRuleArray*)m_pColorRuleArray)->GetSize();
+		BOOL bMatch = FALSE;
+		BOOL bSetName = FALSE, bSetExt = FALSE, bSetDate = FALSE; // 처음 한번만 값을 세팅하기 위해 사용
+		BOOL bValidDate = FALSE; //날짜값 검증결과 기억용
+		CString strName, strExt, strDate;
+		COleDateTime dt;
+		COleDateTime today = COleDateTime::GetCurrentTime();
+		COleDateTimeSpan differ;
+		LPAFX_SHELLITEMINFO pItemInfo = (LPAFX_SHELLITEMINFO)GetItemData(nRow);
+		BOOL bIsDir = FALSE; 		//속도를 감안하여 한번만 처리하도록 관련 값은 미리 세팅
+		//		SHFILEINFO sfi;
+		//if (SHGetFileInfo((LPCTSTR)pItemInfo->pidlFQ, 0, &sfi, sizeof(sfi), SHGFI_ATTRIBUTES))
+		//{
+			//if (sfi.dwAttributes & SFGAO_FOLDER) bIsDir = TRUE;
+		//}
+		for (int i = 0; i < nCount; i++)
+		{
+			ColorRule& cr = ((ColorRuleArray*)m_pColorRuleArray)->GetAt(i);
+			bMatch = FALSE;
+			switch (cr.nRuleType)
+			{
+			case COLOR_RULE_EXT: //확장자 조건 (대소문자 구분 없음)
+				if (bIsDir == FALSE)
+				{
+					if (bSetExt == FALSE)
+					{
+						strName = GetItemText(nRow, AFX_ShellList_ColumnName);
+						if (strName.IsEmpty() == FALSE)	strExt = Get_Ext(strName, bIsDir, FALSE);
+						bSetExt = TRUE;
+					}
+					if (strExt.IsEmpty() == FALSE)
+					{
+						for (int j = 0; j < cr.aRuleOptions.GetSize(); j++)
+						{
+							if (strExt.CompareNoCase(cr.aRuleOptions.GetAt(j)) == 0)
+							{
+								bMatch = TRUE;
+								break;
+							}
+						}
+					}
+				}
+				break;
+			case COLOR_RULE_FOLDER: //폴더일때
+				if (bIsDir != FALSE) bMatch = TRUE;
+				break;
+			case COLOR_RULE_NAME: //이름에 포함된 문자열(확장자도 포함, 대소문자 구분 있음)
+				if (bSetName == FALSE)
+				{
+					strName = GetItemText(nRow, AFX_ShellList_ColumnName);
+					bSetName = TRUE;
+				}
+				if (strName.IsEmpty() == FALSE)
+				{
+					for (int j = 0; j < cr.aRuleOptions.GetSize(); j++)
+					{
+						if (strName.Find(cr.aRuleOptions.GetAt(j)) != -1)
+						{
+							bMatch = TRUE;
+							break;
+						}
+					}
+				}
+				break;
+			case COLOR_RULE_DATE: //날짜 범위
+				if (bSetDate == FALSE)
+				{
+					strDate = GetItemText(nRow, AFX_ShellList_ColumnModified);
+					if (strDate.IsEmpty() == FALSE)
+					{
+						if (dt.ParseDateTime(strDate) != FALSE)
+						{
+							differ = today - dt;
+							bValidDate = TRUE;
+						}
+					}
+					bSetDate = TRUE;
+				}
+				if (bValidDate != FALSE)
+				{
+					if (differ.GetTotalDays() <= (_ttoi(cr.strRuleOption) - 1)) bMatch = TRUE;
+				}
+				break;
+			case COLOR_RULE_COLNAME: //이를 컬럼 전체 
+				if (nColumn == AFX_ShellList_ColumnName) bMatch = TRUE;
+				break;
+			case COLOR_RULE_COLDATE: //변경일시 컬럼 전체 
+				if (nColumn == AFX_ShellList_ColumnModified) bMatch = TRUE;
+				break;
+			case COLOR_RULE_COLSIZE: //크기 컬럼 전체 
+				if (nColumn == AFX_ShellList_ColumnSize) bMatch = TRUE;
+				break;
+			case COLOR_RULE_COLTYPE: //파일 종류 컬럼 전체 
+				if (nColumn == AFX_ShellList_ColumnType) bMatch = TRUE;
+				break;
+			}
+			if (bMatch != FALSE)
+			{
+				if (bBk == FALSE && cr.bClrText != FALSE) color = cr.clrText;
+				else if (bBk != FALSE && cr.bClrBk != FALSE) color = cr.clrBk;
+			}
+		}
+	}
+	return color;
+}
+
+
+void CMyShellListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
+{
+	if (m_bMenuOn == TRUE) return; 		//메뉴가 이미 떠있는지 체크하고 표시	
+	if (GetNextItem(-1, LVNI_SELECTED) == -1 || pWnd == NULL || point == CPoint(0,0) )
+	{
+		//빈 공간용 기본 메뉴 표시
+		ShowContextMenu(NULL);
+	}
+	else
+	{
+		CMFCShellListCtrl::OnContextMenu(pWnd, point);
+	}
+}
+
+void CMyShellListCtrl::ShowContextMenu(CPoint* pPoint)
+{
+	CPoint pt;
+	CStringArray aSelectedPath;
+	if (pPoint == NULL)
+	{	//pPoint가 NULL인 경우 무조건 빈 공간 클릭시 나오는 메뉴로 처리
+		GetCursorPos(&pt);
+	}
+	else
+	{	//pPoint가 NULL이 아니라면 현재 선택된 항목을 확인하여 처리
+		int nIndex = GetNextItem(-1, LVNI_SELECTED);
+		while (nIndex != -1)
+		{
+			aSelectedPath.Add(GetItemFullPath(nIndex));
+			nIndex = GetNextItem(nIndex, LVNI_SELECTED);
+		}
+		//현재 마우스의 좌표와 pPoint의 좌표를 비교하여 다른 경우
+		//주로 키보드의 메뉴 키를 누른 경우에 해당
+		//이 경우 pPoint 값이 (-1, -1)로 나오므로 좌표를 다시 계산해야 함
+		GetCursorPos(&pt);
+		if (pPoint->x != pt.x || pPoint->y != pt.y)
+		{
+			if (aSelectedPath.GetSize() > 0)
+			{	//선택된 항목이 있는 경우에는 첫 항목의 좌표 이용
+				nIndex = GetNextItem(-1, LVNI_SELECTED);
+				if (nIndex != -1)
+				{
+					CRect rc;
+					GetItemRect(nIndex, rc, LVIR_LABEL);
+					ClientToScreen(rc);
+					pt.SetPoint(rc.left + 5, rc.bottom - 3);
+				}
+			}
+			//else 선택된 항목이 없는 경우에는 그냥 마우스 좌표 이용
+		}
+	}
+	//현재 마우스의 좌표와 point의 좌표를 비교
+	m_bMenuOn = TRUE;
+	CFileListContextMenu context_menu;
+	context_menu.SetParent(this);
+	context_menu.SetPathArray(m_strCurrentFolder, aSelectedPath);
+	UINT idCommand = context_menu.ShowContextMenu(this, pt);
+	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
+	m_bMenuOn = FALSE;
 }

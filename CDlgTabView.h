@@ -31,6 +31,7 @@ public:
 	CFont m_font;
 	BOOL m_bSelected;
 	BOOL m_bFindMode;
+	BOOL m_bViewTree;
 	void ArrangeCtrl();
 	void ResizeToolBar(int width, int height);
 	void SetCurrentTab(int nTab);

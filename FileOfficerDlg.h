@@ -11,7 +11,7 @@ class CFileOfficerDlg : public CDialogEx
 public:
 	CFileOfficerDlg(CWnd* pParent = nullptr);
 	CWndDragBar m_wndDragMain;
-	int m_nDragBarPos; // 배치 방향에 따라 높이 또는 폭
+	int m_nDragMainPos; // 배치 방향에 따라 높이 또는 폭
 	CDlgTabView m_tv1;
 	CDlgTabView m_tv2;
 	CWnd* m_pWndFocus;

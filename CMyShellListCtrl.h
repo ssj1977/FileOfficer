@@ -84,7 +84,19 @@ public:
 	HANDLE		m_hDirectory;	//디렉토리 변경사항 모니터링을 위한 I/O Handle
 	LPVOID		m_pWatchBuffer; // ReadDirectoryChangesW 를 위한 버퍼
 	//
+	
+	// 색깔 넣기
+	void* m_pColorRuleArray;
+	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
+	virtual COLORREF OnGetCellTextColor(int nRow, int nColumn);
+	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
+	//
 
+	//팝업 메뉴
+	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	void ShowContextMenu(CPoint* pPoint); //pPoint가 NULL인 경우 현재 마우스 위치로 처리
+	BOOL m_bMenuOn;
+	//
 protected:
 	DECLARE_MESSAGE_MAP()
 public:

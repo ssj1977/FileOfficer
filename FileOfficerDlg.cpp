@@ -27,7 +27,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
 	m_nDefault_FontSize = -1;
-	m_nDragBarPos = 500;
+	m_nDragMainPos = 500;
 }
 
 void CFileOfficerDlg::DoDataExchange(CDataExchange* pDX)
@@ -69,7 +69,30 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	ModifyStyle(0, WS_CLIPCHILDREN);
 	//Create Temporary List for Default Option Values
 	m_wndDragMain.CreateDragBar(TRUE, this, 35000);
-	m_wndDragMain.m_pBarPos = &(m_nDragBarPos);
+	m_wndDragMain.m_pBarPos = &(m_nDragMainPos);
+
+	int nDefaultSize = 0;
+	if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
+	{
+		nDefaultSize= APP()->m_rcMain.Width();
+	}
+	else //if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
+	{
+		nDefaultSize = APP()->m_rcMain.Height();
+	}
+
+	if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
+	{
+		nDefaultSize = nDefaultSize * (APP()->m_nLayoutSizePercent / 100.0);
+	}
+	else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED)
+	{
+		if (APP()->m_nLayoutSizeFixed > 0) nDefaultSize = APP()->m_nLayoutSizeFixed;
+	}
+	else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_DYNAMIC)
+	{
+		nDefaultSize = APP()->m_nLayoutSizeDynamic;
+	}
 
 	CFileListCtrl list;
 	if (list.Create(WS_CHILD | LVS_REPORT | LVS_SHAREIMAGELISTS, CRect(0, 0, 0, 0), this, 0) == TRUE)
@@ -85,10 +108,15 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
 	m_tv1.m_nCurrentTab = APP()->m_nCurrentTab1;
 	m_tv2.m_nCurrentTab = APP()->m_nCurrentTab2;
+	m_tv1.m_bViewTree = APP()->m_bViewTree1;
+	m_tv2.m_bViewTree = APP()->m_bViewTree2;
+	m_tv1.m_nDragBarPos = APP()->m_nDragBarPos1;
+	m_tv2.m_nDragBarPos = APP()->m_nDragBarPos2;
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
+	m_nDragMainPos = nDefaultSize;
 	ArrangeTabLayout();
 	MoveWindow(APP()->m_rcMain, TRUE);
 	ArrangeCtrl();
@@ -140,8 +168,8 @@ void CFileOfficerDlg::ArrangeCtrl()
 	int nBarSize = 6;
 	if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
 	{
-		CRect rcTab1 = CRect(0, 0, m_nDragBarPos - 1, rc.bottom);
-		CRect rcTab2 = CRect(m_nDragBarPos + nBarSize, 0, rc.right, rc.bottom);
+		CRect rcTab1 = CRect(0, 0, m_nDragMainPos - 1, rc.bottom);
+		CRect rcTab2 = CRect(m_nDragMainPos + nBarSize, 0, rc.right, rc.bottom);
 		m_wndDragMain.m_bVertical = FALSE;
 		m_tv1.MoveWindow(rcTab1, FALSE);
 		m_wndDragMain.MoveWindow(rcTab1.right + 1, rc.top, nBarSize, rc.Height(), FALSE);
@@ -149,10 +177,10 @@ void CFileOfficerDlg::ArrangeCtrl()
 	}
 	else if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
 	{
-		if (m_nDragBarPos < rc.top) m_nDragBarPos = rc.top + 100;
-		if (m_nDragBarPos > rc.bottom) m_nDragBarPos = rc.bottom - 100;
-		CRect rcTab1 = CRect(0, 0, rc.right, m_nDragBarPos - 1);
-		CRect rcTab2 = CRect(0, m_nDragBarPos + nBarSize, rc.right, rc.bottom);
+		if (m_nDragMainPos < rc.top) m_nDragMainPos = rc.top + 100;
+		if (m_nDragMainPos > rc.bottom) m_nDragMainPos = rc.bottom - 100;
+		CRect rcTab1 = CRect(0, 0, rc.right, m_nDragMainPos - 1);
+		CRect rcTab2 = CRect(0, m_nDragMainPos + nBarSize, rc.right, rc.bottom);
 		m_wndDragMain.m_bVertical = TRUE;
 		m_tv1.MoveWindow(rcTab1, FALSE);
 		m_wndDragMain.MoveWindow(rc.left, rcTab1.bottom, rc.Width(), nBarSize, FALSE);
@@ -231,11 +259,11 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			dlg.m_nLayoutType = APP()->m_nLayoutType;
 			dlg.m_nLayoutSizeType = APP()->m_nLayoutSizeType;
 			dlg.m_nLayoutSizePercent = APP()->m_nLayoutSizePercent;
-			dlg.m_nLayoutSizeFixed1 = APP()->m_nLayoutSizeFixed1;
-			//dlg.m_nLayoutSizeFixed2 = APP()->m_nLayoutSizeFixed2;
+			dlg.m_nLayoutSizeFixed = APP()->m_nLayoutSizeFixed;
 			dlg.m_nToolBarButtonSize = APP()->m_nToolBarButtonSize;
 			dlg.m_bToolBarVertical = APP()->m_bToolBarVertical;
-			//dlg.m_bToolBarText = APP()->m_bToolBarText;
+			dlg.m_bViewTree1 = APP()->m_bViewTree1; 
+			dlg.m_bViewTree2 = APP()->m_bViewTree2; 
 
 			if (dlg.DoModal() == IDOK)
 			{
@@ -246,9 +274,14 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 				}
 				APP()->m_nLayoutSizeType = dlg.m_nLayoutSizeType;
 				APP()->m_nLayoutSizePercent = dlg.m_nLayoutSizePercent;
-				APP()->m_nLayoutSizeFixed1 = dlg.m_nLayoutSizeFixed1;
-				//APP()->m_nLayoutSizeFixed2 = dlg.m_nLayoutSizeFixed2;
+				APP()->m_nLayoutSizeFixed = dlg.m_nLayoutSizeFixed;
 				BOOL bArrangeChild = FALSE;
+				if (APP()->m_bViewTree1 != dlg.m_bViewTree1 || APP()->m_bViewTree2 != dlg.m_bViewTree2)
+				{
+					bArrangeChild = TRUE; 
+					APP()->m_bViewTree1 = dlg.m_bViewTree1; m_tv1.m_bViewTree = APP()->m_bViewTree1;
+					APP()->m_bViewTree2 = dlg.m_bViewTree2; m_tv2.m_bViewTree = APP()->m_bViewTree2;
+				}
 				if (APP()->m_nToolBarButtonSize != dlg.m_nToolBarButtonSize)
 				{
 					bArrangeChild = TRUE;
@@ -346,6 +379,11 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
 	APP()->m_aTabViewOption.SetAt(0, m_tv1.m_tvo);
 	APP()->m_aTabViewOption.SetAt(1, m_tv2.m_tvo);
+	APP()->m_bViewTree1 = m_tv1.m_bViewTree;
+	APP()->m_bViewTree2 = m_tv2.m_bViewTree;
+	APP()->m_nDragBarPos1 = m_tv1.m_nDragBarPos;
+	APP()->m_nDragBarPos2 = m_tv1.m_nDragBarPos;
+	APP()->m_nLayoutSizeDynamic = m_nDragMainPos;
 	m_tv1.Clear();
 	m_tv2.Clear();
 	CDialogEx::OnCancel();

@@ -158,14 +158,16 @@ public:
 	int m_nLayoutType;
 	int m_nLayoutSizeType;
 	int m_nLayoutSizePercent;
-	int m_nLayoutSizeFixed1;
-	//int m_nLayoutSizeFixed2;
+	int m_nLayoutSizeFixed;
+	int m_nLayoutSizeDynamic;
+	BOOL m_bViewTree1;
+	BOOL m_bViewTree2;
+	int m_nDragBarPos1;
+	int m_nDragBarPos2;
 	BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요? 
 	BOOL m_bUseFileIcon;
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;
 	BOOL m_bToolBarVertical;
-	BOOL m_bShowTree1;
-	BOOL m_bShowTree2;
 
 public:
 	void INISave(CString strFile);

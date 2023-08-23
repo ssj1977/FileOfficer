@@ -17,11 +17,11 @@ CDlgCFG_Layout::CDlgCFG_Layout(CWnd* pParent /*=nullptr*/)
 	m_nLayoutType = LIST_LAYOUT_HORIZONTAL;
 	m_nLayoutSizeType = LIST_LAYOUT_SIZE_PERCENT;
 	m_nLayoutSizePercent = 50;
-	m_nLayoutSizeFixed1 = 600;
-//	m_nLayoutSizeFixed2 = 600;
+	m_nLayoutSizeFixed = 600;
 	m_nToolBarButtonSize = 20;
 	m_bToolBarVertical = FALSE;
-//	m_bToolBarText = TRUE;
+	m_bViewTree1 = FALSE;
+	m_bViewTree2 = FALSE;
 }
 
 CDlgCFG_Layout::~CDlgCFG_Layout()
@@ -40,8 +40,8 @@ BEGIN_MESSAGE_MAP(CDlgCFG_Layout, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_SINGLE_1, &CDlgCFG_Layout::OnBnClickedRadioLayoutSingle1)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_SINGLE_2, &CDlgCFG_Layout::OnBnClickedRadioLayoutSingle2)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_PERCENT, &CDlgCFG_Layout::OnBnClickedRadioLayoutPercent)
-	ON_BN_CLICKED(IDC_RADIO_LAYOUT_FIXED_1, &CDlgCFG_Layout::OnBnClickedRadioLayoutFixed1)
-	ON_BN_CLICKED(IDC_RADIO_LAYOUT_FIXED_2, &CDlgCFG_Layout::OnBnClickedRadioLayoutFixed2)
+	ON_BN_CLICKED(IDC_RADIO_LAYOUT_FIXED, &CDlgCFG_Layout::OnBnClickedRadioLayoutFixed)
+	ON_BN_CLICKED(IDC_RADIO_LAYOUT_DYNAMIC, &CDlgCFG_Layout::OnBnClickedRadioLayoutDynamic)
 END_MESSAGE_MAP()
 
 
@@ -65,22 +65,21 @@ BOOL CDlgCFG_Layout::OnInitDialog()
 	switch (m_nLayoutSizeType)
 	{
 	case LIST_LAYOUT_SIZE_PERCENT: nID = IDC_RADIO_LAYOUT_PERCENT; OnBnClickedRadioLayoutPercent(); break;
-	case LIST_LAYOUT_SIZE_FIXED_1: nID = IDC_RADIO_LAYOUT_FIXED_1; OnBnClickedRadioLayoutFixed1(); break;
-	case LIST_LAYOUT_SIZE_FIXED_2: nID = IDC_RADIO_LAYOUT_FIXED_2; OnBnClickedRadioLayoutFixed2(); break;
+	case LIST_LAYOUT_SIZE_FIXED: nID = IDC_RADIO_LAYOUT_FIXED; OnBnClickedRadioLayoutFixed(); break;
+	case LIST_LAYOUT_SIZE_DYNAMIC: nID = IDC_RADIO_LAYOUT_DYNAMIC; OnBnClickedRadioLayoutDynamic(); break;
 	}
 	((CButton*)GetDlgItem(nID))->SetCheck(BST_CHECKED);
 
 	CString strTemp;
 	strTemp.Format(L"%d", m_nLayoutSizePercent);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_PERCENT))->SetWindowText(strTemp);
-	strTemp.Format(L"%d", m_nLayoutSizeFixed1);
+	strTemp.Format(L"%d", m_nLayoutSizeFixed);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1))->SetWindowText(strTemp);
-	//strTemp.Format(L"%d", m_nLayoutSizeFixed2);
-	//((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2))->SetWindowText(strTemp);
 	strTemp.Format(L"%d", m_nToolBarButtonSize);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_BTNSIZE))->SetWindowText(strTemp);
 	((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->SetCheck(m_bToolBarVertical ? BST_CHECKED : BST_UNCHECKED);
-	//((CButton*)GetDlgItem(IDC_CHECK_TOOLBARTEXT))->SetCheck(m_bToolBarText ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_1))->SetCheck(m_bViewTree1 ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_2))->SetCheck(m_bViewTree2 ? BST_CHECKED : BST_UNCHECKED);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
@@ -95,16 +94,18 @@ void CDlgCFG_Layout::OnOK()
 	else if (((CButton*)GetDlgItem(IDC_RADIO_LAYOUT_SINGLE_2))->GetCheck() == BST_CHECKED) m_nLayoutType = LIST_LAYOUT_SINGLE2;
 
 	if (((CButton*)GetDlgItem(IDC_RADIO_LAYOUT_PERCENT))->GetCheck() == BST_CHECKED) m_nLayoutSizeType = LIST_LAYOUT_SIZE_PERCENT;
-	else if (((CButton*)GetDlgItem(IDC_RADIO_LAYOUT_FIXED_1))->GetCheck() == BST_CHECKED) m_nLayoutSizeType = LIST_LAYOUT_SIZE_FIXED_1;
-	else if (((CButton*)GetDlgItem(IDC_RADIO_LAYOUT_FIXED_2))->GetCheck() == BST_CHECKED) m_nLayoutSizeType = LIST_LAYOUT_SIZE_FIXED_2;
+	else if (((CButton*)GetDlgItem(IDC_RADIO_LAYOUT_FIXED))->GetCheck() == BST_CHECKED) m_nLayoutSizeType = LIST_LAYOUT_SIZE_FIXED;
+	else if (((CButton*)GetDlgItem(IDC_RADIO_LAYOUT_DYNAMIC))->GetCheck() == BST_CHECKED) m_nLayoutSizeType = LIST_LAYOUT_SIZE_DYNAMIC;
 	
 	CString strTemp;
 	GetDlgItemText(IDC_EDIT_LAYOUT_PERCENT, strTemp); m_nLayoutSizePercent = _ttoi(strTemp);
-	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_1, strTemp); m_nLayoutSizeFixed1 = _ttoi(strTemp);
-	//GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_2, strTemp); m_nLayoutSizeFixed2 = _ttoi(strTemp);
+	GetDlgItemText(IDC_EDIT_LAYOUT_FIXED_1, strTemp); m_nLayoutSizeFixed = _ttoi(strTemp);
 	GetDlgItemText(IDC_EDIT_LAYOUT_BTNSIZE, strTemp); m_nToolBarButtonSize = _ttoi(strTemp);
 	m_bToolBarVertical = (((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-//	m_bToolBarText = (((CButton*)GetDlgItem(IDC_CHECK_TOOLBARTEXT))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+
+	m_bViewTree1 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_1))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bViewTree2 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_2))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+
 	CDialogEx::OnOK();
 }
 
@@ -148,17 +149,15 @@ void CDlgCFG_Layout::OnBnClickedRadioLayoutPercent()
 }
 
 
-void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed1()
+void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed()
 {
 	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(TRUE);
-//	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(FALSE);
 }
 
 
-void CDlgCFG_Layout::OnBnClickedRadioLayoutFixed2()
+void CDlgCFG_Layout::OnBnClickedRadioLayoutDynamic()
 {
 	GetDlgItem(IDC_EDIT_LAYOUT_PERCENT)->EnableWindow(FALSE);
 	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_1)->EnableWindow(FALSE);
-//	GetDlgItem(IDC_EDIT_LAYOUT_FIXED_2)->EnableWindow(TRUE);
 }
