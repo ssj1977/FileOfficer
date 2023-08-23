@@ -30,14 +30,14 @@ struct PathTabInfo
 		pWnd = NULL;
 		iSortColumn = 0;
 		bSortAscend = TRUE;
-		nCtrlType = TABTYPE_CUSTOM_LIST;
+		nCtrlType = TABTYPE_SHELL_LIST;
 	};
 	PathTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
 	{
 		this->strPath = strPath;
 		this->iSortColumn = iSortColumn;
 		this->bSortAscend = bSortAscend;
-		nCtrlType = TABTYPE_CUSTOM_LIST;
+		nCtrlType = TABTYPE_SHELL_LIST;
 		pWnd = NULL;
 	};
 	void UpdateColWidth()
