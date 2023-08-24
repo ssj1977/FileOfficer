@@ -115,7 +115,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_NEWTAB: 
 		if (lParam && ::IsWindow(((CWnd*)lParam)->GetSafeHwnd()) )
 		{
-			if (APP()->m_nListType == TABTYPE_CUSTOM_LIST)
+			if (APP()->m_nDefaultListType == TABTYPE_CUSTOM_LIST)
 			{
 				CFileListCtrl* pList = (CFileListCtrl*)lParam;
 				CString strPath;
@@ -148,13 +148,17 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_TREE_SELCHANGED:
 		if (CurrentListType() == TABTYPE_SHELL_LIST)
 		{
-			CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
 			CString strPath; m_wndFolderTree.GetItemPath(strPath, (HTREEITEM)lParam);
+			CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
 			CString strCurrentFolder;  pList->GetCurrentFolder(strCurrentFolder);
-			if (strPath.CompareNoCase(strCurrentFolder) != 0)
-			{
-				pList->LoadFolder(strPath);
-			}
+			if (strPath.CompareNoCase(strCurrentFolder) != 0) pList->LoadFolder(strPath);
+		}
+		else
+		{
+			CString strPath; m_wndFolderTree.GetItemPath(strPath, (HTREEITEM)lParam);
+			CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+			CString strCurrentFolder = pList->GetCurrentFolder();
+			if (strPath.CompareNoCase(strCurrentFolder) != 0) pList->DisplayFolder_Start(strPath);
 		}
 		break;
 	case IDM_UPDATE_FROMLIST: 
@@ -230,7 +234,7 @@ BOOL CDlgTabView::OnInitDialog()
 	if (m_aTabInfo.GetSize() == 0)
 	{
 		PathTabInfo tabInfo(L"", 0, TRUE);
-		tabInfo.nCtrlType = APP()->m_nListType;
+		tabInfo.nCtrlType = APP()->m_nDefaultListType;
 		m_aTabInfo.Add(tabInfo);
 	}
 	CString strTitle;
@@ -248,7 +252,7 @@ BOOL CDlgTabView::OnInitDialog()
 void CDlgTabView::AddFileListTab(CString strPath)
 {
 	PathTabInfo tabInfo(strPath, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
-	tabInfo.nCtrlType = APP()->m_nListType;
+	tabInfo.nCtrlType = APP()->m_nDefaultListType;
 	m_aTabInfo.Add(tabInfo);
 	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), GetPathName(strPath), 1);
 	SetCurrentTab(nTab);
@@ -440,6 +444,7 @@ void CDlgTabView::UpdateFromCurrentList()
 					m_editPath.SetWindowText(pti.strPath);
 				}
 				m_editPath.SetSel(-1); //커서를 끝으로
+				m_wndFolderTree.SelectPath(pti.strPath);
 			}
 			else
 			{

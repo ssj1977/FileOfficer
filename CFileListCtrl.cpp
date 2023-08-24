@@ -81,18 +81,20 @@ int GetFileImageIndex(CString strPath)
 {
 	SHFILEINFO sfi;
 	memset(&sfi, 0x00, sizeof(sfi));
+	DWORD flag = SHGFI_SYSICONINDEX | SHGFI_SMALLICON | SHGFI_LINKOVERLAY;
 	if (strPath.GetLength() < MAX_PATH)
 	{
-		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), SHGFI_SYSICONINDEX);
+		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), flag);
 	}
 	else
 	{
 		LPITEMIDLIST pidl = CFileListCtrl::GetPIDLfromPath(strPath);
-		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), SHGFI_SYSICONINDEX | SHGFI_PIDL);
+		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), flag | SHGFI_PIDL);
 		CoTaskMemFree(pidl);
 	}
 	return sfi.iIcon;
 }
+
 int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 {
 	if (bIsDirectory) return SI_FOLDER_CLOSED; 
@@ -106,6 +108,11 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 		//확장자가 같아도 아이콘이 다를 수 있는 파일들은 바로 조회
 		return GetFileImageIndex(strPath);
 	}
+	else //임시
+	{
+		return GetFileImageIndex(strPath);
+	}
+
 	//나머지 파일에 대해서는 맵에서 우선 찾아서 속도 향상
 	CExtMap::iterator it = mapExt.find(strExt);
 	int nImage = 0;
@@ -585,10 +592,11 @@ void CFileListCtrl::OpenSelectedItem()
 	IShellFolder* pisf = NULL;
 	//루트(데스크탑)의 IShellFolder 인터페이스 얻어오기
 	if (FAILED(SHGetDesktopFolder(&pisf))) return;
+	BOOL bIsDir = FALSE;
 	while (nItem != -1)
 	{
-		INT_PTR nType = GetItemData(nItem);
-		if (nType == ITEM_TYPE_FILE)
+		bIsDir = (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+		if (bIsDir == FALSE)
 		{
 			LPITEMIDLIST pidl = GetPIDLfromPath(GetItemFullPath(nItem));
 			if (pidl != NULL)
@@ -1336,12 +1344,13 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 	HANDLE hFind;
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
 	if (hFind == INVALID_HANDLE_VALUE) return;
-	DWORD itemData = ((fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0) ? ITEM_TYPE_FILE : ITEM_TYPE_DIRECTORY;
+	DWORD dwItemData = fd.dwFileAttributes;
 	//시각
 	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
 	CString strTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
 	//크기
-	if (itemData == ITEM_TYPE_FILE)
+	BOOL bIsDir = (dwItemData & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+	if (bIsDir == FALSE)
 	{
 		ULARGE_INTEGER filesize;
 		filesize.HighPart = fd.nFileSizeHigh;
@@ -1351,10 +1360,10 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 		if (bUpdateIcon) //시간이 걸릴수 있고 확장자가 바뀌지 않은 경우 필요가 없으므로 옵션 처리
 		{
 			//종류
-			CString strType = GetPathTypeFromMap(strPath, (itemData == ITEM_TYPE_DIRECTORY));
+			CString strType = GetPathTypeFromMap(strPath, bIsDir);
 			SetItemText(nItem, COL_TYPE, strType);
 			//아이콘
-			int nImage = GetFileImageIndexFromMap(strPath, (itemData == ITEM_TYPE_DIRECTORY));
+			int nImage = GetFileImageIndexFromMap(strPath, bIsDir);
 			SetItem(nItem, COL_NAME, LVIF_IMAGE, NULL, nImage, 0, 0, 0);
 		}
 	}
@@ -1436,7 +1445,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 	}
 	int nCount = 0;
 	CString strSize, strDate, strType;
-	DWORD itemData = 0;
+	DWORD dwItemData = 0;
 	int nItem = -1;
 	size_t nLen = 0;
 	ULARGE_INTEGER filesize;
@@ -1445,23 +1454,30 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 	CString fullpath;
 	CString strDir = Get_Folder(strPath);
 	BOOL bSelect = !(strSelectByName.IsEmpty());
+	BOOL bIsDot = FALSE;
 	while (b)
 	{
 		if (bAllowBreak == TRUE && IsLoading(this) == FALSE) // && m_bLoading == FALSE)
 		{
 			break;
 		}
-		itemData = ITEM_TYPE_FILE;
+		dwItemData = fd.dwFileAttributes;
 		nLen = _tcsclen(fd.cFileName);
-		if (nLen == 1 && fd.cFileName[0] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
-		else if (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')) itemData = ITEM_TYPE_DOTS; //Dots
-		if (itemData != ITEM_TYPE_DOTS)
+		if ( (nLen == 1 && fd.cFileName[0] == _T('.')) 
+			|| (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')))
+		{
+			bIsDot = TRUE; //Dots
+		}
+		else
+		{
+			bIsDot = FALSE;
+		}
+		if (bIsDot == FALSE)
 		{
 			tTemp = COleDateTime(fd.ftLastWriteTime);
 			strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
-				itemData = ITEM_TYPE_DIRECTORY;  //Directory
 				bIsDir = TRUE;
 				strSize.Empty();
 			}
@@ -1507,7 +1523,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 						bSelect = FALSE; //한번만
 					}
 				}
-				SetItemData(nItem, itemData);
+				SetItemData(nItem, dwItemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				SetItemText(nItem, COL_SIZE, strSize);
 				if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
@@ -1603,12 +1619,11 @@ int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int n
 	}
 	else if (nType == COL_COMP_PATH)
 	{
-		DWORD_PTR type1, type2;
-		type1 = GetItemData((int)item1);
-		type2 = GetItemData((int)item2);
-		if (type1 != type2)
+		BOOL bIsDir1 = (GetItemData((int)item1) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+		BOOL bIsDir2 = (GetItemData((int)item2) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+		if (bIsDir1 != bIsDir2)
 		{
-			nRet = int(type1 - type2);
+			nRet = int(bIsDir2 - bIsDir1);
 		}
 		else
 		{
@@ -2106,7 +2121,7 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 		COleDateTime dt;
 		COleDateTime today = COleDateTime::GetCurrentTime();
 		COleDateTimeSpan differ;
-		BOOL bIsDir = (GetItemData(nRow) == ITEM_TYPE_FILE) ? FALSE : TRUE;
+		BOOL bIsDir = (GetItemData(nRow) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
 		//속도를 감안하여 한번만 처리하도록 관련 값은 미리 세팅
 		for (int i = 0; i < nCount; i++)
 		{
@@ -2260,7 +2275,7 @@ CString CFileListCtrl::GetBarString()
 	{
 		int nSelected = GetSelectedCount();
 		int nItem = GetNextItem(-1, LVNI_SELECTED);
-		if (nSelected == 1 && GetItemData(nItem) == ITEM_TYPE_FILE)
+		if (nSelected == 1 && (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) == 0)
 		{
 			// 선택이 한개인 경우 최종 갱신 시점, 크기 표시
 			strInfo.Format(_T(" / %s / %s"), GetItemText(nItem, COL_DATE), GetItemText(nItem, COL_SIZE));

@@ -30,14 +30,14 @@ struct PathTabInfo
 		pWnd = NULL;
 		iSortColumn = 0;
 		bSortAscend = TRUE;
-		nCtrlType = TABTYPE_SHELL_LIST;
+		nCtrlType = TABTYPE_CUSTOM_LIST;
 	};
 	PathTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
 	{
 		this->strPath = strPath;
 		this->iSortColumn = iSortColumn;
 		this->bSortAscend = bSortAscend;
-		nCtrlType = TABTYPE_SHELL_LIST;
+		nCtrlType = TABTYPE_CUSTOM_LIST;
 		pWnd = NULL;
 	};
 	void UpdateColWidth()
@@ -141,7 +141,6 @@ public:
 	CFont m_fontDefault;
 	TabViewOption m_DefaultViewOption;
 	TabViewOptionArray m_aTabViewOption;
-	int m_nListType; // ShellListCtrl을 쓸지 옵션
 	 
 	HICON m_hIcon;
 	CRect m_rcMain;
@@ -168,6 +167,7 @@ public:
 	BOOL m_bUseFileIcon;
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;
 	BOOL m_bToolBarVertical;
+	BOOL m_nDefaultListType;
 
 public:
 	void INISave(CString strFile);
