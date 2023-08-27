@@ -20,8 +20,8 @@ CDlgCFG_Layout::CDlgCFG_Layout(CWnd* pParent /*=nullptr*/)
 	m_nLayoutSizeFixed = 600;
 	m_nToolBarButtonSize = 20;
 	m_bToolBarVertical = FALSE;
-	m_bViewTree1 = FALSE;
-	m_bViewTree2 = FALSE;
+	m_bViewShortCut1 = FALSE;
+	m_bViewShortCut2 = FALSE;
 }
 
 CDlgCFG_Layout::~CDlgCFG_Layout()
@@ -42,6 +42,7 @@ BEGIN_MESSAGE_MAP(CDlgCFG_Layout, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_PERCENT, &CDlgCFG_Layout::OnBnClickedRadioLayoutPercent)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_FIXED, &CDlgCFG_Layout::OnBnClickedRadioLayoutFixed)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_DYNAMIC, &CDlgCFG_Layout::OnBnClickedRadioLayoutDynamic)
+//	ON_WM_CREATE()
 END_MESSAGE_MAP()
 
 
@@ -78,8 +79,8 @@ BOOL CDlgCFG_Layout::OnInitDialog()
 	strTemp.Format(L"%d", m_nToolBarButtonSize);
 	((CEdit*)GetDlgItem(IDC_EDIT_LAYOUT_BTNSIZE))->SetWindowText(strTemp);
 	((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->SetCheck(m_bToolBarVertical ? BST_CHECKED : BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_1))->SetCheck(m_bViewTree1 ? BST_CHECKED : BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_2))->SetCheck(m_bViewTree2 ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_1))->SetCheck(m_bViewShortCut1 ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_2))->SetCheck(m_bViewShortCut2 ? BST_CHECKED : BST_UNCHECKED);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
@@ -103,8 +104,8 @@ void CDlgCFG_Layout::OnOK()
 	GetDlgItemText(IDC_EDIT_LAYOUT_BTNSIZE, strTemp); m_nToolBarButtonSize = _ttoi(strTemp);
 	m_bToolBarVertical = (((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 
-	m_bViewTree1 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_1))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	m_bViewTree2 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_TREE_2))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bViewShortCut1 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_1))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bViewShortCut2 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_2))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 
 	CDialogEx::OnOK();
 }

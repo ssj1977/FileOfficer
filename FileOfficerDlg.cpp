@@ -83,7 +83,7 @@ BOOL CFileOfficerDlg::OnInitDialog()
 
 	if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
 	{
-		nDefaultSize = nDefaultSize * (APP()->m_nLayoutSizePercent / 100.0);
+		nDefaultSize = (int)(nDefaultSize * (APP()->m_nLayoutSizePercent / 100.0));
 	}
 	else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED)
 	{
@@ -108,8 +108,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.m_aTabInfo.Copy(APP()->m_aTab2);
 	m_tv1.m_nCurrentTab = APP()->m_nCurrentTab1;
 	m_tv2.m_nCurrentTab = APP()->m_nCurrentTab2;
-	m_tv1.m_bViewTree = APP()->m_bViewTree1;
-	m_tv2.m_bViewTree = APP()->m_bViewTree2;
+	m_tv1.m_bViewShortCut = APP()->m_bViewShortCut1;
+	m_tv2.m_bViewShortCut = APP()->m_bViewShortCut2;
 	m_tv1.m_nDragBarPos = APP()->m_nDragBarPos1;
 	m_tv2.m_nDragBarPos = APP()->m_nDragBarPos2;
 	m_tv1.Create(IDD_TAB_VIEW, this);
@@ -262,8 +262,8 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			dlg.m_nLayoutSizeFixed = APP()->m_nLayoutSizeFixed;
 			dlg.m_nToolBarButtonSize = APP()->m_nToolBarButtonSize;
 			dlg.m_bToolBarVertical = APP()->m_bToolBarVertical;
-			dlg.m_bViewTree1 = APP()->m_bViewTree1; 
-			dlg.m_bViewTree2 = APP()->m_bViewTree2; 
+			dlg.m_bViewShortCut1 = APP()->m_bViewShortCut1;
+			dlg.m_bViewShortCut2 = APP()->m_bViewShortCut2;
 
 			if (dlg.DoModal() == IDOK)
 			{
@@ -276,11 +276,11 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 				APP()->m_nLayoutSizePercent = dlg.m_nLayoutSizePercent;
 				APP()->m_nLayoutSizeFixed = dlg.m_nLayoutSizeFixed;
 				BOOL bArrangeChild = FALSE;
-				if (APP()->m_bViewTree1 != dlg.m_bViewTree1 || APP()->m_bViewTree2 != dlg.m_bViewTree2)
+				if (APP()->m_bViewShortCut1 != dlg.m_bViewShortCut1 || APP()->m_bViewShortCut2 != dlg.m_bViewShortCut2)
 				{
 					bArrangeChild = TRUE; 
-					APP()->m_bViewTree1 = dlg.m_bViewTree1; m_tv1.m_bViewTree = APP()->m_bViewTree1;
-					APP()->m_bViewTree2 = dlg.m_bViewTree2; m_tv2.m_bViewTree = APP()->m_bViewTree2;
+					APP()->m_bViewShortCut1 = dlg.m_bViewShortCut1; m_tv1.m_bViewShortCut = APP()->m_bViewShortCut1;
+					APP()->m_bViewShortCut2 = dlg.m_bViewShortCut2; m_tv2.m_bViewShortCut = APP()->m_bViewShortCut2;
 				}
 				if (APP()->m_nToolBarButtonSize != dlg.m_nToolBarButtonSize)
 				{
@@ -379,8 +379,8 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
 	APP()->m_aTabViewOption.SetAt(0, m_tv1.m_tvo);
 	APP()->m_aTabViewOption.SetAt(1, m_tv2.m_tvo);
-	APP()->m_bViewTree1 = m_tv1.m_bViewTree;
-	APP()->m_bViewTree2 = m_tv2.m_bViewTree;
+	APP()->m_bViewShortCut1 = m_tv1.m_bViewShortCut;
+	APP()->m_bViewShortCut2 = m_tv2.m_bViewShortCut;
 	APP()->m_nDragBarPos1 = m_tv1.m_nDragBarPos;
 	APP()->m_nDragBarPos2 = m_tv1.m_nDragBarPos;
 	APP()->m_nLayoutSizeDynamic = m_nDragMainPos;

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "CMyEditBrowseCtrl.h"
 #include "CWndDragBar.h"
-#include "CMyShellTreeCtrl.h"
+#include "CShortCutList.h"
 #include "CMyShellListCtrl.h"
 // CDlgTabView 대화 상자
 
@@ -31,7 +31,7 @@ public:
 	CFont m_font;
 	BOOL m_bSelected;
 	BOOL m_bFindMode;
-	BOOL m_bViewTree;
+	BOOL m_bViewShortCut;
 	void ArrangeCtrl();
 	void ResizeToolBar(int width, int height);
 	void SetCurrentTab(int nTab);
@@ -46,7 +46,6 @@ public:
 	void CloseFileListTab(int nTab);
 	void Clear();
 	void SetCtrlColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
-	//void SetListColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText);
 	int GetIconType();
 	void SetIconType(int nIconType);
 	COLORREF GetMyClrText();
@@ -62,6 +61,7 @@ public:
 	void ToggleFindMode();
 	void FindNext();
 	void UpdateMsgBarFromList();
+	void OpenFolderByShortCut();
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };
@@ -82,6 +82,7 @@ public:
 	afx_msg void OnBnClickedBtnFind();
 //	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	CMyShellTreeCtrl m_wndFolderTree;
+	//CMyShellTreeCtrl m_wndFolderTree;
 	afx_msg void OnDropFiles(HDROP hDropInfo);
+	CShortCutList m_listShortCut;
 };

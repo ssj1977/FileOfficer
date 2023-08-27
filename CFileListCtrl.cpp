@@ -75,46 +75,102 @@ static CTypeMap mapType;
 
 //For directory change listner
 #define IDM_START_DIRWATCH 55010
+#define IDM_DISPLAY_PATH 55011
+
+LPITEMIDLIST GetPIDLfromPath(CString strPath)
+{
+	//경로 길이가 MAX_PATH 보다 짧다면 간단히 끝난다
+	if (strPath.GetLength() < MAX_PATH) return ILCreateFromPath(strPath);
+
+	LPITEMIDLIST pidl_result = NULL;
+	/*	IShellFolder* pisf = NULL;		//테스트 결과 ILCreateFromPath와 속도차는 거의 없었음
+		if ((SHGetDesktopFolder(&pisf)) != S_OK) return NULL;
+		if (strPath.GetLength() < MAX_PATH)
+		{
+			if (pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl_result, NULL) == S_OK)
+			{
+				strPath.ReleaseBuffer();
+				pisf->Release();
+				return pidl_result;
+			}
+		}*/
+		//경로 길이가 MAX_PATH 이상인 경우
+		//상위(폴더)경로 PIDL과 상대경로 PIDL로 쪼개서 만든 후 다시 합친다.
+		//이때 상위 폴더 경로에 대해서는 재귀적 호출로 만든다
+	CString strParent = Get_Folder(strPath);
+	CString strChild = Get_Name(strPath);
+	if (strChild.GetLength() < MAX_PATH)
+	{
+		IShellFolder* pisf = NULL;
+		if ((SHGetDesktopFolder(&pisf)) == S_OK)
+		{
+			LPITEMIDLIST pidl_parent = GetPIDLfromPath(strParent);
+			LPITEMIDLIST pidl_child = NULL;
+			if (pidl_parent)
+			{
+				if (pisf->BindToObject(pidl_parent, NULL, IID_IShellFolder, (void**)&pisf) == S_OK)
+				{
+					if (pisf->ParseDisplayName(NULL, 0, strChild.GetBuffer(0), NULL, &pidl_child, NULL) == S_OK)
+					{
+						UINT cb1 = ILGetSize(pidl_parent) - sizeof(pidl_parent->mkid.cb);
+						UINT cb2 = ILGetSize(pidl_child);
+						pidl_result = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
+						if (pidl_result != NULL)
+						{
+							CopyMemory(pidl_result, pidl_parent, cb1);
+							CopyMemory(((LPSTR)pidl_result) + cb1, pidl_child, cb2);
+						}
+						CoTaskMemFree(pidl_child);
+					}
+					strChild.ReleaseBuffer();
+				}
+				CoTaskMemFree(pidl_parent);
+			}
+		}
+		pisf->Release();
+	}
+	return pidl_result;
+}
 
 //해당 파일의 아이콘 정보를 가져온다
-int GetFileImageIndex(CString strPath)
+int GetFileImageIndex(CString strPath, DWORD dwAttribute)
 {
 	SHFILEINFO sfi;
 	memset(&sfi, 0x00, sizeof(sfi));
-	DWORD flag = SHGFI_SYSICONINDEX | SHGFI_SMALLICON | SHGFI_LINKOVERLAY;
+	sfi.dwAttributes = dwAttribute;
+	//DWORD flag = SHGFI_SYSICONINDEX | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS | SHGFI_LINKOVERLAY;
+	DWORD flag = SHGFI_ICON | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS | SHGFI_LINKOVERLAY;
 	if (strPath.GetLength() < MAX_PATH)
 	{
-		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), flag);
+		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), flag | SHGFI_USEFILEATTRIBUTES);
 	}
 	else
 	{
-		LPITEMIDLIST pidl = CFileListCtrl::GetPIDLfromPath(strPath);
+		LPITEMIDLIST pidl = GetPIDLfromPath(strPath);
 		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), flag | SHGFI_PIDL);
 		CoTaskMemFree(pidl);
 	}
 	return sfi.iIcon;
 }
 
-int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
+int GetFileImageIndexFromMap(CString strPath, DWORD dwAttribute)
 {
-	if (bIsDirectory) return SI_FOLDER_CLOSED; 
+	BOOL bIsDir = (dwAttribute & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+	if (bIsDir) return SI_FOLDER_CLOSED; 
 	if (APP()->m_bUseFileIcon == FALSE) return SI_UNKNOWN;
 
-	CString strExt = Get_Ext(strPath, bIsDirectory, TRUE);
+	CString strExt = Get_Ext(strPath, bIsDir, TRUE);
 	if (strExt.CompareNoCase(_T(".exe")) == 0
 		|| strExt.CompareNoCase(_T(".ico")) == 0
 		|| strExt.CompareNoCase(_T(".lnk")) == 0)
 	{
 		//확장자가 같아도 아이콘이 다를 수 있는 파일들은 바로 조회
-		return GetFileImageIndex(strPath);
+		return GetFileImageIndex(strPath, dwAttribute);
 	}
-	else //임시
-	{
-		return GetFileImageIndex(strPath);
-	}
-
+	CString strKey;
+	strKey.Format(_T("%s%d"), strExt, (int)dwAttribute); //속성과 경로를 합쳐서 키 생성
 	//나머지 파일에 대해서는 맵에서 우선 찾아서 속도 향상
-	CExtMap::iterator it = mapExt.find(strExt);
+	CExtMap::iterator it = mapExt.find(strKey);
 	int nImage = 0;
 	if (it == mapExt.end())
 	{
@@ -124,14 +180,16 @@ int GetFileImageIndexFromMap(CString strPath, BOOL bIsDirectory)
 		//	|| strExt.CompareNoCase(_T(".jpeg")) == 0	
 		//{} else nImage = GetFileImageIndex(strPath);
 		//맵에 없으면 현재 폴더에 임시 파일을 만들어서 아이콘 식별
-		TCHAR dir[256];
+		/*TCHAR dir[256];
 		GetCurrentDirectory(256, dir);
 		CString strTempPath = L"_tmp00_" + strExt; // 현재 폴더가 리모트일 경우가 있는지 미확인
 		HANDLE hFile = CreateFile(strTempPath, GENERIC_READ, FILE_SHARE_READ, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-		nImage = GetFileImageIndex(strTempPath);
 		if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
-		DeleteFile(strTempPath);
-		mapExt.insert(CExtMap::value_type(strExt, nImage));
+		nImage = GetFileImageIndex(strTempPath, dwAttribute);
+		DeleteFile(strTempPath);*/
+		//dwAttribute를 사용하도록 하면 파일에 직접 액세스 하지 않고 가능
+		nImage = GetFileImageIndex(strPath, dwAttribute);
+		mapExt.insert(CExtMap::value_type(strKey, nImage));
 	}
 	else
 	{
@@ -152,7 +210,7 @@ CString GetPathName(CString strPath)
 	}
 	else //if (strPath.GetLength() < MAX_PATH)
 	{
-		pidl = CFileListCtrl::GetPIDLfromPath(strPath);
+		pidl = GetPIDLfromPath(strPath);
 	}
 	if (pidl == NULL)
 	{
@@ -182,7 +240,7 @@ CString GetPathType(CString strPath)
 	{
 		LPITEMIDLIST pidl = NULL;
 		if (strPath.IsEmpty()) SHGetFolderLocation(NULL, CSIDL_DRIVES, NULL, 0, &pidl);
-		else pidl = CFileListCtrl::GetPIDLfromPath(strPath);
+		else pidl = GetPIDLfromPath(strPath);
 		if (SHGetFileInfo((LPCTSTR)pidl, -1, &sfi, sizeof(sfi), SHGFI_PIDL | SHGFI_TYPENAME))
 			strReturn = sfi.szTypeName;
 		CoTaskMemFree(pidl);
@@ -308,13 +366,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_TYPE 3
 #define COL_TOTALSPACE 3
 
-#define ITEM_TYPE_DOTS 0
-#define ITEM_TYPE_DIRECTORY 1
-#define ITEM_TYPE_FILE 2
-#define ITEM_TYPE_DRIVE 3
-#define ITEM_TYPE_UNC 4
-#define ITEM_TYPE_INVALID 5
-
+#define LIST_TYPE_INVALID -1
 #define LIST_TYPE_DRIVE 0
 #define LIST_TYPE_FOLDER 1
 #define LIST_TYPE_UNCSERVER 2
@@ -349,10 +401,10 @@ static void DeleteThreadStatus(ThreadStatusMap& mythread, CFileListCtrl* pList)
 	}
 }
 
-static ThreadStatusMap st_mapLoading;
+//static ThreadStatusMap st_mapLoading;
 static ThreadStatusMap st_mapWatching;
 
-void CFileListCtrl::SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading)
+/*void CFileListCtrl::SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading)
 {
 	SetThreadStatus(st_mapLoading, pList, bLoading);
 	//pList->m_bLoading = bLoading;
@@ -364,10 +416,11 @@ BOOL CFileListCtrl::IsLoading(CFileListCtrl* pList)
 void CFileListCtrl::DeleteLoadingStatus(CFileListCtrl* pList)
 {
 	DeleteThreadStatus(st_mapLoading, pList);
-}
-void CFileListCtrl::SetWatchingStatus(CFileListCtrl* pList, BOOL bLoading)
+}*/
+
+void CFileListCtrl::SetWatchingStatus(CFileListCtrl* pList, BOOL bWatching)
 {
-	SetThreadStatus(st_mapWatching, pList, bLoading);
+	SetThreadStatus(st_mapWatching, pList, bWatching);
 }
 BOOL CFileListCtrl::IsWatching(CFileListCtrl* pList)
 {
@@ -391,30 +444,30 @@ CFileListCtrl::CFileListCtrl()
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
 	m_nIconType = SHIL_SMALL;
-	m_pThreadLoad = NULL;
+	//m_pThreadLoad = NULL;
 	m_pThreadWatch = NULL;
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
 	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
-//	m_bLoading = FALSE;
+	m_bLoading = FALSE;
 	m_bUseFileType = TRUE;
 	m_bUseFileIcon = TRUE;
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
 	m_hDirectory = NULL;
 	m_hWatchBreak = NULL;
-	m_hLoadFinished = NULL;
+	//m_hLoadFinished = NULL;
 }
 
 CFileListCtrl::~CFileListCtrl()
 {
 	CFileListCtrl::DeleteWatchingStatus(this);
-	CFileListCtrl::DeleteLoadingStatus(this);
+	//CFileListCtrl::DeleteLoadingStatus(this);
 	free(m_pWatchBuffer);
-	CloseHandle(m_hLoadFinished);
+	//CloseHandle(m_hLoadFinished);
 }
 
-static int CMD_DirWatch = IDM_START_DIRWATCH;
+//static int CMD_DirWatch = IDM_START_DIRWATCH;
 
 BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
 	ON_WM_SIZE()
@@ -509,7 +562,6 @@ void CFileListCtrl::InitColumns(int nType)
 		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT };
 		SetColTexts(string_id, col_fmt, 4);
 	}
-	m_nType = nType;
 }
 
 CString CFileListCtrl::GetItemFullPath(int nItem)
@@ -527,61 +579,6 @@ CString CFileListCtrl::GetItemFullPath(int nItem)
 	return _T("");
 }
 
-LPITEMIDLIST CFileListCtrl::GetPIDLfromPath(CString strPath)
-{
-	//경로 길이가 MAX_PATH 보다 짧다면 간단히 끝난다
-	if (strPath.GetLength() < MAX_PATH) return ILCreateFromPath(strPath);
-
-	LPITEMIDLIST pidl_result = NULL;
-/*	IShellFolder* pisf = NULL;		//테스트 결과 ILCreateFromPath와 속도차는 거의 없었음
-	if ((SHGetDesktopFolder(&pisf)) != S_OK) return NULL;
-	if (strPath.GetLength() < MAX_PATH)
-	{
-		if (pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl_result, NULL) == S_OK)
-		{	
-			strPath.ReleaseBuffer();
-			pisf->Release();
-			return pidl_result;
-		}
-	}*/
-	//경로 길이가 MAX_PATH 이상인 경우
-	//상위(폴더)경로 PIDL과 상대경로 PIDL로 쪼개서 만든 후 다시 합친다.
-	//이때 상위 폴더 경로에 대해서는 재귀적 호출로 만든다
-	CString strParent = Get_Folder(strPath);
-	CString strChild = Get_Name(strPath);
-	if (strChild.GetLength() < MAX_PATH)
-	{
-		IShellFolder* pisf = NULL;
-		if ((SHGetDesktopFolder(&pisf)) == S_OK)
-		{
-			LPITEMIDLIST pidl_parent = GetPIDLfromPath(strParent);
-			LPITEMIDLIST pidl_child = NULL;
-			if (pidl_parent)
-			{
-				if (pisf->BindToObject(pidl_parent, NULL, IID_IShellFolder, (void**)&pisf) == S_OK)
-				{
-					if (pisf->ParseDisplayName(NULL, 0, strChild.GetBuffer(0), NULL, &pidl_child, NULL) == S_OK)
-					{
-						UINT cb1 = ILGetSize(pidl_parent) - sizeof(pidl_parent->mkid.cb);
-						UINT cb2 = ILGetSize(pidl_child);
-						pidl_result = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
-						if (pidl_result != NULL)
-						{
-							CopyMemory(pidl_result, pidl_parent, cb1);
-							CopyMemory(((LPSTR)pidl_result) + cb1, pidl_child, cb2);
-						}
-						CoTaskMemFree(pidl_child);
-					}
-					strChild.ReleaseBuffer();
-				}
-				CoTaskMemFree(pidl_parent);
-			}
-		}
-		pisf->Release();
-	}
-	return pidl_result;
-}
-
 void CFileListCtrl::OpenSelectedItem()
 {
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
@@ -592,11 +589,9 @@ void CFileListCtrl::OpenSelectedItem()
 	IShellFolder* pisf = NULL;
 	//루트(데스크탑)의 IShellFolder 인터페이스 얻어오기
 	if (FAILED(SHGetDesktopFolder(&pisf))) return;
-	BOOL bIsDir = FALSE;
 	while (nItem != -1)
 	{
-		bIsDir = (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
-		if (bIsDir == FALSE)
+		if (m_nType == LIST_TYPE_FOLDER && IsDir(nItem) == FALSE) //일반 파일
 		{
 			LPITEMIDLIST pidl = GetPIDLfromPath(GetItemFullPath(nItem));
 			if (pidl != NULL)
@@ -616,7 +611,7 @@ void CFileListCtrl::OpenSelectedItem()
 				CoTaskMemFree(pidl);
 			}
 		}
-		else //Folder
+		else //Folder or Drive
 		{
 			if (bMulti == TRUE || (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 			{   //Open in a new tab
@@ -954,45 +949,293 @@ COLORREF GetDimColor(COLORREF clr)
 void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory)
 {
 	if (::IsWindow(m_hWnd) == FALSE) return;
-	ClearThread();
-	if (IsLoading(this) == TRUE || IsWatching(this) == TRUE) return;
+	//ClearThread();
+	WatchFolder_End();
+	if (m_bLoading == TRUE || IsWatching(this) == TRUE) return;
 	m_strPrevFolder = m_strFolder;
 	m_strFolder = strFolder;
 	m_bUpdatePathHistory = bUpdatePathHistory;
-	m_pThreadLoad = AfxBeginThread(DisplayFolder_Thread, this);
+	UpdateMsgBar(IDS_NOW_LOADING);
+	COLORREF crBk = GetBkColor(); //나중에 복구하기 위해 저장
+	COLORREF crText = GetTextColor(); //나중에 복구하기 위해 저장
+	SetBkColor(GetDimColor(crBk));
+	SetTextColor(GetDimColor(crText));
+	//m_pThreadLoad = AfxBeginThread(DisplayFolder_Thread, this);
+#ifdef _DEBUG
+	clock_t s = clock();
+#endif
+	m_bLoading = TRUE;
+	LoadFolder(m_strFolder, m_bUpdatePathHistory);
+	DisplayPathItems();
+	m_bLoading = FALSE;
+#ifdef _DEBUG
+	clock_t e = clock();
+	TRACE(L"%s / Display Time : %d\n", m_strFolder, e - s);
+#endif
+	UpdateMsgBar();
+	SetBkColor(crBk);
+	SetTextColor(crText);
+	RedrawWindow();
+	WatchFolder_Begin();	//if (IsWatchable()) PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 }
 
-UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
+/*UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
 {
 	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
 	//APP()->UpdateThreadLocale();
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
 	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
 	ResetEvent(pList->m_hLoadFinished);
-	pList->UpdateMsgBar(IDS_NOW_LOADING);
-	pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
-	if (IsLoading(pList) == TRUE)
-	{   // 중단 없이 정상적으로 끝난 경우 
-		// 일반 폴더인 경우 변경사항 모니터링 쓰레드 시작
-		if (pList->IsWatchable()) pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
-		SetLoadingStatus(pList, FALSE);
+	pList->LoadFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
+	pList->DisplayPathItems();
+	SetEvent(pList->m_hLoadFinished);
+	//pList->PostMessageW(WM_COMMAND, IDM_DISPLAY_PATH, 0);
+	CoUninitialize();
+	//pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
+	//SetEvent(pList->m_hLoadFinished);
+	//SetLoadingStatus(pList, FALSE);
+	//if (pList->IsWatchable()) pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
+	//CoUninitialize();
+	return 0;
+}*/
+
+//로딩과 표시를 구분할 필요가 있음, 로딩은 쓰레드로, 표시는 일반 작업으로
+void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
+{
+	if (bUpdatePathHistory) AddPathHistory(strFolder);
+	m_aPathItem.RemoveAll();
+	//필터 초기화
+	m_strFilterInclude = L"";
+	m_strFilterExclude = L"";
+	if (strFolder.IsEmpty())
+	{
+		m_nType = LIST_TYPE_DRIVE;
+		//strFolder가 빈 값 = 루트이므로 모든 드라이브와 특수 폴더(다운로드 등) 표시
+		m_strFolder = strFolder;
+		//드라이브 
+		DWORD drives = GetLogicalDrives();
+		DWORD flag = 1;
+		int nItem = 0, nImage = 0;
+		UINT nType = 0;
+		TCHAR c = _T('A');
+		CString strDrive;
+		ULARGE_INTEGER space_free, space_total;
+		for (int i = 0; i < 32; i++)
+		{
+			if (drives & flag)
+			{
+				strDrive = (TCHAR)(c + i);
+				strDrive += _T(":");
+				nType = GetDriveType(strDrive);
+				if (nType == DRIVE_REMOVABLE) nImage = SI_REMOVABLE;
+				else if (nType == DRIVE_CDROM) nImage = SI_CDROM;
+				else if (nType == DRIVE_RAMDISK) nImage = SI_RAMDISK;
+				else if (nType == DRIVE_REMOTE) nImage = SI_NETWORKDRIVE;
+				else nImage = SI_HDD;
+				//nItem = InsertItem(GetItemCount(), strDrive, nImage);
+				//SetItemText(nItem, COL_ALIAS, GetPathName(strDrive));
+				// LIST_TYPE_DRIVE 인 경우에는 첫번째 컬럼에 이름 / 두번째 컬럼에 경로
+				PathItem pi;
+				pi.dwData = 0;
+				pi.nIconIndex = nImage;
+				pi.str0 = GetPathName(strDrive);
+				pi.str1 = strDrive;
+				m_aPathItem.Add(pi);
+				if (GetDiskFreeSpaceEx(strDrive, NULL, &space_total, &space_free))
+				{
+					pi.str2 = GetDriveSizeString(space_free);
+					pi.str3 = GetDriveSizeString(space_total);
+				}
+			}
+			flag = flag * 2;
+		}
+		//특수폴더 표시
+		KNOWNFOLDERID folder_ids[] = {
+			FOLDERID_Desktop, FOLDERID_Downloads, FOLDERID_Documents,
+			FOLDERID_Pictures, FOLDERID_Music, FOLDERID_Videos };
+		int nCount = sizeof(folder_ids) / sizeof(KNOWNFOLDERID);
+		for (int i = 0; i < nCount; i++)
+		{
+			TCHAR* path = NULL;
+			SHGetKnownFolderPath(folder_ids[i], 0, NULL, &path); //바탕화면 경로 가져오기.
+			DWORD dwAttribute = GetFileAttributes(path);
+			int nImageIndex = GetFileImageIndex(path, dwAttribute);
+			m_aPathItem.Add(PathItem(dwAttribute, nImageIndex, GetPathName(path), path));
+			CoTaskMemFree(path);
+		}
+	}
+	else if (PathIsUNCServerW(strFolder))
+	{
+		m_strFolder = strFolder;
+		m_nType = LIST_TYPE_UNCSERVER;
+		//if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
+		PSHARE_INFO_0 pBuffer, pTemp;
+		NET_API_STATUS res;
+		DWORD er = 0, tr = 0, resume = 0, i;
+		LPTSTR lpszServer = strFolder.GetBuffer();
+		int nItem = 0;
+		do
+		{
+			res = NetShareEnum(lpszServer, 0, (LPBYTE*)&pBuffer, MAX_PREFERRED_LENGTH, &er, &tr, &resume);
+			if (res == ERROR_SUCCESS || res == ERROR_MORE_DATA)
+			{
+				pTemp = pBuffer;
+				for (i = 1; i <= er; i++)
+				{
+					CString strTemp = pTemp->shi0_netname;
+					if (strTemp != "IPC$")
+					{
+						m_aPathItem.Add(PathItem(0, SI_NETWORKDRIVE, strTemp));
+					}
+					pTemp++;
+				}
+				NetApiBufferFree(pBuffer);
+			}
+		} while (res == ERROR_MORE_DATA);
+		strFolder.ReleaseBuffer();
 	}
 	else
-	{	//로딩이 중단된 경우
-		TRACE(_T("[[[ break loading ]]]\r\n"));
+	{
+		m_nType = LIST_TYPE_FOLDER;
+		CString strFind = strFolder;
+		if (strFind.Find(L'*') == -1 && strFind.Find(L'?') == -1)
+		{
+			m_strFolder = strFolder;
+			strFind = PathBackSlash(strFolder) + _T("*");
+			m_strFilterInclude = L"*";
+			m_strFilterExclude = L"";
+		}
+		else
+		{
+			strFind = strFolder;
+			m_strFolder = Get_Folder(strFolder, TRUE);
+			m_strFilterInclude = Get_Name(strFolder);
+			m_strFilterExclude = L"";
+		}
+		//////////////////////////////////////////
+		WIN32_FIND_DATA fd;
+		HANDLE hFind;
+		clock_t starttime = clock();
+		hFind = FindFirstFileExW(strFind, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			int nCount = 0;
+			CString strSize, strDate, strType;
+			DWORD dwItemData = 0;
+			size_t nLen = 0;
+			ULARGE_INTEGER filesize;
+			COleDateTime tTemp;
+			BOOL b = TRUE, bIsDir = FALSE;
+			CString fullpath;
+			CString strDir = Get_Folder(strFind);
+			BOOL bIsDot = FALSE;
+			while (b)
+			{
+				if (m_bLoading == FALSE) break;
+				dwItemData = fd.dwFileAttributes;
+				nLen = _tcsclen(fd.cFileName);
+				if ((nLen == 1 && fd.cFileName[0] == _T('.'))
+					|| (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')))
+				{
+					bIsDot = TRUE; //Dots
+				}
+				else
+				{
+					bIsDot = FALSE;
+				}
+				if (bIsDot == FALSE)
+				{
+					tTemp = COleDateTime(fd.ftLastWriteTime);
+					strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+					if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+					{
+						bIsDir = TRUE;
+						strSize.Empty();
+					}
+					else
+					{
+						bIsDir = FALSE;
+						filesize.HighPart = fd.nFileSizeHigh;
+						filesize.LowPart = fd.nFileSizeLow;
+						strSize = GetFileSizeString(filesize.QuadPart, 0);
+					}
+					fullpath = PathBackSlash(strDir) + fd.cFileName;
+					int nIconIndex = GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes);
+					if (m_bUseFileType == TRUE) strType = GetPathTypeFromMap(fullpath, bIsDir);
+					else strType = Get_Ext(fd.cFileName, bIsDir, FALSE);
+					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, 
+						fd.cFileName, strDate, strSize, strType));
+				}
+				b = FindNextFileW(hFind, &fd);
+			}
+			FindClose(hFind);
+		}
+		clock_t endtime = clock();
+		TRACE(L"%s(%d) Loading Time : %d\n", strFolder, m_aPathItem.GetSize(), endtime - starttime);
 	}
-	SetEvent(pList->m_hLoadFinished);
-	CoUninitialize();
-	return 0;
 }
 
+void CFileListCtrl::DisplayPathItems()
+{
+	DeleteAllItems();
+	if (m_nType == LIST_TYPE_INVALID) return;
+	//새로운 폴더가 기존 폴더의 상위 폴더인지 체크
+	CString strSelectedFolder; //새로운 폴더가 기존 폴더의 상위 폴더라면 여기에 기본으로 선택할 기존 폴더 저장
+	if (m_strPrevFolder.GetLength() > m_strFolder.GetLength()) //예) c:\test\temp => c:\test
+	{
+		if (m_strPrevFolder.MakeLower().Find(m_strFolder.MakeLower()) != -1) //새로운 폴더 경로가 기존 폴더에 포함
+		{	//기본 선택할 항목 찾기 
+			strSelectedFolder = m_strPrevFolder;
+			CString strParent = GetParentFolder(m_strPrevFolder);
+			//여러 단계 상위 폴더로 바로 이동하는 경우에도 찾을 수 있도록 탐색
+			while (strParent.IsEmpty() == FALSE)
+			{
+				if (strParent.CompareNoCase(m_strFolder) == 0)
+				{
+					strSelectedFolder = Get_Name(strSelectedFolder);
+					break;
+				}
+				strSelectedFolder = strParent;
+				strParent = GetParentFolder(strParent);
+			}
+		}
+	}
+	//경로 에디트 박스 갱신
+	if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
+	//필터 초기화
+	InitColumns(m_nType);
+	int nCount = (int)m_aPathItem.GetSize();
+	int nItem = -1;
+	BOOL bSelect = strSelectedFolder.IsEmpty() ? FALSE : TRUE ;
+	for (int i = 0; i < nCount; i++)
+	{
+		PathItem& pi = m_aPathItem.GetAt(i);
+		nItem = InsertItem(i, pi.str0, pi.nIconIndex);
+		SetItemText(nItem, 1, pi.str1);
+		SetItemText(nItem, 2, pi.str2);
+		SetItemText(nItem, 3, pi.str3);
+		SetItemData(nItem, pi.dwData);
+		if (bSelect == TRUE) 
+		{
+			if (strSelectedFolder.CompareNoCase(pi.str0) == 0)
+			{
+				SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+				bSelect = FALSE; //한번만 선택
+			}
+		}
+	}
+	Sort(m_nSortCol, m_bAsc);
+	int nSelected = GetNextItem(-1, LVNI_SELECTED);
+	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
+}
+
+/*
 void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 {
 	//m_bLoading = TRUE;
 	//clock_t startTime, endTime;
 	// startTime = clock();
 	DeleteAllItems();
-	//m_setPath.clear();
 	COLORREF clrBk = GetBkColor();
 	COLORREF clrText = GetTextColor();
 	COLORREF clrBk2 = GetDimColor(clrBk);
@@ -1061,7 +1304,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 					SetItemText(nItem, COL_FREESPACE, GetDriveSizeString(space_free));
 					SetItemText(nItem, COL_TOTALSPACE, GetDriveSizeString(space_total));
 				}
-				SetItemData(nItem, ITEM_TYPE_DRIVE);
+				//SetItemData(nItem, ITEM_TYPE_DRIVE);
 				if (strSelectedFolder.CompareNoCase(strDrive) == 0)
 				{
 					SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
@@ -1079,7 +1322,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 		{ 
 			TCHAR* path = NULL;
 			SHGetKnownFolderPath(folder_ids[i], 0, NULL, &path); //바탕화면 경로 가져오기.
-			nItem = InsertItem(GetItemCount(), GetPathName(path), GetFileImageIndex(path));
+			nItem = InsertItem(GetItemCount(), GetPathName(path), GetFileImageIndex(path, GetFileAttributes(path)));
 			SetItemText(nItem, COL_DRIVEPATH, path);
 			CoTaskMemFree(path);
 		}
@@ -1107,7 +1350,7 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 					if (strTemp != "IPC$")
 					{
 						nItem = InsertItem(GetItemCount(), strTemp, SI_NETWORKDRIVE);
-						SetItemData(nItem, ITEM_TYPE_UNC);
+						// SetItemData(nItem, ITEM_TYPE_UNC);
 					}
 					pTemp++;
 				}
@@ -1134,13 +1377,12 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 			m_strFilterInclude = Get_Name(strFolder);
 			m_strFilterExclude = L"";
 		}
-		//AddItemByPath으로 로딩 시작 전에 경로 에디트 박스 갱신
+		//로딩 시작 전에 경로 에디트 박스 갱신
 		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 		if (AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder) == -1)
 		{ // 해당 경로가 존재하지 않는 오류가 발생한 경우
 			InsertItem(0, IDSTR(IDS_INVALIDPATH));
-			SetItemData(0, ITEM_TYPE_INVALID);
-			//m_bValid = FALSE;
+			m_nType = LIST_TYPE_INVALID;
 		}
 		else
 		{
@@ -1150,17 +1392,11 @@ void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
 	int nSelected = GetNextItem(-1, LVNI_SELECTED);
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
 	UpdateMsgBar();
-	/*
-	endTime = clock();
-	CString strTemp;
-	strTemp.Format(_T("%s %d\r\n"), IDSTR(IDS_LOADING_TIME), endTime - startTime);
-	TRACE(strTemp);
-	*/
 	SetBkColor(clrBk);
 	SetTextColor(clrText);
 	RedrawWindow();
 	//m_bLoading = FALSE;
-}
+}*/
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
 {
@@ -1234,14 +1470,6 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 				SetItemState(-1, LVIS_SELECTED, LVIS_SELECTED);
 				return TRUE;
 			}
-		}
-	}
-	if (pMsg->message == WM_COMMAND)
-	{
-		if (pMsg->wParam == CMD_DirWatch && m_strFolder.IsEmpty() == FALSE)
-		{
-			WatchFolder_Begin();
-			return TRUE;
 		}
 	}
 	if (pMsg->message == WM_XBUTTONUP)
@@ -1344,12 +1572,11 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 	HANDLE hFind;
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
 	if (hFind == INVALID_HANDLE_VALUE) return;
-	DWORD dwItemData = fd.dwFileAttributes;
 	//시각
 	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
 	CString strTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
 	//크기
-	BOOL bIsDir = (dwItemData & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+	BOOL bIsDir = IsDir(nItem);
 	if (bIsDir == FALSE)
 	{
 		ULARGE_INTEGER filesize;
@@ -1363,7 +1590,7 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 			CString strType = GetPathTypeFromMap(strPath, bIsDir);
 			SetItemText(nItem, COL_TYPE, strType);
 			//아이콘
-			int nImage = GetFileImageIndexFromMap(strPath, bIsDir);
+			int nImage = GetFileImageIndexFromMap(strPath, fd.dwFileAttributes);
 			SetItem(nItem, COL_NAME, LVIF_IMAGE, NULL, nImage, 0, 0, 0);
 		}
 	}
@@ -1457,7 +1684,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 	BOOL bIsDot = FALSE;
 	while (b)
 	{
-		if (bAllowBreak == TRUE && IsLoading(this) == FALSE) // && m_bLoading == FALSE)
+		if (bAllowBreak == TRUE && m_bLoading == FALSE)
 		{
 			break;
 		}
@@ -1492,25 +1719,19 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 			BOOL bExist = FALSE;
 			if (bCheckExist == TRUE)
 			{
-				/*CPathSet::iterator it = m_setPath.find(fd.cFileName);
-				if (it == m_setPath.end()) m_setPath.insert(fd.cFileName);
-				else bExist = TRUE; // 7000개 수준에서도 set을 쓰나 안쓰나 속도에 큰 차이가 없음
-				if (bExist == TRUE) // 존재하는 경우 인덱스 찾기*/
+				for (int i = 0; i < GetItemCount(); i++)
 				{
-					for (int i = 0; i < GetItemCount(); i++)
+					if (GetItemText(i, COL_NAME).CompareNoCase(fd.cFileName) == 0)
 					{
-						if (GetItemText(i, COL_NAME).CompareNoCase(fd.cFileName) == 0)
-						{
-							bExist = TRUE;
-							nItem = i;
-							break;
-						}
+						bExist = TRUE;
+						nItem = i;
+						break;
 					}
 				}
 			}
 			if (bExist == FALSE)
 			{
-				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, bIsDir));
+				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes));
 				nCount++;
 			}
 			if (nItem != -1)
@@ -1570,18 +1791,12 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-BOOL CFileListCtrl::IsItemExist(int nItem)
-{
-	return PathFileExists(GetItemFullPath(nItem));
-}
-
 BOOL CFileListCtrl::DeleteInvalidItem(int nItem)
 {
 	BOOL bDeleted = FALSE;
 	if (IsItemExist(nItem) == FALSE)
 	{
 		bDeleted = DeleteItem(nItem);
-//		if (bDeleted == TRUE) m_setPath.erase(GetItemText(nItem, COL_NAME));
 	}
 	return bDeleted;
 }
@@ -1597,7 +1812,6 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 			{
 				DeleteItem(i);
 				TRACE(_T("Delete Succeeded: %s\n"), strPath);
-//				m_setPath.erase(GetItemText(i, COL_NAME));
 			}
 			else
 			{
@@ -1619,8 +1833,8 @@ int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int n
 	}
 	else if (nType == COL_COMP_PATH)
 	{
-		BOOL bIsDir1 = (GetItemData((int)item1) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
-		BOOL bIsDir2 = (GetItemData((int)item2) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+		BOOL bIsDir1 = IsDir((int)item1);
+		BOOL bIsDir2 = IsDir((int)item2);
 		if (bIsDir1 != bIsDir2)
 		{
 			nRet = int(bIsDir2 - bIsDir1);
@@ -1751,7 +1965,7 @@ void CFileListCtrl::ShowContextMenu(CPoint* pPoint)
 BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID)
 {
 	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
-	m_hLoadFinished = CreateEvent(NULL, TRUE, FALSE, NULL);
+	//m_hLoadFinished = CreateEvent(NULL, TRUE, FALSE, NULL);
 	if (b)
 	{
 		BOOL b = m_DropTarget.Register(this);
@@ -1879,7 +2093,7 @@ HRESULT CFileListCtrl::CreateShellItemArrayFromPaths(CStringArray& aPath, IShell
 	std::vector<LPITEMIDLIST> pidl_items;
 	for (int i = 0; i < aPath.GetSize(); i++)
 	{
-		LPITEMIDLIST pidl = CFileListCtrl::GetPIDLfromPath(aPath.GetAt(i));
+		LPITEMIDLIST pidl = GetPIDLfromPath(aPath.GetAt(i));
 		if (pidl) pidl_items.push_back(pidl);
 	}
 	hr = SHCreateShellItemArrayFromIDLists((UINT)pidl_items.size(),
@@ -2014,7 +2228,7 @@ void CFileListCtrl::ClearThread()
 	{
 		WatchFolder_End();
 	}
-	if (IsLoading(this) == TRUE)
+/*	if (IsLoading(this) == TRUE)
 	{
 		SetLoadingStatus(this, FALSE);
 		//로딩 쓰레드의 경우 UI를 건드리므로 단순 WaitSingleObject로 하면 UI 메시지 Deadlock 발생
@@ -2040,13 +2254,12 @@ void CFileListCtrl::ClearThread()
 			}
 		}
 		m_pThreadLoad = NULL;
-	}
+	}*/
 }
 
 void CFileListCtrl::OnDestroy()
 { 
 	ClearThread();
-//	m_setPath.clear();
 	CMFCListCtrl::OnDestroy();
 }
 
@@ -2092,21 +2305,6 @@ void CFileListCtrl::AddPathHistory(CString strPath)
 	m_posPathHistory = m_aPathHistory.AddTail(strPath);
 }
 
-BOOL CFileListCtrl::IsFirstPath()
-{
-	return m_posPathHistory == m_aPathHistory.GetHeadPosition();
-}
-
-BOOL CFileListCtrl::IsLastPath()
-{
-	return m_posPathHistory == m_aPathHistory.GetTailPosition();
-}
-
-BOOL CFileListCtrl::IsRootPath()
-{
-	return m_strFolder.IsEmpty();
-}
-
 COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 {
 	COLORREF color = bBk ? GetBkColor() : GetTextColor();
@@ -2121,7 +2319,7 @@ COLORREF CFileListCtrl::ApplyColorRule(int nRow, int nColumn, BOOL bBk)
 		COleDateTime dt;
 		COleDateTime today = COleDateTime::GetCurrentTime();
 		COleDateTimeSpan differ;
-		BOOL bIsDir = (GetItemData(nRow) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+		BOOL bIsDir = IsDir(nRow);
 		//속도를 감안하여 한번만 처리하도록 관련 값은 미리 세팅
 		for (int i = 0; i < nCount; i++)
 		{
@@ -2233,7 +2431,7 @@ void CFileListCtrl::UpdateMsgBar(int nStringID)
 
 void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	if (IsLoading(this)) return;
+	if (m_bLoading) return;
 	//if (!m_bLoading) return;
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	UpdateMsgBar();
@@ -2242,10 +2440,9 @@ void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 
 BOOL CFileListCtrl::IsWatchable() //모니터링 가능한 일반적인 폴더인 경우 TRUE 반환
 {
-	if (m_strFolder.IsEmpty()) return FALSE;
 	if (::IsWindow(GetSafeHwnd()) == FALSE) return FALSE;
 	if (m_nType != LIST_TYPE_FOLDER) return FALSE;
-	if (GetItemCount() == 1 && GetItemData(0) == ITEM_TYPE_INVALID) return FALSE;
+	if (m_strFolder.IsEmpty()) return FALSE;
 	return TRUE;
 }
 
@@ -2262,7 +2459,10 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_NEXT:		BrowsePathHistory(FALSE); break;
 	case IDM_PLAY_ITEM:		OpenSelectedItem(); break;
 	case IDM_OPEN_PARENT:	OpenParentFolder(); break;
-	default:	return CFileListCtrl::OnCommand(wParam, lParam); break;
+	case IDM_DISPLAY_PATH:	DisplayPathItems(); break;
+	//case IDM_START_DIRWATCH: WatchFolder_Begin(); break;
+	default:	
+		return CMFCListCtrl::OnCommand(wParam, lParam); break;
 	}
 	return TRUE;
 }
@@ -2275,7 +2475,7 @@ CString CFileListCtrl::GetBarString()
 	{
 		int nSelected = GetSelectedCount();
 		int nItem = GetNextItem(-1, LVNI_SELECTED);
-		if (nSelected == 1 && (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) == 0)
+		if (nSelected == 1 && IsDir(nItem) == FALSE)
 		{
 			// 선택이 한개인 경우 최종 갱신 시점, 크기 표시
 			strInfo.Format(_T(" / %s / %s"), GetItemText(nItem, COL_DATE), GetItemText(nItem, COL_SIZE));

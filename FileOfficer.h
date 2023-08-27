@@ -159,8 +159,8 @@ public:
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed;
 	int m_nLayoutSizeDynamic;
-	BOOL m_bViewTree1;
-	BOOL m_bViewTree2;
+	BOOL m_bViewShortCut1;
+	BOOL m_bViewShortCut2;
 	int m_nDragBarPos1;
 	int m_nDragBarPos2;
 	BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요? 

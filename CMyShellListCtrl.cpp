@@ -1027,6 +1027,7 @@ void CMyShellListCtrl::LoadFolder(CString strFolder, BOOL bAddHistory)
 	WatchFolder_End();
 	UpdateMsgBar(IDS_NOW_LOADING);
 	m_bLoading = TRUE;
+	clock_t s = clock();
 	if (SUCCEEDED(DisplayFolder_CustomSort(strFolder)))
 	{
 		if (GetCurrentFolder(m_strCurrentFolder))
@@ -1037,6 +1038,8 @@ void CMyShellListCtrl::LoadFolder(CString strFolder, BOOL bAddHistory)
 		GetParent()->SendMessage(WM_COMMAND, CMD_UpdateFromList, (LPARAM)this);
 	}
 	m_bLoading = FALSE;
+	clock_t e = clock();
+	TRACE(L"%s / Display Time : %d\n", strFolder, e - s);
 	UpdateMsgBar();
 }
 

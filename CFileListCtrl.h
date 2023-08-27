@@ -6,6 +6,42 @@
 #include <set>
 typedef set<CString> CPathSet; //중복이름 체크용 맵 해당하는 이미지맵의 번호를 기억*/
 
+struct PathItem
+{
+	CString str0; //COL_NAME, COL_DRIVENAME
+	CString str1; //COL_DATE, COL_DRIVEPATH
+	CString str2; //COL_SIZE, COL_FREESPACE
+	CString str3; //COL_TYPE, COL_TOTALSPACE
+	DWORD dwData; 
+	int nIconIndex;
+
+	PathItem()
+	{
+		dwData = 0;
+		nIconIndex = 0;
+	};
+	PathItem(DWORD _dwData, int _nIconIndex, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"")
+	{
+		this->dwData = _dwData;
+		this->nIconIndex = _nIconIndex;
+		this->str0 = _str0;
+		this->str1 = _str1;
+		this->str2 = _str2;
+		this->str3 = _str3;
+	};
+	void operator= (const PathItem& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		this->dwData = pti.dwData;
+		this->nIconIndex = pti.nIconIndex;
+		this->str0 = pti.str0;
+		this->str1 = pti.str1;
+		this->str2 = pti.str2;
+		this->str3 = pti.str3;
+	};
+};
+typedef CArray<PathItem> PathItemArray;
+
+
 class CFileListCtrl : public CMFCListCtrl
 {
 	DECLARE_DYNAMIC(CFileListCtrl)
@@ -18,8 +54,6 @@ public:
 	int AddItemByPath(CString strPath, BOOL bCheckExist = FALSE, BOOL bAllowBreak = TRUE, CString strSelectByName = _T(""));
 	void UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon);
 	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE, BOOL bForceUpdate = FALSE);
-	void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
-	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void InitColumns(int nType);
 	void SetColTexts(int* pStringId, int* pColFmt, int size);
 	void ShowContextMenu(CPoint* pPoint); //pPoint가 NULL인 경우 현재 마우스 위치로 처리
@@ -29,7 +63,6 @@ public:
 	CString GetBarString();
 	BOOL DeleteInvalidItem(int nItem);
 	void DeleteInvalidPath(CString strPath);
-	BOOL IsItemExist(int nItem);
 	void PasteFiles(CStringArray& aOldPath, BOOL bMove);
 	void ClipBoardExport(BOOL bCut);
 	void ClipBoardImport();
@@ -38,19 +71,24 @@ public:
 	CString m_strPrevFolder; //폴더간 이동시 하위 폴더에서 상위폴더로 이동하는 경우 자동으로 해당 하위폴더를 목록 중에서 선택하기 위해 이용
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
-	CList<CString> m_aPathHistory;
-	POSITION m_posPathHistory;
-	BOOL m_bUpdatePathHistory;
+
 	void* m_pColorRuleArray;
 	void BrowsePathHistory(BOOL bPrevious);
 	void AddPathHistory(CString strPath);
-	BOOL IsFirstPath();
-	BOOL IsLastPath();
-	BOOL IsRootPath();
-	//	CPathSet m_setPath;
+	inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
+	inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
+
+	//경로 히스토리 관련
+	CList<CString> m_aPathHistory;
+	POSITION m_posPathHistory;
+	BOOL m_bUpdatePathHistory;
+	inline BOOL IsFirstPath() { return m_posPathHistory == m_aPathHistory.GetHeadPosition(); };
+	inline BOOL IsLastPath() { return m_posPathHistory == m_aPathHistory.GetTailPosition(); };
+	inline BOOL IsRootPath() { return m_strFolder.IsEmpty(); };	
+	
+	//상태 확인
 	BOOL m_bAsc;
 	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
-	//BOOL m_bLoading; //IsLoading과 중복되지만 OnLvnItemchanged의 빠른 처리를 위해 사용
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	BOOL m_bUseFileIcon;
 	CUIntArray m_aColWidth;
@@ -72,15 +110,21 @@ public:
 	
 	//기타 static 함수들
 	static void ClearPreviousSelection(); // 잘라내기 기능의 아이콘 음영 처리 초기화
-	static LPITEMIDLIST GetPIDLfromPath(CString strPath); //MAX_PATH를 초과하는 경로에 대해서도 처리해 준다.
 	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
 
-	// 파일목록 불러오기 쓰레드 처리
-	CWinThread* m_pThreadLoad;
-	static UINT DisplayFolder_Thread(void* lParam);
-	static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
-	static BOOL IsLoading(CFileListCtrl* pList);
-	static void DeleteLoadingStatus(CFileListCtrl* pList);
+	// 파일목록 불러오기 => 쓰레드를 쓰지 않는 쪽이 안정성과 스피드 면에서 유리
+	//CWinThread* m_pThreadLoad;
+	//static UINT DisplayFolder_Thread(void* lParam);
+	//static void SetLoadingStatus(CFileListCtrl* pList, BOOL bLoading);
+	//static BOOL IsLoading(CFileListCtrl* pList);
+	//static void DeleteLoadingStatus(CFileListCtrl* pList);
+	//HANDLE m_hLoadFinished; //디렉토리 로딩이 끝나거나 중단될때 발생하는 이벤트 핸들
+	//void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
+	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
+	BOOL m_bLoading; //로딩 중인지 확인용
+	void LoadFolder(CString strFolder, BOOL bUpdatePathHistory);
+	void DisplayPathItems();
+	PathItemArray m_aPathItem;
 
 	// 변경사항 모니터링용 쓰레드 처리
 	BOOL IsWatchable();
@@ -91,7 +135,7 @@ public:
 	void WatchFolder_Suspend();
 	void WatchEventHandler();
 	static UINT WatchFolder_Thread(void* lParam);
-	static void SetWatchingStatus(CFileListCtrl* pList, BOOL bLoading);
+	static void SetWatchingStatus(CFileListCtrl* pList, BOOL Watching);
 	static BOOL IsWatching(CFileListCtrl* pList);
 	static void DeleteWatchingStatus(CFileListCtrl* pList);
 	HANDLE m_hWatchBreak; //디렉토리 모니터링을 중단할때 필요한 이벤트
@@ -99,7 +143,6 @@ public:
 	OVERLAPPED	m_overlap_watch; //비동기 IO를 위한 OVERLAPPED개체 상속 구조체, Callback을 위한 객체 포인터 포함
 	HANDLE		m_hDirectory;	//디렉토리 변경사항 모니터링을 위한 I/O Handle
 	LPVOID		m_pWatchBuffer; // ReadDirectoryChangesW 를 위한 버퍼
-	HANDLE m_hLoadFinished; //디렉토리 모니터링을 중단할때 필요한 이벤트
 
 	void ClearThread(); // 현재 작동중인 쓰레드들을 중단
 	void UpdateMsgBar(int nStringID = 0);

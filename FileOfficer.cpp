@@ -41,8 +41,8 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed = 600;
 	m_bUseFileType = FALSE;
-	m_bViewTree1 = TRUE;
-	m_bViewTree2 = TRUE;
+	m_bViewShortCut1 = TRUE;
+	m_bViewShortCut2 = TRUE;
 	m_nDragBarPos1 = 200;
 	m_nDragBarPos2 = 200;
 	m_nToolBarButtonSize = 20;
@@ -206,8 +206,8 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("LayoutSizeFixed=%d\r\n"), m_nLayoutSizeFixed); strData += strLine;
 	strLine.Format(_T("LayoutSizeDynamic=%d\r\n"), m_nLayoutSizeDynamic); strData += strLine;
 	strLine.Format(_T("DefaultListType=%d\r\n"), m_nDefaultListType); strData += strLine;
-	strLine.Format(_T("ViewTree1=%d\r\n"), m_bViewTree1); strData += strLine;
-	strLine.Format(_T("ViewTree2=%d\r\n"), m_bViewTree2); strData += strLine;
+	strLine.Format(_T("ViewShortCut1=%d\r\n"), m_bViewShortCut1); strData += strLine;
+	strLine.Format(_T("ViewShortCut2=%d\r\n"), m_bViewShortCut2); strData += strLine;
 	strLine.Format(_T("DragBarPos1=%d\r\n"), m_nDragBarPos1); strData += strLine;
 	strLine.Format(_T("DragBarPos2=%d\r\n"), m_nDragBarPos2); strData += strLine;
 	strLine.Format(_T("ToolBarButtonSize=%d\r\n"), m_nToolBarButtonSize); strData += strLine;
@@ -264,8 +264,8 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed")) == 0) m_nLayoutSizeFixed = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeDynamic")) == 0) m_nLayoutSizeDynamic = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("DefaultListType")) == 0) m_nDefaultListType = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("ViewTree1")) == 0) m_bViewTree1 = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("ViewTree2")) == 0) m_bViewTree2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ViewShortCut1")) == 0) m_bViewShortCut1 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ViewShortCut2")) == 0) m_bViewShortCut2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("DragBarPos1")) == 0) m_nDragBarPos1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("DragBarPos2")) == 0) m_nDragBarPos2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ToolBarButtonSize")) == 0) m_nToolBarButtonSize = _ttoi(str2);

@@ -206,6 +206,7 @@
     <ClInclude Include="CMyEditBrowseCtrl.h" />
     <ClInclude Include="CMyShellListCtrl.h" />
     <ClInclude Include="CMyShellTreeCtrl.h" />
+    <ClInclude Include="CShortCutList.h" />
     <ClInclude Include="CWndDragBar.h" />
     <ClInclude Include="CWndDragPane.h" />
     <ClInclude Include="EtcFunctions.h" />
@@ -228,6 +229,7 @@
     <ClCompile Include="CMyEditBrowseCtrl.cpp" />
     <ClCompile Include="CMyShellListCtrl.cpp" />
     <ClCompile Include="CMyShellTreeCtrl.cpp" />
+    <ClCompile Include="CShortCutList.cpp" />
     <ClCompile Include="CWndDragBar.cpp" />
     <ClCompile Include="CWndDragPane.cpp" />
     <ClCompile Include="EtcFunctions.cpp" />

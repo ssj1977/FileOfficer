@@ -27,8 +27,8 @@ public:
 	int m_nLayoutSizeFixed;
 	int m_nToolBarButtonSize;
 	BOOL m_bToolBarVertical;
-	BOOL m_bViewTree1;
-	BOOL m_bViewTree2;
+	BOOL m_bViewShortCut1;
+	BOOL m_bViewShortCut2;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
@@ -50,4 +50,5 @@ public:
 	afx_msg void OnBnClickedRadioLayoutPercent();
 	afx_msg void OnBnClickedRadioLayoutFixed();
 	afx_msg void OnBnClickedRadioLayoutDynamic();
+//	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 };
