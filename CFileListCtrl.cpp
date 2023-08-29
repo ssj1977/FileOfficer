@@ -140,7 +140,7 @@ int GetFileImageIndex(CString strPath, DWORD dwAttribute)
 	sfi.dwAttributes = dwAttribute;
 	//DWORD flag = SHGFI_SYSICONINDEX | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS | SHGFI_LINKOVERLAY;
 	DWORD flag = SHGFI_ICON | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS | SHGFI_LINKOVERLAY;
-	if (strPath.GetLength() < MAX_PATH)
+	if (strPath.GetLength() < MAX_PATH && dwAttribute != INVALID_FILE_ATTRIBUTES)
 	{
 		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), flag | SHGFI_USEFILEATTRIBUTES);
 	}
@@ -1059,7 +1059,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 			TCHAR* path = NULL;
 			SHGetKnownFolderPath(folder_ids[i], 0, NULL, &path); //바탕화면 경로 가져오기.
 			DWORD dwAttribute = GetFileAttributes(path);
-			int nImageIndex = GetFileImageIndex(path, dwAttribute);
+			int nImageIndex = GetFileImageIndex(path, INVALID_FILE_ATTRIBUTES); //특수폴더이므로 아이콘을 직접 가져온다
 			m_aPathItem.Add(PathItem(dwAttribute, nImageIndex, GetPathName(path), path));
 			CoTaskMemFree(path);
 		}
