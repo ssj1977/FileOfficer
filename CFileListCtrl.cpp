@@ -263,6 +263,21 @@ CString GetPathTypeFromMap(CString strPath, BOOL bIsDirectory)
 	return (*it).second;
 }
 
+HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array)
+{
+	HRESULT hr = S_OK;
+	std::vector<LPITEMIDLIST> pidl_items;
+	for (int i = 0; i < aPath.GetSize(); i++)
+	{
+		LPITEMIDLIST pidl = GetPIDLfromPath(aPath.GetAt(i));
+		if (pidl) pidl_items.push_back(pidl);
+	}
+	hr = SHCreateShellItemArrayFromIDLists((UINT)pidl_items.size(),
+		(LPCITEMIDLIST*)pidl_items.data(), &shi_array);
+	for (auto& pid : pidl_items) CoTaskMemFree(pid);
+	pidl_items.clear();
+	return hr;
+}
 
 /*void StringArray2szzBuffer(CStringArray& aPath, TCHAR*& pszzBuf)
 {
@@ -440,7 +455,7 @@ CFileListCtrl::CFileListCtrl()
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateFromList = 0;
 	CMD_UpdateBar = 0;
-	CMD_OpenNewTab = 0;
+	CMD_OpenNewTabByList = 0;
 	m_bAsc = TRUE;
 	m_nSortCol = 0 ;
 	m_nIconType = SHIL_SMALL;
@@ -615,7 +630,7 @@ void CFileListCtrl::OpenSelectedItem()
 		{
 			if (bMulti == TRUE || (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 			{   //Open in a new tab
-				GetParent()->SendMessage(WM_COMMAND, CMD_OpenNewTab, (DWORD_PTR)this);
+				GetParent()->SendMessage(WM_COMMAND, CMD_OpenNewTabByList, (DWORD_PTR)this);
 			}
 			else
 			{
@@ -678,8 +693,8 @@ CString GetFileSizeString(ULONGLONG nSize, int nUnit)
 		}
 		pBuf[99] = _T('\0');
 		strReturn = (LPCTSTR)pBuf;
-		if (nUnit == 0) strReturn += "B";
-		else if (nUnit == 1) strReturn += "KB";
+		//if (nUnit == 0) strReturn += "B";
+		if (nUnit == 1) strReturn += "KB";
 		else if (nUnit == 2) strReturn += "MB";
 		else if (nUnit == 3) strReturn += "GB";
 		else if (nUnit == 4) strReturn += "TB";
@@ -1777,29 +1792,9 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			GlobalFree(hgDrop);
 		}
-		else
-		{
-/*			BOOL bDeleted = FALSE;
-			int nItem = GetNextItem(-1, LVNI_SELECTED);
-			while (nItem != -1)
-			{
-				bDeleted = DeleteInvalidItem(nItem);
-				if (bDeleted == TRUE) nItem -= 1;
-				nItem = GetNextItem(nItem, LVNI_SELECTED);
-			}*/
-		}
 	}
 }
 
-BOOL CFileListCtrl::DeleteInvalidItem(int nItem)
-{
-	BOOL bDeleted = FALSE;
-	if (IsItemExist(nItem) == FALSE)
-	{
-		bDeleted = DeleteItem(nItem);
-	}
-	return bDeleted;
-}
 
 void CFileListCtrl::DeleteInvalidPath(CString strPath)
 {
@@ -1973,30 +1968,14 @@ BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UI
 	return b;
 }
 
-struct CListItem
-{
-	CListItem() { pList = NULL; nIndex = -1; };
-	CListItem(CListCtrl* p, int n) { pList = p; nIndex = n; };
-	CListCtrl* pList;
-	int nIndex;
-};
-static CArray<CListItem> st_selected;
-
-void CFileListCtrl::ClearPreviousSelection()
-{
-	for (int i = 0; i < st_selected.GetCount(); i++)
-	{
-		st_selected[i].pList->SetItemState(st_selected[i].nIndex, 0, LVIS_CUT);
-	}
-	st_selected.RemoveAll();
-}
 
 HGLOBAL CFileListCtrl::GetOleDataForClipboard(int nState)
 {
+	ListItemArray& aCut = APP()->m_aCutItem;
 	CStringList aFiles;
 	CString strPath;
 	size_t uBuffSize = 0;
-	ClearPreviousSelection();
+	APP()->ClearPreviousCutItems();
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return NULL;
 	while (nItem != -1)
@@ -2004,7 +1983,7 @@ HGLOBAL CFileListCtrl::GetOleDataForClipboard(int nState)
 		strPath = GetItemFullPath(nItem);
 		aFiles.AddTail(strPath);
 		SetItemState(nItem, nState, LVIS_CUT);
-		st_selected.Add(CListItem(this, nItem));
+		aCut.Add(CListItem(this, nItem));
 		nItem = GetNextItem(nItem, LVNI_SELECTED);
 		uBuffSize += strPath.GetLength() + 1;
 	}
@@ -2084,24 +2063,10 @@ void CFileListCtrl::ClipBoardImport()
 		}
 		EmptyClipboard();
 		CloseClipboard();
+		APP()->ClearPreviousCutItems();
 	}
 }
 
-HRESULT CFileListCtrl::CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array)
-{
-	HRESULT hr = S_OK;
-	std::vector<LPITEMIDLIST> pidl_items;
-	for (int i = 0; i < aPath.GetSize(); i++)
-	{
-		LPITEMIDLIST pidl = GetPIDLfromPath(aPath.GetAt(i));
-		if (pidl) pidl_items.push_back(pidl);
-	}
-	hr = SHCreateShellItemArrayFromIDLists((UINT)pidl_items.size(),
-		(LPCITEMIDLIST*)pidl_items.data(), &shi_array);
-	for (auto& pid : pidl_items) CoTaskMemFree(pid);
-	pidl_items.clear();
-	return hr;
-}
 
 void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 {
@@ -2135,13 +2100,18 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	}
 	//UI에서 삭제하기
 	nItem = GetNextItem(-1, LVNI_SELECTED);
-	BOOL bDeleted = FALSE;
 	this->SetRedraw(FALSE);
 	while (nItem != -1)
 	{
-		bDeleted = DeleteInvalidItem(nItem); //실제로 지워졌는지 확인
-		if (bDeleted == FALSE) SetItemState(nItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
-		nItem = GetNextItem(-1, LVNI_SELECTED);
+		if (IsItemExist(nItem))
+		{	//실제로는 안지워진 경우
+			SetItemState(nItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
+			nItem = GetNextItem(-1, LVNI_SELECTED);
+		}
+		else
+		{	//지워진 경우
+			DeleteItem(nItem);
+		}
 	}
 	UpdateMsgBar();
 	this->SetRedraw(TRUE);

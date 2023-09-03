@@ -112,6 +112,10 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.m_bViewShortCut = APP()->m_bViewShortCut2;
 	m_tv1.m_nDragBarPos = APP()->m_nDragBarPos1;
 	m_tv2.m_nDragBarPos = APP()->m_nDragBarPos2;
+	m_tv1.m_listShortCut.m_nIconType = APP()->m_nShortCutIconType1;
+	m_tv2.m_listShortCut.m_nIconType = APP()->m_nShortCutIconType2;
+	m_tv1.m_listShortCut.m_nViewType = APP()->m_nShortCutViewType1;
+	m_tv2.m_listShortCut.m_nViewType = APP()->m_nShortCutViewType2;
 	m_tv1.Create(IDD_TAB_VIEW, this);
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
@@ -120,6 +124,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	ArrangeTabLayout();
 	MoveWindow(APP()->m_rcMain, TRUE);
 	ArrangeCtrl();
+	m_tv1.PathArrayImport(APP()->m_aShortCutPath1);
+	m_tv2.PathArrayImport(APP()->m_aShortCutPath2);
 
 	AddClipboardFormatListener(GetSafeHwnd());
 	DragAcceptFiles(TRUE);
@@ -381,9 +387,15 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_aTabViewOption.SetAt(1, m_tv2.m_tvo);
 	APP()->m_bViewShortCut1 = m_tv1.m_bViewShortCut;
 	APP()->m_bViewShortCut2 = m_tv2.m_bViewShortCut;
+	APP()->m_nShortCutIconType1 = m_tv1.m_listShortCut.m_nIconType;
+	APP()->m_nShortCutIconType2 = m_tv2.m_listShortCut.m_nIconType;
+	APP()->m_nShortCutViewType1 = m_tv1.m_listShortCut.m_nViewType;
+	APP()->m_nShortCutViewType2 = m_tv2.m_listShortCut.m_nViewType;
 	APP()->m_nDragBarPos1 = m_tv1.m_nDragBarPos;
 	APP()->m_nDragBarPos2 = m_tv1.m_nDragBarPos;
 	APP()->m_nLayoutSizeDynamic = m_nDragMainPos;
+	m_tv1.PathArrayExport(APP()->m_aShortCutPath1);
+	m_tv2.PathArrayExport(APP()->m_aShortCutPath2);
 	m_tv1.Clear();
 	m_tv2.Clear();
 	CDialogEx::OnCancel();

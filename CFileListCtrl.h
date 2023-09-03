@@ -29,7 +29,7 @@ struct PathItem
 		this->str2 = _str2;
 		this->str3 = _str3;
 	};
-	void operator= (const PathItem& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	PathItem(const PathItem& pti)
 	{
 		this->dwData = pti.dwData;
 		this->nIconIndex = pti.nIconIndex;
@@ -37,6 +37,16 @@ struct PathItem
 		this->str1 = pti.str1;
 		this->str2 = pti.str2;
 		this->str3 = pti.str3;
+	}
+	PathItem& operator= (const PathItem& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		this->dwData = pti.dwData;
+		this->nIconIndex = pti.nIconIndex;
+		this->str0 = pti.str0;
+		this->str1 = pti.str1;
+		this->str2 = pti.str2;
+		this->str3 = pti.str3;
+		return *this;
 	};
 };
 typedef CArray<PathItem> PathItemArray;
@@ -61,7 +71,6 @@ public:
 	CString GetCurrentFolder();
 	CString GetCurrentItemPath();
 	CString GetBarString();
-	BOOL DeleteInvalidItem(int nItem);
 	void DeleteInvalidPath(CString strPath);
 	void PasteFiles(CStringArray& aOldPath, BOOL bMove);
 	void ClipBoardExport(BOOL bCut);
@@ -99,7 +108,7 @@ public:
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateFromList;
 	int CMD_UpdateBar;
-	int CMD_OpenNewTab;
+	int CMD_OpenNewTabByList;
 	CMyDropTarget m_DropTarget;
 	void ProcessDropFiles(HDROP hDropInfo, BOOL bMove);
 	void DeleteSelected(BOOL bRecycle);
@@ -108,10 +117,6 @@ public:
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
 	void ClearSelected();
 	
-	//기타 static 함수들
-	static void ClearPreviousSelection(); // 잘라내기 기능의 아이콘 음영 처리 초기화
-	static HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
-
 	// 파일목록 불러오기 => 쓰레드를 쓰지 않는 쪽이 안정성과 스피드 면에서 유리
 	//CWinThread* m_pThreadLoad;
 	//static UINT DisplayFolder_Thread(void* lParam);

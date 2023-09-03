@@ -51,7 +51,7 @@ struct PathTabInfo
 			aColWidth.Add((UINT)pList->GetColumnWidth(i));
 		}
 	};
-	void operator= (const PathTabInfo& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	PathTabInfo(const PathTabInfo& pti)
 	{
 		this->strPath = pti.strPath;
 		this->iSortColumn = pti.iSortColumn;
@@ -60,6 +60,17 @@ struct PathTabInfo
 		this->nCtrlType = pti.nCtrlType;
 		this->aColWidth.RemoveAll();
 		this->aColWidth.Copy(pti.aColWidth);
+	}
+	PathTabInfo& operator= (const PathTabInfo& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
+	{
+		this->strPath = pti.strPath;
+		this->iSortColumn = pti.iSortColumn;
+		this->bSortAscend = pti.bSortAscend;
+		this->pWnd = pti.pWnd;
+		this->nCtrlType = pti.nCtrlType;
+		this->aColWidth.RemoveAll();
+		this->aColWidth.Copy(pti.aColWidth);
+		return *this;
 	};
 };
 typedef CArray<PathTabInfo> PathTabInfoArray;
@@ -118,7 +129,7 @@ struct TabViewOption
 	TabViewOption();
 	TabViewOption(const TabViewOption& tvo);
 	//CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
-	void operator= (const TabViewOption& tvo) {	CopyTabViewOption(tvo);	};
+	TabViewOption& operator= (const TabViewOption& tvo) { CopyTabViewOption(tvo); return *this; };
 	void CopyTabViewOption(const TabViewOption& tvo);
 	CString StringExport();
 	void StringImport(CString strData);
@@ -126,6 +137,16 @@ struct TabViewOption
 typedef CArray<TabViewOption> TabViewOptionArray;
 #endif
 
+#ifndef CListItem
+struct CListItem
+{
+	CListItem() { pList = NULL; nIndex = -1; };
+	CListItem(CListCtrl* p, int n) { pList = p; nIndex = n; };
+	CListCtrl* pList;
+	int nIndex;
+};
+typedef CArray<CListItem> ListItemArray;
+#endif
 
 // CFileOfficerApp:
 // 이 클래스의 구현에 대해서는 FileOfficer.cpp을(를) 참조하세요.
@@ -141,7 +162,7 @@ public:
 	CFont m_fontDefault;
 	TabViewOption m_DefaultViewOption;
 	TabViewOptionArray m_aTabViewOption;
-	 
+
 	HICON m_hIcon;
 	CRect m_rcMain;
 	CString m_strINIPath;
@@ -159,8 +180,6 @@ public:
 	int m_nLayoutSizePercent;
 	int m_nLayoutSizeFixed;
 	int m_nLayoutSizeDynamic;
-	BOOL m_bViewShortCut1;
-	BOOL m_bViewShortCut2;
 	int m_nDragBarPos1;
 	int m_nDragBarPos2;
 	BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요? 
@@ -168,6 +187,18 @@ public:
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;
 	BOOL m_bToolBarVertical;
 	BOOL m_nDefaultListType;
+	BOOL m_bViewShortCut1;
+	BOOL m_bViewShortCut2;
+	CStringArray m_aShortCutPath1;
+	CStringArray m_aShortCutPath2;
+	int m_nShortCutViewType1; 
+	int m_nShortCutViewType2;
+	int m_nShortCutIconType1;
+	int m_nShortCutIconType2;
+
+	//선택항목 관리, CUT 기능에서 음영 처리의 일관성 유지에 필요
+	ListItemArray m_aCutItem;
+	void ClearPreviousCutItems();
 
 public:
 	void INISave(CString strFile);

@@ -51,6 +51,10 @@ CFileOfficerApp::CFileOfficerApp()
 	m_bUseFileIcon = TRUE;
 	m_bUseFileType = TRUE;
 	m_nDefaultListType = TABTYPE_CUSTOM_LIST;
+	m_nShortCutViewType1 = LVS_ICON;
+	m_nShortCutViewType2 = LVS_ICON;
+	m_nShortCutIconType1 = SHIL_EXTRALARGE;
+	m_nShortCutIconType2 = SHIL_EXTRALARGE;
 }
 
 
@@ -187,6 +191,25 @@ static void String2UIntArray(CString& str, CUIntArray& array)
 	}
 }
 
+void CFileOfficerApp::ClearPreviousCutItems()
+{
+	ListItemArray& aCut = APP()->m_aCutItem;
+	CListCtrl* pList = NULL;
+	for (int i = 0; i < aCut.GetCount(); i++)
+	{
+		pList = aCut[i].pList;
+		if (pList != NULL && ::IsWindow(pList->GetSafeHwnd()) != FALSE)
+		{
+			int nItem = aCut[i].nIndex;
+			if (nItem >= 0 && nItem < pList->GetItemCount())
+			{
+				pList->SetItemState(aCut[i].nIndex, 0, LVIS_CUT);
+			}
+		}
+	}
+	aCut.RemoveAll();
+}
+
 void CFileOfficerApp::INISave(CString strFile)
 {
 	CString strData, strLine, str1, str2;
@@ -208,6 +231,10 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("DefaultListType=%d\r\n"), m_nDefaultListType); strData += strLine;
 	strLine.Format(_T("ViewShortCut1=%d\r\n"), m_bViewShortCut1); strData += strLine;
 	strLine.Format(_T("ViewShortCut2=%d\r\n"), m_bViewShortCut2); strData += strLine;
+	strLine.Format(_T("ShortCutViewType1=%d\r\n"), m_nShortCutViewType1); strData += strLine;
+	strLine.Format(_T("ShortCutViewType2=%d\r\n"), m_nShortCutViewType2); strData += strLine;
+	strLine.Format(_T("ShortCutIconType1=%d\r\n"), m_nShortCutIconType1); strData += strLine;
+	strLine.Format(_T("ShortCutIconType2=%d\r\n"), m_nShortCutIconType2); strData += strLine;
 	strLine.Format(_T("DragBarPos1=%d\r\n"), m_nDragBarPos1); strData += strLine;
 	strLine.Format(_T("DragBarPos2=%d\r\n"), m_nDragBarPos2); strData += strLine;
 	strLine.Format(_T("ToolBarButtonSize=%d\r\n"), m_nToolBarButtonSize); strData += strLine;
@@ -235,6 +262,17 @@ void CFileOfficerApp::INISave(CString strFile)
 		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
 		strLine.Format(_T("Tab2_ColWidths=%s\r\n"), UIntArray2String(m_aTab2[i].aColWidth)); strData += strLine;
 	}
+	//숏컷 정보
+	for (int i = 0; i < m_aShortCutPath1.GetSize(); i++)
+	{
+		strLine.Format(_T("ShortCutPath1=%s\r\n"), m_aShortCutPath1.GetAt(i));	
+		strData += strLine;
+	}
+	for (int i = 0; i < m_aShortCutPath2.GetSize(); i++)
+	{
+		strLine.Format(_T("ShortCutPath2=%s\r\n"), m_aShortCutPath2.GetAt(i));
+		strData += strLine;
+	}
 	WriteCStringToFile(strFile, strData);
 }
 
@@ -243,6 +281,8 @@ void CFileOfficerApp::INILoad(CString strFile)
 {
 	CString strData, strLine, str1, str2, strTemp;
 	m_aTabViewOption.RemoveAll();
+	m_aShortCutPath1.RemoveAll();
+	m_aShortCutPath2.RemoveAll();
 	ReadFileToCString(strFile, strData);
 	int nPos = 0;
 	int nTabCount1 = -1, nTabCount2 = -1, nCRCount1 = -1, nCRCount2 = -1;
@@ -266,6 +306,10 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("DefaultListType")) == 0) m_nDefaultListType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ViewShortCut1")) == 0) m_bViewShortCut1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ViewShortCut2")) == 0) m_bViewShortCut2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ShortCutViewType1")) == 0) m_nShortCutViewType1 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ShortCutViewType2")) == 0) m_nShortCutViewType2 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ShortCutIconType1")) == 0) m_nShortCutIconType1 = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("ShortCutIconType2")) == 0) m_nShortCutIconType2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("DragBarPos1")) == 0) m_nDragBarPos1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("DragBarPos2")) == 0) m_nDragBarPos2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ToolBarButtonSize")) == 0) m_nToolBarButtonSize = _ttoi(str2);
@@ -288,6 +332,8 @@ void CFileOfficerApp::INILoad(CString strFile)
 		{	// TVO_로 시작하는 부분을 모두 모아서 더함
 			aTabViewOptionString.SetAt(nTabViewOptionIndex, aTabViewOptionString.GetAt(nTabViewOptionIndex) + _T("\r\n") + strLine);
 		}
+		else if (str1.CompareNoCase(_T("ShortCutPath1")) == 0)	m_aShortCutPath1.Add(str2);
+		else if (str1.CompareNoCase(_T("ShortCutPath2")) == 0)	m_aShortCutPath2.Add(str2);
 	}
 	//추출한 탭뷰설정값 저장 부분을 사후 처리 
 	for (int i = 0; i < aTabViewOptionString.GetSize(); i++)
@@ -484,3 +530,4 @@ void TabViewOption::StringImport(CString strData)
 		aColorRules.Add(cr);
 	}
 }
+

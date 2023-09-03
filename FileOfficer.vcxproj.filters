@@ -72,9 +72,6 @@
     <ClInclude Include="CMyShellListCtrl.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="CMyShellTreeCtrl.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="CShortCutList.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -126,9 +123,6 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CMyShellListCtrl.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="CMyShellTreeCtrl.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CShortCutList.cpp">

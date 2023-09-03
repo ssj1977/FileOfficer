@@ -62,6 +62,9 @@ public:
 	void FindNext();
 	void UpdateMsgBarFromList();
 	void OpenFolderByShortCut();
+	void PathArrayImport(CStringArray& aPath);
+	void PathArrayExport(CStringArray& aPath);
+	void MoveCurrentTab(BOOL bRight);
 
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_TAB_VIEW };
@@ -80,9 +83,8 @@ public:
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnBnClickedBtnFind();
-//	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	//CMyShellTreeCtrl m_wndFolderTree;
 	afx_msg void OnDropFiles(HDROP hDropInfo);
 	CShortCutList m_listShortCut;
+	afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
 };

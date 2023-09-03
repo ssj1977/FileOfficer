@@ -21,7 +21,7 @@ public:
 	void ConvertNFDNames();
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
 	int CMD_UpdateBar;
-	int CMD_OpenNewTab;
+	int CMD_OpenNewTabByList;
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateFromList;
 	CString m_strCurrentFolder;
@@ -59,7 +59,6 @@ public:
 	//
 
 	// 탐색기와 상호 Copy & Paste
-	void ClearPreviousSelection();
 	void ClipBoardExport(BOOL bCut);
 	void ClipBoardImport();
 	HGLOBAL GetOleDataForClipboard(int nState);

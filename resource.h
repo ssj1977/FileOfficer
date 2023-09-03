@@ -75,9 +75,12 @@
 #define IDS_CLR_RULE_EXT_GUIDE          151
 #define IDS_CLR_RULE_DATE_GUIDE         152
 #define IDS_CLR_RULE_NAME_GUIDE         153
+#define IDR_MENU_SHORTCUT               155
+#define IDR_MENU_TAB                    156
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
+#define IDC_ST_SHORTCUT                 1004
 #define IDC_COLOR_TEXT                  1005
 #define IDC_COLOR_BK                    1006
 #define IDC_CHECK_DEFAULT_COLOR         1007
@@ -127,14 +130,9 @@
 #define IDC_CHK_COLOR_BK                1042
 #define IDC_EDIT_LAYOUT_BTNSIZE         1042
 #define IDC_CHECK_TOOLBAR_VERTICAL      1043
-#define IDC_MFCSHELLTREE1               1044
-#define IDC_TREE_FOLDER                 1044
-#define IDC_CHECK_VIEW_TREE_1           1044
 #define IDC_CHECK_VIEW_SHORTCUT_1       1044
-#define IDC_CHECK_VIEW_TREE_2           1045
 #define IDC_CHECK_VIEW_SHORTCUT_2       1045
-#define IDC_LIST1                       1045
-#define IDC_LIST_SHORTCUT               1045
+#define IDC_LIST_SHORTCUT               1046
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -145,22 +143,54 @@
 #define IDM_CFG_LAYOUT                  32780
 #define IDM_OPEN_PREV                   32784
 #define IDM_OPEN_NEXT                   32785
-#define ID_POPUP_32788                  32788
 #define IDM_PASTE_FILE                  32789
 #define IDM_TOGGLE_FIND                 32790
 #define IDM_FILE_PASTE                  32791
 #define IDM_FILE_CUT                    32792
 #define IDM_FILE_DELETE                 32793
 #define IDM_FILE_COPY                   32795
-#define ID_POPUP_32796                  32796
-#define IDM_CONVERT_NFD                 32797
+#define IDM_CONVERT_NFD                 32796
+#define IDM_SHORTCUT_OPEN               32801
+#define IDM_SHORTCUT_OPTION             32802
+#define IDM_SHORTCUT_REMOVE             32803
+#define IDM_SHORTCUT_VIEWFOLDER         32804
+#define IDM_SHORTCUT_COPY               32805
+#define IDM_SHORTCUT_REMOVEFROMLIST     32806
+#define IDM_SHORTCUT_CUT                32807
+#define IDM_SHORTCUT_DELETE             32808
+#define IDM_SHORTCUT_REFRESH            32812
+#define IDM_SHORTCUT_UP                 32813
+#define ID_POPUP_32814                  32814
+#define IDM_SHORTCUT_DOWN               32815
+#define IDM_TAB_LEFT                    32816
+#define ID_POPUP_32817                  32817
+#define IDM_TAB_RIGHT                   32818
+#define IDM_TAB_CLOSE                   32819
+#define IDM_TAB_ADD                     32820
+#define ID_32821                        32821
+#define ID_32822                        32822
+#define IDM_SHORTCUT_LARGEICON          32823
+#define IDM_SHORTCUT_SMALLICON          32824
+#define ID_POPUP_32825                  32825
+#define IDM_SHORTCUT_ICONVIEW           32826
+#define ID_32827                        32827
+#define IDM_SHORTCUT_LISTVIEW           32828
+#define IDM_SHORTCUT_REPORTVIEW         32829
+#define ID_32830                        32830
+#define IDM_SHORTCUT_LARGEGICON         32831
+#define IDM_SHORTCUT_ICON               32832
+#define IDM_SHORTCUT_JUMBO              32833
+#define IDM_SHORTCUT_ICONSIZE_32        32834
+#define IDM_SHORTCUT_ICONSIZE_16        32835
+#define IDM_SHORTCUT_ICONSIZE_48        32836
+#define IDM_SHORTCUT_ICONSIZE_256       32837
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        154
-#define _APS_NEXT_COMMAND_VALUE         32798
+#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_COMMAND_VALUE         32838
 #define _APS_NEXT_CONTROL_VALUE         1046
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
