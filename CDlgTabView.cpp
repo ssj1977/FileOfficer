@@ -148,7 +148,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 		else UpdateMsgBarFromList();
 		break;
 	case IDM_OPEN_FOLDER_BY_SHORCUT:
-		OpenFolderByShortCut();
+		OpenFolderByShortCut((int)lParam);
 		break;
 	case IDM_UPDATE_FROMLIST: 
 		if (lParam != NULL && (CWnd*)lParam == CurrentList()) UpdateFromCurrentList();
@@ -170,15 +170,24 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-void CDlgTabView::OpenFolderByShortCut()
+void CDlgTabView::OpenFolderByShortCut(int lParam)
 {
 	int nItem = m_listShortCut.GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
+	// LPARAM이 0 = 해당 폴더 내용을 열기 
+	// LPARAM이 1 = 상위 폴더 열고 선택하기
 	CString strPath = m_listShortCut.GetItemFullPath(nItem);
-	CString strName = m_listShortCut.GetItemText(nItem, 0);
-
-	//해당 파일이나 폴더가 들어있는 부모 폴더를 추출한다.
-	CString strParent = Get_Folder(strPath);
+	CString strName, strParent;
+	if (lParam == 1)
+	{
+		strName = m_listShortCut.GetItemText(nItem, 0);
+		strParent = Get_Folder(strPath);
+	}
+	else
+	{
+		strName.Empty();
+		strParent = m_listShortCut.GetItemFullPath(nItem);
+	}
 	//이미 열려있는 폴더이면 해당 탭을 열고
 	BOOL bOpen = FALSE;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
@@ -196,19 +205,27 @@ void CDlgTabView::OpenFolderByShortCut()
 		m_editPath.SetWindowText(strParent);
 		UpdateTabByPathEdit();
 	}
-	//그리고 원래 파일을 선택해 준다
-	CMFCListCtrl* pList = (CMFCListCtrl*)CurrentList();
-	int nCount = pList->GetItemCount();
-	for (int i = 0; i < nCount; i++)
+	//상위 폴더를 연 경우 지정된 파일을 선택해 준다
+	if (lParam == 1 && strName.IsEmpty() == FALSE)
 	{
-		if (strName.CompareNoCase(pList->GetItemText(i, 0)) == 0)
+		int nNameColumnIndex = 0; //COL_NAME 
+		CMFCListCtrl* pList = (CMFCListCtrl*)CurrentList();
+		if (CurrentListType() == TABTYPE_CUSTOM_LIST)
 		{
-			pList->SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-			pList->EnsureVisible(i, FALSE);
+			nNameColumnIndex = ((CFileListCtrl*)pList)->GetNameColumnIndex();
 		}
-		else
+ 		int nCount = pList->GetItemCount();
+		for (int i = 0; i < nCount; i++)
 		{
-			pList->SetItemState(i, 0, LVIS_SELECTED | LVIS_FOCUSED);
+			if (strName.CompareNoCase(pList->GetItemText(i, nNameColumnIndex)) == 0)
+			{
+				pList->SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+				pList->EnsureVisible(i, FALSE);
+			}
+			else
+			{
+				pList->SetItemState(i, 0, LVIS_SELECTED | LVIS_FOCUSED);
+			}
 		}
 	}
 }
@@ -1045,6 +1062,7 @@ void CDlgTabView::UpdateChildFont()
 	}*/
 	if (::IsWindow(m_tabPath.GetSafeHwnd())) m_tabPath.SetFont(&m_font);
 	if (::IsWindow(m_editPath.GetSafeHwnd())) m_editPath.SetFont(&m_font);
+	if (::IsWindow(m_listShortCut.GetSafeHwnd())) m_listShortCut.SetFont(&m_font);
 	GetDlgItem(IDC_ST_BAR)->SetFont(&m_font);
 	GetDlgItem(IDC_ST_SHORTCUT)->SetFont(&m_font);
 	GetDlgItem(IDC_EDIT_FIND)->SetFont(&m_font);

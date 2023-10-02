@@ -389,6 +389,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_COMP_STR 0
 #define COL_COMP_PATH 1
 #define COL_COMP_SIZE 2
+#define COL_COMP_DRIVE 3
 
 //쓰레드의 상태를 관리하기 위한 static 변수
 typedef std::map<CFileListCtrl*, BOOL> ThreadStatusMap;
@@ -508,6 +509,11 @@ CString CFileListCtrl::GetCurrentItemPath()
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return _T("");
 	return GetItemFullPath(nItem);
+}
+
+int CFileListCtrl::GetNameColumnIndex()
+{
+	return (m_nType == LIST_TYPE_DRIVE) ? COL_DRIVEPATH : COL_NAME;
 }
 
 void CFileListCtrl::SetColTexts(int* pStringId, int* pColFmt, int size)
@@ -1051,16 +1057,16 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 				//SetItemText(nItem, COL_ALIAS, GetPathName(strDrive));
 				// LIST_TYPE_DRIVE 인 경우에는 첫번째 컬럼에 이름 / 두번째 컬럼에 경로
 				PathItem pi;
-				pi.dwData = 0;
+				pi.dwData = nType;
 				pi.nIconIndex = nImage;
 				pi.str0 = GetPathName(strDrive);
 				pi.str1 = strDrive;
-				m_aPathItem.Add(pi);
 				if (GetDiskFreeSpaceEx(strDrive, NULL, &space_total, &space_free))
 				{
 					pi.str2 = GetDriveSizeString(space_free);
 					pi.str3 = GetDriveSizeString(space_total);
 				}
+				m_aPathItem.Add(pi);
 			}
 			flag = flag * 2;
 		}
@@ -1817,6 +1823,15 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 	}
 }
 
+BOOL CFileListCtrl::IsDrive(int nItem)
+{
+	if (m_nType != LIST_TYPE_DRIVE) return FALSE;
+	CString strPath = GetItemText(nItem, COL_DRIVEPATH);
+	if (strPath.GetLength() != 2) return FALSE; //드라이브 경로는 항상 두글자 
+	if (strPath.Find('\\') != -1) return FALSE; //드라이브 경로에는 '\' 가 없음
+	return TRUE;
+}
+
 int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
 {
 	int nRet = 0;
@@ -1849,6 +1864,26 @@ int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int n
 		else if (size1 > size2) nRet = 1;
 		else if (size1 < size2) nRet = -1;
 	}
+	else if (nType == COL_COMP_DRIVE)
+	{
+		BOOL bIsDrive1 = IsDrive((int)item1);
+		BOOL bIsDrive2 = IsDrive((int)item2);
+		if (bIsDrive1 != bIsDrive2)
+		{
+			nRet = int(bIsDrive2 - bIsDrive1);
+		}
+		else
+		{
+			if (bIsDrive1)
+			{
+				str1 = GetItemText((int)item1, COL_DRIVEPATH);
+				str2 = GetItemText((int)item2, COL_DRIVEPATH);
+			}
+			nRet = StrCmpLogicalW(str1.GetBuffer(), str2.GetBuffer());
+			str1.ReleaseBuffer();
+			str2.ReleaseBuffer();
+		}
+	}
 	return nRet;
 }
 
@@ -1864,7 +1899,7 @@ int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 	}
 	else if (m_nType == LIST_TYPE_DRIVE)
 	{
-		if (iColumn == COL_DRIVENAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+		if (iColumn == COL_DRIVENAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_DRIVE);
 		else if (iColumn == COL_DRIVEPATH) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 		else if (iColumn == COL_FREESPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
 		else if (iColumn == COL_TOTALSPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);

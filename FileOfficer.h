@@ -160,7 +160,7 @@ public:
 	int m_bSortAscend_Default;
 	CString m_strPath_Default;
 	CFont m_fontDefault;
-	TabViewOption m_DefaultViewOption;
+	TabViewOption m_DefaultViewOption; //현재 Windows 설정상 기본 색, 글꼴 등을 저장하는 곳
 	TabViewOptionArray m_aTabViewOption;
 
 	HICON m_hIcon;

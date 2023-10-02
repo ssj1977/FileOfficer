@@ -84,8 +84,11 @@ public:
 	void* m_pColorRuleArray;
 	void BrowsePathHistory(BOOL bPrevious);
 	void AddPathHistory(CString strPath);
+	BOOL IsDrive(int nItem);
+	int GetNameColumnIndex();
 	inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
 	inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
+	
 
 	//경로 히스토리 관련
 	CList<CString> m_aPathHistory;

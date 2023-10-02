@@ -61,7 +61,7 @@ public:
 	void ToggleFindMode();
 	void FindNext();
 	void UpdateMsgBarFromList();
-	void OpenFolderByShortCut();
+	void OpenFolderByShortCut(int lParam);
 	void PathArrayImport(CStringArray& aPath);
 	void PathArrayExport(CStringArray& aPath);
 	void MoveCurrentTab(BOOL bRight);

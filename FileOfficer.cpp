@@ -32,19 +32,19 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nSortCol_Default = 0;
 	m_bSortAscend_Default = TRUE;
 	m_strPath_Default.Empty();
-	m_rcMain = CRect(0, 0, 0, 0);
+	m_rcMain = CRect(10, 10, 780, 580);
 	m_nCurrentTab1 = 0;
 	m_nCurrentTab2 = 0;
 	m_nFocus = 1;
 	m_nLayoutType = 0;
 	m_nLayoutSizeType = 0;
 	m_nLayoutSizePercent = 50;
-	m_nLayoutSizeFixed = 600;
+	m_nLayoutSizeFixed = 300;
 	m_bUseFileType = FALSE;
 	m_bViewShortCut1 = TRUE;
 	m_bViewShortCut2 = TRUE;
-	m_nDragBarPos1 = 200;
-	m_nDragBarPos2 = 200;
+	m_nDragBarPos1 = 100;
+	m_nDragBarPos2 = 100;
 	m_nToolBarButtonSize = 20;
 	m_bToolBarVertical = FALSE;
 	m_hIcon = NULL;
@@ -433,12 +433,12 @@ void ColorRule::StringImport(CString strData)
 ////////////////////////////////////////////
 TabViewOption::TabViewOption()
 {
-	clrText = RGB(0, 0, 0);
-	clrBk = RGB(255, 255, 255);
-	nFontSize = 11;
-	nIconType = SHIL_SMALL;
-	bUseDefaultColor = TRUE;
-	bUseDefaultFont = TRUE;
+	clrText = RGB(255, 255, 255); //반전으로
+	clrBk = RGB(0, 0, 0);
+	nFontSize = 12; //폰트도 크게
+	nIconType = SHIL_LARGE;
+	bUseDefaultColor = FALSE;
+	bUseDefaultFont = FALSE;
 	bUseBkImage = FALSE;
 	nFontWeight = FW_NORMAL;
 	bFontItalic = FALSE;

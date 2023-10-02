@@ -27,7 +27,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
 	m_nDefault_FontSize = -1;
-	m_nDragMainPos = 500;
+	m_nDragMainPos = 400;
 }
 
 void CFileOfficerDlg::DoDataExchange(CDataExchange* pDX)

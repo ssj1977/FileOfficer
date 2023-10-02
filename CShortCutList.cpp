@@ -55,7 +55,8 @@ BOOL CShortCutList::PreTranslateMessage(MSG* pMsg)
 		}
 		else if (pMsg->wParam == VK_RETURN)
 		{
-			OpenSelectedItem();
+			if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0) ViewSelectedItemFolder();
+			else OpenSelectedItem();
 			return TRUE;
 		}
 		else if (pMsg->wParam == VK_DELETE)
@@ -87,7 +88,7 @@ BOOL CShortCutList::OnCommand(WPARAM wParam, LPARAM lParam)
 	{
 	case IDM_SHORTCUT_OPEN:	OpenSelectedItem(); break;
 	case IDM_SHORTCUT_REMOVEFROMLIST:	RemoveSelectedItem(); break;
-	//항목이 속한 폴더 보여주기, 폴더인 경우에는 해당 폴더 열기
+	//항목이 속한 폴더 보여주기, 폴더인 경우에는 해당 폴더의 상위 폴더 보여주기
 	case IDM_SHORTCUT_VIEWFOLDER: ViewSelectedItemFolder();  break;
 	//파일 복사/잘라내기/삭제 (붙여넣기는 해당 없음)
 	case IDM_SHORTCUT_COPY: ClipBoardExport(FALSE); break;
@@ -165,7 +166,8 @@ void CShortCutList::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 void CShortCutList::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
-	OpenSelectedItem();
+	if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0) ViewSelectedItemFolder();
+	else OpenSelectedItem();
 	*pResult = 0;
 }
 
@@ -232,14 +234,17 @@ void CShortCutList::ViewSelectedItemFolder()
 	int nItem = GetNextItem(-1, LVNI_SELECTED);
 	if (nItem == -1) return;
 	//맨 첫번째 한개를 기준으로 한다.
-	if (IsDir(nItem))
+	//LPARAM이 0 = 해당 폴더 내용을 열기 / LPARAM이 1 = 상위 폴더 열고 선택하기
+	GetParent()->SendMessage(WM_COMMAND, CMD_OpenFolderByShortCut, 1);
+
+	/*if (IsDir(nItem))
 	{
-		OpenSelectedItem();
+		GetParent()->SendMessage(WM_COMMAND, CMD_OpenFolderByShortCut, 0); 
 	}
-	else
+	else 
 	{
-		GetParent()->SendMessage(WM_COMMAND, CMD_OpenFolderByShortCut, 0);
-	}
+		GetParent()->SendMessage(WM_COMMAND, CMD_OpenFolderByShortCut, 1); 
+	}*/
 }
 
 void CShortCutList::OpenSelectedItem()
@@ -271,6 +276,7 @@ void CShortCutList::OpenSelectedItem()
 	}
 	else //Folder or Drive
 	{
+		//LPARAM이 0 = 해당 폴더 내용을 열기 / LPARAM이 1 = 상위 폴더 열고 선택하기
 		GetParent()->SendMessage(WM_COMMAND, CMD_OpenFolderByShortCut, 0);
 	}
 	pisf->Release();

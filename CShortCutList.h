@@ -25,6 +25,7 @@ public:
     inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
     inline CString GetItemFullPath(int nItem) { return GetItemText(nItem, 1); };
 
+
     //클립보드 관련 코드
     void ClipBoardExport(BOOL bCut);
     HGLOBAL GetOleDataForClipboard(int nState);
