@@ -132,72 +132,6 @@ LPITEMIDLIST GetPIDLfromPath(CString strPath)
 	return pidl_result;
 }
 
-//해당 파일의 아이콘 정보를 가져온다
-int GetFileImageIndex(CString strPath, DWORD dwAttribute)
-{
-	SHFILEINFO sfi;
-	memset(&sfi, 0x00, sizeof(sfi));
-	sfi.dwAttributes = dwAttribute;
-	//DWORD flag = SHGFI_SYSICONINDEX | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS | SHGFI_LINKOVERLAY;
-	DWORD flag = SHGFI_ICON | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS | SHGFI_LINKOVERLAY;
-	if (strPath.GetLength() < MAX_PATH && dwAttribute != INVALID_FILE_ATTRIBUTES)
-	{
-		SHGetFileInfo((LPCTSTR)strPath, 0, &sfi, sizeof(sfi), flag | SHGFI_USEFILEATTRIBUTES);
-	}
-	else
-	{
-		LPITEMIDLIST pidl = GetPIDLfromPath(strPath);
-		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), flag | SHGFI_PIDL);
-		CoTaskMemFree(pidl);
-	}
-	return sfi.iIcon;
-}
-
-int GetFileImageIndexFromMap(CString strPath, DWORD dwAttribute)
-{
-	BOOL bIsDir = (dwAttribute & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
-	if (bIsDir) return SI_FOLDER_CLOSED; 
-	if (APP()->m_bUseFileIcon == FALSE) return SI_UNKNOWN;
-
-	CString strExt = Get_Ext(strPath, bIsDir, TRUE);
-	if (strExt.CompareNoCase(_T(".exe")) == 0
-		|| strExt.CompareNoCase(_T(".ico")) == 0
-		|| strExt.CompareNoCase(_T(".lnk")) == 0)
-	{
-		//확장자가 같아도 아이콘이 다를 수 있는 파일들은 바로 조회
-		return GetFileImageIndex(strPath, dwAttribute);
-	}
-	CString strKey;
-	strKey.Format(_T("%s%d"), strExt, (int)dwAttribute); //속성과 경로를 합쳐서 키 생성
-	//나머지 파일에 대해서는 맵에서 우선 찾아서 속도 향상
-	CExtMap::iterator it = mapExt.find(strKey);
-	int nImage = 0;
-	if (it == mapExt.end())
-	{
-		//미디어 파일의 경우 네트워크 드라이브에서 경우에 따라 오류가 나는 경우가 많음
-		//위의 exe등을 제외하고는 모두 로컬에서 임시파일을 만들어서 처리하는 방식으로 변경
-		//	if (strExt.CompareNoCase(_T(".jpg")) == 0
-		//	|| strExt.CompareNoCase(_T(".jpeg")) == 0	
-		//{} else nImage = GetFileImageIndex(strPath);
-		//맵에 없으면 현재 폴더에 임시 파일을 만들어서 아이콘 식별
-		/*TCHAR dir[256];
-		GetCurrentDirectory(256, dir);
-		CString strTempPath = L"_tmp00_" + strExt; // 현재 폴더가 리모트일 경우가 있는지 미확인
-		HANDLE hFile = CreateFile(strTempPath, GENERIC_READ, FILE_SHARE_READ, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile != INVALID_HANDLE_VALUE) CloseHandle(hFile);
-		nImage = GetFileImageIndex(strTempPath, dwAttribute);
-		DeleteFile(strTempPath);*/
-		//dwAttribute를 사용하도록 하면 파일에 직접 액세스 하지 않고 가능
-		nImage = GetFileImageIndex(strPath, dwAttribute);
-		mapExt.insert(CExtMap::value_type(strKey, nImage));
-	}
-	else
-	{
-		nImage = (*it).second;
-	}
-	return nImage;
-}
-/////////////////////////////////////////////////
 
 CString GetPathName(CString strPath)
 {
@@ -469,9 +403,11 @@ CFileListCtrl::CFileListCtrl()
 	m_bLoading = FALSE;
 	m_bUseFileType = TRUE;
 	m_bUseFileIcon = TRUE;
+	m_bQuickLoadFileIcon = FALSE;
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
 	m_hDirectory = NULL;
 	m_hWatchBreak = NULL;
+	m_hImageList = NULL;
 	//m_hLoadFinished = NULL;
 }
 
@@ -479,6 +415,11 @@ CFileListCtrl::~CFileListCtrl()
 {
 	CFileListCtrl::DeleteWatchingStatus(this);
 	//CFileListCtrl::DeleteLoadingStatus(this);
+	if (m_hImageList && m_nIconType != SHIL_JUMBO)
+	{
+		ImageList_Destroy(m_hImageList);
+		m_hImageList = NULL;
+	}
 	free(m_pWatchBuffer);
 	//CloseHandle(m_hLoadFinished);
 }
@@ -584,6 +525,92 @@ void CFileListCtrl::InitColumns(int nType)
 		SetColTexts(string_id, col_fmt, 4);
 	}
 }
+
+void CFileListCtrl::SetFileImageList(int nIconType)
+{
+	if (m_hImageList && m_nIconType != SHIL_JUMBO)
+	{
+		ImageList_Destroy(m_hImageList);
+		m_hImageList = NULL;
+	}
+	m_nIconType = nIconType;
+	HIMAGELIST himl_temp = APP()->GetImageListByType(nIconType);
+	if (m_nIconType != SHIL_JUMBO) m_hImageList = ImageList_Duplicate(himl_temp);
+	else m_hImageList = himl_temp;
+	ListView_SetImageList(this->GetSafeHwnd(), m_hImageList, LVSIL_SMALL);
+	//ListView_SetImageList(this->GetSafeHwnd(), m_hImageList, LVSIL_NORMAL);
+}
+
+//해당 파일의 아이콘 정보를 가져온다
+int CFileListCtrl::GetFileImageIndex(CString strPath, DWORD dwAttribute)
+{
+	SHFILEINFO sfi;
+	memset(&sfi, 0x00, sizeof(sfi));
+	DWORD flag = SHGFI_ICON | SHGFI_LARGEICON | SHGFI_OVERLAYINDEX;
+	if (dwAttribute != INVALID_FILE_ATTRIBUTES && m_bQuickLoadFileIcon == TRUE)
+	{
+		flag = flag | SHGFI_USEFILEATTRIBUTES;
+	}
+	if (strPath.GetLength() < MAX_PATH)
+	{
+		SHGetFileInfo(strPath, dwAttribute, &sfi, sizeof(sfi), flag | SHGFI_USEFILEATTRIBUTES);
+	}
+	else
+	{
+		LPITEMIDLIST pidl = GetPIDLfromPath(strPath);
+		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), flag | SHGFI_PIDL);
+		CoTaskMemFree(pidl);
+	}
+	int nIconIndex = LOWORD(sfi.iIcon);
+	if (m_bQuickLoadFileIcon == FALSE && m_nIconType != SHIL_JUMBO)
+	{
+		int nOverlayIndex = HIWORD(sfi.iIcon);
+		if (nOverlayIndex != 0)
+		{
+			nIconIndex = ImageList_ReplaceIcon(m_hImageList, -1, sfi.hIcon);
+			DestroyIcon(sfi.hIcon);
+		}
+	}
+	return nIconIndex;
+
+}
+
+int CFileListCtrl::GetFileImageIndexFromMap(CString strPath, DWORD dwAttribute)
+{
+	if (m_bQuickLoadFileIcon == FALSE)
+	{
+		return GetFileImageIndex(strPath, dwAttribute);
+	}
+	BOOL bIsDir = (dwAttribute & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+	if (bIsDir) return SI_FOLDER_CLOSED;
+	if (APP()->m_bUseFileIcon == FALSE) return SI_UNKNOWN;
+
+	CString strExt = Get_Ext(strPath, bIsDir, TRUE);
+	if (strExt.CompareNoCase(_T(".exe")) == 0
+		|| strExt.CompareNoCase(_T(".ico")) == 0
+		|| strExt.CompareNoCase(_T(".lnk")) == 0)
+	{
+		//확장자가 같아도 아이콘이 다를 수 있는 파일들은 바로 조회
+		return GetFileImageIndex(strPath, dwAttribute);
+	}
+	CString strKey;
+	strKey.Format(_T("%s%d"), strExt, (int)dwAttribute); //속성과 경로를 합쳐서 키 생성
+	//나머지 파일에 대해서는 맵에서 우선 찾아서 속도 향상
+	CExtMap::iterator it = mapExt.find(strKey);
+	int nImage = 0;
+	if (it == mapExt.end())
+	{
+		//dwAttribute를 사용하도록 하면 파일에 직접 액세스 하지 않고 가능
+		nImage = GetFileImageIndex(strPath, dwAttribute);
+		mapExt.insert(CExtMap::value_type(strKey, nImage));
+	}
+	else
+	{
+		nImage = (*it).second;
+	}
+	return nImage;
+}
+/////////////////////////////////////////////////
 
 CString CFileListCtrl::GetItemFullPath(int nItem)
 {
@@ -966,6 +993,10 @@ COLORREF GetDimColor(COLORREF clr)
 	return RGB(R, G, B);
 }
 
+void CFileListCtrl::RefreshList()
+{
+	DisplayFolder_Start(m_strFolder, FALSE);
+}
 
 void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory)
 {

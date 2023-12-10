@@ -110,7 +110,26 @@ BOOL CShortCutList::OnCommand(WPARAM wParam, LPARAM lParam)
 	return TRUE;
 }
 
-int GetFileImageIndexFromMap(CString strPath, DWORD dwAttribute);
+int CShortCutList::GetFileImageIndex(CString strPath, DWORD dwAttribute)
+{
+	SHFILEINFO sfi;
+	memset(&sfi, 0x00, sizeof(sfi));
+	sfi.dwAttributes = dwAttribute;
+	DWORD flag = SHGFI_ICON | SHGFI_OVERLAYINDEX;
+//	if (strPath.GetLength() < MAX_PATH && dwAttribute != INVALID_FILE_ATTRIBUTES)
+//	{
+//		SHGetFileInfo(strPath, dwAttribute, &sfi, sizeof(sfi), flag | SHGFI_USEFILEATTRIBUTES);
+//	}
+//	else
+//	{
+		LPITEMIDLIST pidl = GetPIDLfromPath(strPath);
+		SHGetFileInfo((LPCTSTR)pidl, 0, &sfi, sizeof(sfi), flag | SHGFI_PIDL);
+		CoTaskMemFree(pidl);
+//	}
+	int nIconIndex = LOWORD(sfi.iIcon);
+	return nIconIndex;
+}
+
 void CShortCutList::OnDropFiles(HDROP hDropInfo)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
@@ -146,7 +165,7 @@ void CShortCutList::InsertPath(int nItem, CString strPath)
 		}
 		if (bExist == FALSE)
 		{
-			nItem = InsertItem(nItem, Get_Name(strPath), GetFileImageIndexFromMap(strPath, dw));
+			nItem = InsertItem(nItem, Get_Name(strPath), GetFileImageIndex(strPath, dw));
 			SetItemText(nItem, 1, strPath);
 			SetItemData(nItem, dw);
 		}

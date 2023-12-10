@@ -166,11 +166,11 @@ public:
 	HICON m_hIcon;
 	CRect m_rcMain;
 	CString m_strINIPath;
-	HIMAGELIST* GetImageListByType(int nIconType);
-	HIMAGELIST* m_pSysImgList_SMALL;
-	HIMAGELIST* m_pSysImgList_LARGE;
-	HIMAGELIST* m_pSysImgList_EXTRALARGE;
-	HIMAGELIST* m_pSysImgList_JUMBO;
+	HIMAGELIST GetImageListByType(int nIconType);
+	HIMAGELIST m_hSysImgList_SMALL;
+	HIMAGELIST m_hSysImgList_LARGE;
+	HIMAGELIST m_hSysImgList_EXTRALARGE;
+	HIMAGELIST m_hSysImgList_JUMBO;
 
 	PathTabInfoArray m_aTab1;
 	PathTabInfoArray m_aTab2;
@@ -184,6 +184,7 @@ public:
 	int m_nDragBarPos2;
 	BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요? 
 	BOOL m_bUseFileIcon;
+	BOOL m_bQuickLoadFileIcon;
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;
 	BOOL m_bToolBarVertical;
 	BOOL m_nDefaultListType;

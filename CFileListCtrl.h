@@ -81,6 +81,11 @@ public:
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
 
+	HIMAGELIST m_hImageList;
+	void SetFileImageList(int nIconType);
+	int GetFileImageIndex(CString strPath, DWORD dwAttribute);
+	int GetFileImageIndexFromMap(CString strPath, DWORD dwAttribute);
+
 	void* m_pColorRuleArray;
 	void BrowsePathHistory(BOOL bPrevious);
 	void AddPathHistory(CString strPath);
@@ -103,6 +108,7 @@ public:
 	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	BOOL m_bUseFileIcon;
+	BOOL m_bQuickLoadFileIcon;
 	CUIntArray m_aColWidth;
 	int m_nSortCol;
 	int m_nType;
@@ -128,6 +134,7 @@ public:
 	//static void DeleteLoadingStatus(CFileListCtrl* pList);
 	//HANDLE m_hLoadFinished; //디렉토리 로딩이 끝나거나 중단될때 발생하는 이벤트 핸들
 	//void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
+	void RefreshList();
 	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	BOOL m_bLoading; //로딩 중인지 확인용
 	void LoadFolder(CString strFolder, BOOL bUpdatePathHistory);

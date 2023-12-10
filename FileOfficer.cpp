@@ -25,10 +25,10 @@ END_MESSAGE_MAP()
 
 CFileOfficerApp::CFileOfficerApp()
 {
-	m_pSysImgList_SMALL = NULL;
-	m_pSysImgList_LARGE = NULL;
-	m_pSysImgList_EXTRALARGE = NULL;
-	m_pSysImgList_JUMBO = NULL;
+	m_hSysImgList_SMALL = NULL;
+	m_hSysImgList_LARGE = NULL;
+	m_hSysImgList_EXTRALARGE = NULL;
+	m_hSysImgList_JUMBO = NULL;
 	m_nSortCol_Default = 0;
 	m_bSortAscend_Default = TRUE;
 	m_strPath_Default.Empty();
@@ -50,6 +50,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_hIcon = NULL;
 	m_bUseFileIcon = TRUE;
 	m_bUseFileType = TRUE;
+	m_bQuickLoadFileIcon = FALSE;
 	m_nDefaultListType = TABTYPE_CUSTOM_LIST;
 	m_nShortCutViewType1 = LVS_ICON;
 	m_nShortCutViewType2 = LVS_ICON;
@@ -121,22 +122,48 @@ BOOL CFileOfficerApp::InitInstance()
 	return FALSE;
 }
 
-HIMAGELIST* CFileOfficerApp::GetImageListByType(int nIconType)
+HIMAGELIST CFileOfficerApp::GetImageListByType(int nIconType)
 {
+	HIMAGELIST himl = NULL;
 	switch (nIconType)
 	{
 	case SHIL_SMALL:		
-		if (m_pSysImgList_SMALL == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_SMALL);
-		return m_pSysImgList_SMALL;
+		if (m_hSysImgList_SMALL == NULL)
+		{
+			if (SUCCEEDED(SHGetImageList(nIconType, IID_IImageList, (void**)&himl)))
+			{
+				if (himl) m_hSysImgList_SMALL = ImageList_Duplicate(himl);
+			}
+		}
+		return m_hSysImgList_SMALL;
 	case SHIL_LARGE:
-		if (m_pSysImgList_LARGE == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_LARGE);
-		return m_pSysImgList_LARGE;
+		if (m_hSysImgList_LARGE == NULL)
+		{
+			if (SUCCEEDED(SHGetImageList(nIconType, IID_IImageList, (void**)&himl)))
+			{
+				if (himl) m_hSysImgList_LARGE = ImageList_Duplicate(himl);
+			}
+		}
+		return m_hSysImgList_LARGE;
 	case SHIL_EXTRALARGE:
-		if (m_pSysImgList_EXTRALARGE == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_EXTRALARGE);
-		return m_pSysImgList_EXTRALARGE;
+		if (m_hSysImgList_EXTRALARGE == NULL)
+		{
+			if (SUCCEEDED(SHGetImageList(nIconType, IID_IImageList, (void**)&himl)))
+			{
+				if (himl) m_hSysImgList_EXTRALARGE = ImageList_Duplicate(himl);
+			}
+		}
+		return m_hSysImgList_EXTRALARGE;
 	case SHIL_JUMBO:
-		if (m_pSysImgList_JUMBO == NULL) SHGetImageList(nIconType, IID_IImageList, (void**)&m_pSysImgList_JUMBO);
-		return m_pSysImgList_JUMBO;
+		if (m_hSysImgList_JUMBO == NULL)
+		{
+			if (SUCCEEDED(SHGetImageList(nIconType, IID_IImageList, (void**)&himl)))
+			{
+				//if (himl) m_hSysImgList_JUMBO = ImageList_Duplicate(himl);
+				m_hSysImgList_JUMBO = himl;
+			}
+		}
+		return m_hSysImgList_JUMBO;
 	}
 	return NULL;
 }
@@ -146,6 +173,11 @@ int CFileOfficerApp::ExitInstance()
 {
 	//if (CMFCVisualManager::GetInstance() != NULL) delete CMFCVisualManager::GetInstance();
 	INISave(m_strINIPath);
+
+	if (m_hSysImgList_SMALL != NULL) ImageList_Destroy(m_hSysImgList_SMALL);
+	if (m_hSysImgList_LARGE != NULL) ImageList_Destroy(m_hSysImgList_LARGE);
+	if (m_hSysImgList_EXTRALARGE != NULL) ImageList_Destroy(m_hSysImgList_EXTRALARGE);
+	//if (m_hSysImgList_JUMBO != NULL) ImageList_Destroy(m_hSysImgList_JUMBO);
 	CoUninitialize();
 	return CWinApp::ExitInstance();
 }
@@ -220,6 +252,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	}
 	strLine.Format(_T("UseFileType=%d\r\n"), m_bUseFileType);	strData += strLine;
 	strLine.Format(_T("UseFileIcon=%d\r\n"), m_bUseFileIcon);	strData += strLine;
+	strLine.Format(_T("QuickLoadFileIcon=%d\r\n"), m_bQuickLoadFileIcon);	strData += strLine;
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
@@ -295,6 +328,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		if (str1.CompareNoCase(_T("RectMain")) == 0) m_rcMain = ConvertString2Rect(str2);
 		else if (str1.CompareNoCase(_T("UseFileType")) == 0) m_bUseFileType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("UseFileIcon")) == 0) m_bUseFileIcon = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("QuickLoadFileIcon")) == 0) m_bQuickLoadFileIcon = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);

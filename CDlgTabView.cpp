@@ -410,8 +410,6 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->SetTextColor(GetMyClrText());
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
-		ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(GetIconType()), LVSIL_SMALL);
-		ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(GetIconType()), LVSIL_NORMAL);
 		pti.pWnd = (CWnd*)pList;
 		if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
 		{
@@ -426,6 +424,8 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->m_bAsc = pti.bSortAscend;
 			pMyList->m_bUseFileType = APP()->m_bUseFileType;
 			pMyList->m_bUseFileIcon = APP()->m_bUseFileIcon;
+			pMyList->m_bQuickLoadFileIcon = APP()->m_bQuickLoadFileIcon;
+			pMyList->SetFileImageList(GetIconType());
 			pMyList->DisplayFolder_Start(pti.strPath);
 		}
 		else
@@ -905,9 +905,13 @@ void CDlgTabView::SetIconType(int nIconType)
 	{
 		if (m_aTabInfo[i].pWnd != NULL)
 		{
-			CMFCListCtrl* pList = (CMFCListCtrl*)m_aTabInfo[i].pWnd;
-			ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(nIconType), LVSIL_SMALL);
-			ListView_SetImageList(pList->GetSafeHwnd(), APP()->GetImageListByType(nIconType), LVSIL_NORMAL);
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
+			if (pList->m_nIconType != nIconType)
+			{
+				pList->SetFileImageList(nIconType);
+				if (i == m_nCurrentTab) UpdateTabByPathEdit();
+				else pList->RefreshList();
+			}
 		}
 	}
 	m_tvo.nIconType = nIconType;
