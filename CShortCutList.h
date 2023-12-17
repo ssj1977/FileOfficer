@@ -1,6 +1,7 @@
 #pragma once
-#include <afxlistctrl.h>
-class CShortCutList : public CMFCListCtrl
+#include "CFileListCtrl_Base.h"
+
+class CShortCutList : public CFileListCtrl_Base
 {
 public:
     CShortCutList();
@@ -19,8 +20,6 @@ public:
     void InsertPath(int nItem, CString strPath);
     int m_nViewType;
     void SetViewType(int nType);
-    int m_nIconType;
-    void SetIconType(int nIconType);
     inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
     inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
     inline CString GetItemFullPath(int nItem) { return GetItemText(nItem, 1); };

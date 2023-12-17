@@ -3,9 +3,6 @@
 #include "CShortCutList.h"
 #include "EtcFunctions.h"
 
-LPITEMIDLIST GetPIDLfromPath(CString strPath);
-HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
-
 BEGIN_MESSAGE_MAP(CShortCutList, CMFCListCtrl)
 	ON_WM_DROPFILES()
 	ON_WM_CTLCOLOR()
@@ -517,13 +514,5 @@ void CShortCutList::SetViewType(int nType)
 		SetColumnWidth(0, rc.Width());
 		SetColumnWidth(1, 0);
 	}
-	RedrawWindow();
-}
-
-void CShortCutList::SetIconType(int nIconType)
-{
-	m_nIconType = nIconType;
-	ListView_SetImageList(GetSafeHwnd(), APP()->GetImageListByType(nIconType), LVSIL_SMALL);
-	ListView_SetImageList(GetSafeHwnd(), APP()->GetImageListByType(nIconType), LVSIL_NORMAL);
 	RedrawWindow();
 }

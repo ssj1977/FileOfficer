@@ -94,12 +94,18 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		nDefaultSize = APP()->m_nLayoutSizeDynamic;
 	}
 
+	//CFileListCtrl_Base::m_hSysImgList_SMALL = NULL;
+	//CFileListCtrl_Base::m_hSysImgList_LARGE = NULL;
+	//CFileListCtrl_Base::m_hSysImgList_EXTRALARGE = NULL;
+	//CFileListCtrl_Base::m_hSysImgList_JUMBO = NULL;
+
 	CFileListCtrl list;
 	if (list.Create(WS_CHILD | LVS_REPORT | LVS_SHAREIMAGELISTS, CRect(0, 0, 0, 0), this, 0) == TRUE)
 	{
 		InitDefaultListOption(&list);
 		list.DestroyWindow();
 	}
+
 	//ini가 비어있거나 잘못된 경우 대비, 빈 두개의 탭 정보 생성
 	if (APP()->m_aTabViewOption.GetSize() < 2) APP()->m_aTabViewOption.SetSize(2);
 	m_tv1.m_tvo = APP()->m_aTabViewOption.GetAt(0);
@@ -129,7 +135,6 @@ BOOL CFileOfficerDlg::OnInitDialog()
 
 	AddClipboardFormatListener(GetSafeHwnd());
 	DragAcceptFiles(TRUE);
-
 	if (APP()->m_nFocus == 1) { m_tv1.CurrentList()->SetFocus(); return FALSE; }
 	else if (APP()->m_nFocus == 2) { m_tv2.CurrentList()->SetFocus(); return FALSE; }
 	return TRUE;  // 포커스를 컨트롤에 설정하지 않으면 TRUE를 반환합니다.

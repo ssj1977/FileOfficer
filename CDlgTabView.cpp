@@ -19,7 +19,6 @@
 #define IDM_OPEN_FOLDER_BY_SHORCUT 55004
 //#define IDM_TREE_SELCHANGED 55101
 
-CString GetPathName(CString strPath);
 CString GetParentFolder(CString strFolder);
 CString GetActualPath(CString strPath);
 // CDlgTabView 대화 상자
@@ -300,7 +299,7 @@ BOOL CDlgTabView::OnInitDialog()
 	CString strTitle;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
-		m_tabPath.InsertItem(i, GetPathName(m_aTabInfo[i].strPath), 1);
+		m_tabPath.InsertItem(i, CFileListCtrl::GetPathName(m_aTabInfo[i].strPath), 1);
 	}
 	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
 	DragAcceptFiles(TRUE);
@@ -313,7 +312,7 @@ void CDlgTabView::AddFileListTab(CString strPath)
 	PathTabInfo tabInfo(strPath, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
 	tabInfo.nCtrlType = APP()->m_nDefaultListType;
 	m_aTabInfo.Add(tabInfo);
-	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), GetPathName(strPath), 1);
+	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), CFileListCtrl::GetPathName(strPath), 1);
 	SetCurrentTab(nTab);
 }
 
@@ -424,8 +423,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->m_bAsc = pti.bSortAscend;
 			pMyList->m_bUseFileType = APP()->m_bUseFileType;
 			pMyList->m_bUseFileIcon = APP()->m_bUseFileIcon;
-			pMyList->m_bQuickLoadFileIcon = APP()->m_bQuickLoadFileIcon;
-			pMyList->SetFileImageList(GetIconType());
+			pMyList->SetIconType(GetIconType());
 			pMyList->DisplayFolder_Start(pti.strPath);
 		}
 		else
@@ -490,7 +488,7 @@ void CDlgTabView::UpdateFromCurrentList()
 			{
 				CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 				pti.strPath = GetActualPath(pList->m_strFolder);
-				SetTabTitle(i, GetPathName(pti.strPath));
+				SetTabTitle(i, CFileListCtrl::GetPathName(pti.strPath));
 				if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 				{
 					CString strPath;
@@ -509,7 +507,7 @@ void CDlgTabView::UpdateFromCurrentList()
 				CString strFolder;
 				if (pList->GetCurrentFolder(strFolder) == FALSE) strFolder = _T("");
 				pti.strPath = GetActualPath(strFolder);
-				SetTabTitle(i, GetPathName(pti.strPath));
+				SetTabTitle(i, CFileListCtrl::GetPathName(pti.strPath));
 				m_editPath.SetWindowText(pti.strPath);
 				m_editPath.SetSel(-1); //커서를 끝으로
 			}
@@ -601,7 +599,7 @@ void CDlgTabView::UpdateTabByPathEdit()
 		strFilter.Empty();
 	}
 	strPath = GetActualPath(strPath);
-	strName = GetPathName(strPath);
+	strName = CFileListCtrl::GetPathName(strPath);
 	SetTabTitle(m_nCurrentTab, strName);
 
 	if (CurrentListType() == TABTYPE_CUSTOM_LIST)
@@ -908,7 +906,7 @@ void CDlgTabView::SetIconType(int nIconType)
 			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
 			if (pList->m_nIconType != nIconType)
 			{
-				pList->SetFileImageList(nIconType);
+				pList->SetIconType(nIconType);
 				if (i == m_nCurrentTab) UpdateTabByPathEdit();
 				else pList->RefreshList();
 			}

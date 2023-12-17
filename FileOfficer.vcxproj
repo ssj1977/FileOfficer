@@ -202,6 +202,7 @@
     <ClInclude Include="CDlgTabView.h" />
     <ClInclude Include="CFileListContextMenu.h" />
     <ClInclude Include="CFileListCtrl.h" />
+    <ClInclude Include="CFileListCtrl_Base.h" />
     <ClInclude Include="CMyDropTarget.h" />
     <ClInclude Include="CMyEditBrowseCtrl.h" />
     <ClInclude Include="CMyShellListCtrl.h" />
@@ -224,6 +225,7 @@
     <ClCompile Include="CDlgTabView.cpp" />
     <ClCompile Include="CFileListContextMenu.cpp" />
     <ClCompile Include="CFileListCtrl.cpp" />
+    <ClCompile Include="CFileListCtrl_Base.cpp" />
     <ClCompile Include="CMyDropTarget.cpp" />
     <ClCompile Include="CMyEditBrowseCtrl.cpp" />
     <ClCompile Include="CMyShellListCtrl.cpp" />

@@ -1,5 +1,5 @@
 #pragma once
-#include <afxlistctrl.h>
+#include "CFileListCtrl_Base.h"
 #include "CMyDropTarget.h"
 
 /*using namespace std;
@@ -52,7 +52,7 @@ struct PathItem
 typedef CArray<PathItem> PathItemArray;
 
 
-class CFileListCtrl : public CMFCListCtrl
+class CFileListCtrl : public CFileListCtrl_Base
 {
 	DECLARE_DYNAMIC(CFileListCtrl)
 
@@ -81,11 +81,6 @@ public:
 	CString m_strFilterInclude;
 	CString m_strFilterExclude;
 
-	HIMAGELIST m_hImageList;
-	void SetFileImageList(int nIconType);
-	int GetFileImageIndex(CString strPath, DWORD dwAttribute);
-	int GetFileImageIndexFromMap(CString strPath, DWORD dwAttribute);
-
 	void* m_pColorRuleArray;
 	void BrowsePathHistory(BOOL bPrevious);
 	void AddPathHistory(CString strPath);
@@ -106,13 +101,9 @@ public:
 	//상태 확인
 	BOOL m_bAsc;
 	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
-	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
-	BOOL m_bUseFileIcon;
-	BOOL m_bQuickLoadFileIcon;
 	CUIntArray m_aColWidth;
 	int m_nSortCol;
 	int m_nType;
-	int m_nIconType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateFromList;

@@ -85,9 +85,61 @@ LPITEMIDLIST GetPIDLfromFullPath(CString strPath)
 	return pidl_result;
 }
 
-HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
-
 // IFileOperation 에서 변경된 파일명을 받아오기 위한 IFileOperationProgressSink 구현
+LPITEMIDLIST GetPIDLfromPath(CString strPath)
+{
+	if (strPath.GetLength() < MAX_PATH) return ILCreateFromPath(strPath);
+	LPITEMIDLIST pidl_result = NULL;
+	CString strParent = Get_Folder(strPath);
+	CString strChild = Get_Name(strPath);
+	if (strChild.GetLength() < MAX_PATH)
+	{
+		IShellFolder* pisf = NULL;
+		if ((SHGetDesktopFolder(&pisf)) == S_OK)
+		{
+			LPITEMIDLIST pidl_parent = GetPIDLfromPath(strParent);
+			LPITEMIDLIST pidl_child = NULL;
+			if (pidl_parent)
+			{
+				if (pisf->BindToObject(pidl_parent, NULL, IID_IShellFolder, (void**)&pisf) == S_OK)
+				{
+					if (pisf->ParseDisplayName(NULL, 0, strChild.GetBuffer(0), NULL, &pidl_child, NULL) == S_OK)
+					{
+						UINT cb1 = ILGetSize(pidl_parent) - sizeof(pidl_parent->mkid.cb);
+						UINT cb2 = ILGetSize(pidl_child);
+						pidl_result = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
+						if (pidl_result != NULL)
+						{
+							CopyMemory(pidl_result, pidl_parent, cb1);
+							CopyMemory(((LPSTR)pidl_result) + cb1, pidl_child, cb2);
+						}
+						CoTaskMemFree(pidl_child);
+					}
+					strChild.ReleaseBuffer();
+				}
+				CoTaskMemFree(pidl_parent);
+			}
+		}
+		pisf->Release();
+	}
+	return pidl_result;
+}
+
+HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array)
+{
+	HRESULT hr = S_OK;
+	std::vector<LPITEMIDLIST> pidl_items;
+	for (int i = 0; i < aPath.GetSize(); i++)
+	{
+		LPITEMIDLIST pidl = GetPIDLfromPath(aPath.GetAt(i));
+		if (pidl) pidl_items.push_back(pidl);
+	}
+	hr = SHCreateShellItemArrayFromIDLists((UINT)pidl_items.size(),
+		(LPCITEMIDLIST*)pidl_items.data(), &shi_array);
+	for (auto& pid : pidl_items) CoTaskMemFree(pid);
+	pidl_items.clear();
+	return hr;
+}
 
 IFACEMETHODIMP CMyShellListProgress::PostCopyItem(DWORD dwFlags, IShellItem* psiItem,
 	IShellItem* psiDestinationFolder, PCWSTR pwszNewName, HRESULT hrCopy,
