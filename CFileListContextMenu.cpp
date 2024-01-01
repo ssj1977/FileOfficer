@@ -151,6 +151,16 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		mi.dwTypeData = strMenuString.GetBuffer();
 		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
 		strMenuString.ReleaseBuffer();
+
+		strMenuString.LoadStringW(IDS_CHECK_LOCKED);
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
+		mi.fType = MFT_STRING;
+		mi.fState = MFS_ENABLED;
+		mi.wID = IDM_CHECK_LOCKED;
+		mi.dwTypeData = strMenuString.GetBuffer();
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+		strMenuString.ReleaseBuffer();
 	}
 
 

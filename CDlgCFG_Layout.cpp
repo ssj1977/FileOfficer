@@ -22,6 +22,9 @@ CDlgCFG_Layout::CDlgCFG_Layout(CWnd* pParent /*=nullptr*/)
 	m_bToolBarVertical = FALSE;
 	m_bViewShortCut1 = FALSE;
 	m_bViewShortCut2 = FALSE;
+	m_bUseFileIcon = TRUE;
+	m_bUseFileType = FALSE;
+	m_bCheckOpen = FALSE;
 }
 
 CDlgCFG_Layout::~CDlgCFG_Layout()
@@ -35,10 +38,6 @@ void CDlgCFG_Layout::DoDataExchange(CDataExchange* pDX)
 
 
 BEGIN_MESSAGE_MAP(CDlgCFG_Layout, CDialogEx)
-	ON_BN_CLICKED(IDC_RADIO_LAYOUT_HORIZONTAL, &CDlgCFG_Layout::OnBnClickedRadioLayoutHorizontal)
-	ON_BN_CLICKED(IDC_RADIO_LAYOUT_VERTICAL, &CDlgCFG_Layout::OnBnClickedRadioLayoutVertical)
-	ON_BN_CLICKED(IDC_RADIO_LAYOUT_SINGLE_1, &CDlgCFG_Layout::OnBnClickedRadioLayoutSingle1)
-	ON_BN_CLICKED(IDC_RADIO_LAYOUT_SINGLE_2, &CDlgCFG_Layout::OnBnClickedRadioLayoutSingle2)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_PERCENT, &CDlgCFG_Layout::OnBnClickedRadioLayoutPercent)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_FIXED, &CDlgCFG_Layout::OnBnClickedRadioLayoutFixed)
 	ON_BN_CLICKED(IDC_RADIO_LAYOUT_DYNAMIC, &CDlgCFG_Layout::OnBnClickedRadioLayoutDynamic)
@@ -56,10 +55,10 @@ BOOL CDlgCFG_Layout::OnInitDialog()
 	int nID = 0;
 	switch (m_nLayoutType)
 	{
-	case LIST_LAYOUT_HORIZONTAL: nID = IDC_RADIO_LAYOUT_HORIZONTAL; OnBnClickedRadioLayoutHorizontal();  break;
-	case LIST_LAYOUT_VERTICAL: nID = IDC_RADIO_LAYOUT_VERTICAL; OnBnClickedRadioLayoutVertical(); break;
-	case LIST_LAYOUT_SINGLE1: nID = IDC_RADIO_LAYOUT_SINGLE_1; OnBnClickedRadioLayoutSingle1(); break;
-	case LIST_LAYOUT_SINGLE2: nID = IDC_RADIO_LAYOUT_SINGLE_2; OnBnClickedRadioLayoutSingle2(); break;
+	case LIST_LAYOUT_HORIZONTAL: nID = IDC_RADIO_LAYOUT_HORIZONTAL; break;
+	case LIST_LAYOUT_VERTICAL: nID = IDC_RADIO_LAYOUT_VERTICAL; break;
+	case LIST_LAYOUT_SINGLE1: nID = IDC_RADIO_LAYOUT_SINGLE_1; break;
+	case LIST_LAYOUT_SINGLE2: nID = IDC_RADIO_LAYOUT_SINGLE_2; break;
 	}
 	((CButton*)GetDlgItem(nID))->SetCheck(BST_CHECKED);
 
@@ -81,6 +80,10 @@ BOOL CDlgCFG_Layout::OnInitDialog()
 	((CButton*)GetDlgItem(IDC_CHECK_TOOLBAR_VERTICAL))->SetCheck(m_bToolBarVertical ? BST_CHECKED : BST_UNCHECKED);
 	((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_1))->SetCheck(m_bViewShortCut1 ? BST_CHECKED : BST_UNCHECKED);
 	((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_2))->SetCheck(m_bViewShortCut2 ? BST_CHECKED : BST_UNCHECKED);
+
+	((CButton*)GetDlgItem(IDC_CHECK_USEFILEICON))->SetCheck(m_bUseFileIcon ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHECK_USEFILETYPE))->SetCheck(m_bUseFileType ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHECK_CHECKOPEN))->SetCheck(m_bCheckOpen ? BST_CHECKED : BST_UNCHECKED);
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.
@@ -107,6 +110,10 @@ void CDlgCFG_Layout::OnOK()
 	m_bViewShortCut1 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_1))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	m_bViewShortCut2 = (((CButton*)GetDlgItem(IDC_CHECK_VIEW_SHORTCUT_2))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 
+	m_bUseFileIcon = (((CButton*)GetDlgItem(IDC_CHECK_USEFILEICON))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bUseFileType = (((CButton*)GetDlgItem(IDC_CHECK_USEFILETYPE))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_bCheckOpen = (((CButton*)GetDlgItem(IDC_CHECK_CHECKOPEN))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+
 	CDialogEx::OnOK();
 }
 
@@ -116,30 +123,6 @@ void CDlgCFG_Layout::OnCancel()
 	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
 
 	CDialogEx::OnCancel();
-}
-
-
-void CDlgCFG_Layout::OnBnClickedRadioLayoutHorizontal()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-}
-
-
-void CDlgCFG_Layout::OnBnClickedRadioLayoutVertical()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-}
-
-
-void CDlgCFG_Layout::OnBnClickedRadioLayoutSingle1()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-}
-
-
-void CDlgCFG_Layout::OnBnClickedRadioLayoutSingle2()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 }
 
 

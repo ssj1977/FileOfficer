@@ -109,8 +109,7 @@ IFACEMETHODIMP_(ULONG) MyProgress::Release()
 
 // CFileListCtrl
 
-IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
-
+#define NUM_OF_COLUMNS 5
 #define COL_NAME 0
 #define COL_DRIVENAME 0
 #define COL_DATE 1
@@ -119,6 +118,7 @@ IMPLEMENT_DYNAMIC(CFileListCtrl, CMFCListCtrl)
 #define COL_FREESPACE 2
 #define COL_TYPE 3
 #define COL_TOTALSPACE 3
+#define COL_MEMO 4
 
 #define LIST_TYPE_INVALID -1
 #define LIST_TYPE_DRIVE 0
@@ -188,6 +188,22 @@ void CFileListCtrl::DeleteWatchingStatus(CFileListCtrl* pList)
 
 #define WATCH_BUFFER_SIZE 32 * 1024 //네트워크 드라이브에서 버퍼 크기가 64KB 이상이 되면 오류발생(패킷 크기 제한 때문)
 
+IMPLEMENT_DYNAMIC(CFileListCtrl, CFileListCtrl_Base)
+BEGIN_MESSAGE_MAP(CFileListCtrl, CFileListCtrl_Base)
+	ON_WM_SIZE()
+	//ON_NOTIFY(HDN_ITEMCLICKA, 0, &CFileListCtrl::OnHdnItemclick)
+	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CFileListCtrl::OnHdnItemclick)
+	ON_WM_DROPFILES()
+	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CFileListCtrl::OnLvnBegindrag)
+	ON_NOTIFY_REFLECT(NM_DBLCLK, &CFileListCtrl::OnNMDblclk)
+	ON_NOTIFY_REFLECT(LVN_ITEMCHANGED, &CFileListCtrl::OnLvnItemchanged)
+	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
+	ON_WM_CLIPBOARDUPDATE()
+	ON_WM_CONTEXTMENU()
+	ON_WM_DESTROY()
+END_MESSAGE_MAP()
+
+
 CFileListCtrl::CFileListCtrl()
 {
 	m_strFolder = L"";
@@ -202,12 +218,12 @@ CFileListCtrl::CFileListCtrl()
 	m_pThreadWatch = NULL;
 	m_posPathHistory = NULL;
 	m_bUpdatePathHistory = TRUE;
-	m_bMenuOn = FALSE;
 	m_pColorRuleArray = NULL;
 	m_bLoading = FALSE;
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
 	m_hDirectory = NULL;
 	m_hWatchBreak = NULL;
+	m_bMenuOn = FALSE;
 	//m_hLoadFinished = NULL;
 }
 
@@ -220,20 +236,6 @@ CFileListCtrl::~CFileListCtrl()
 }
 
 //static int CMD_DirWatch = IDM_START_DIRWATCH;
-
-BEGIN_MESSAGE_MAP(CFileListCtrl, CMFCListCtrl)
-	ON_WM_SIZE()
-	//ON_NOTIFY(HDN_ITEMCLICKA, 0, &CFileListCtrl::OnHdnItemclick)
-	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CFileListCtrl::OnHdnItemclick)
-	ON_WM_DROPFILES()
-	ON_NOTIFY_REFLECT(LVN_BEGINDRAG, &CFileListCtrl::OnLvnBegindrag)
-	ON_NOTIFY_REFLECT(NM_DBLCLK, &CFileListCtrl::OnNMDblclk)
-	ON_NOTIFY_REFLECT(LVN_ITEMCHANGED, &CFileListCtrl::OnLvnItemchanged)
-	ON_NOTIFY_REFLECT(NM_RCLICK, &CFileListCtrl::OnNMRClick)
-	ON_WM_CLIPBOARDUPDATE()
-	ON_WM_DESTROY()
-	ON_WM_CONTEXTMENU()
-END_MESSAGE_MAP()
 
 CString CFileListCtrl::GetCurrentFolder()
 {
@@ -271,7 +273,6 @@ void CFileListCtrl::SetColTexts(int* pStringId, int* pColFmt, int size)
 
 }
 
-
 void CFileListCtrl::InitColumns(int nType)
 {
 	int nIconWidth = 0;
@@ -286,7 +287,7 @@ void CFileListCtrl::InitColumns(int nType)
 	if (nCount == 0)
 	{
 		int nWidth = 0;
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < NUM_OF_COLUMNS; i++)
 		{
 			if (m_aColWidth.GetSize() > i)
 			{
@@ -303,21 +304,21 @@ void CFileListCtrl::InitColumns(int nType)
 	//for (int i = nCount - 1; i >= 0; i--) DeleteColumn(i);
 	if (nType == LIST_TYPE_DRIVE)
 	{
-		int string_id[] = { IDS_COL_DRIVE_NAME, IDS_COL_DRIVE_PATH, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE };
-		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT };
-		SetColTexts(string_id, col_fmt, 4);
+		int string_id[] = { IDS_COL_DRIVE_NAME, IDS_COL_DRIVE_PATH, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE, IDS_COL_EMPTY };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
 	}
 	else if (nType == LIST_TYPE_FOLDER)
 	{
-		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER };
-		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, 4);
+		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER, IDS_COL_MEMO };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
 	}
 	else if (nType == LIST_TYPE_UNCSERVER)
 	{
-		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
-		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, 4);
+		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT, LVCFMT_LEFT };
+		SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
 	}
 }
 
@@ -877,7 +878,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 		if (hFind != INVALID_HANDLE_VALUE)
 		{
 			int nCount = 0;
-			CString strSize, strDate, strType;
+			CString strSize, strDate, strType, strMemo;
 			DWORD dwItemData = 0;
 			size_t nLen = 0;
 			ULARGE_INTEGER filesize;
@@ -918,10 +919,9 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 					}
 					fullpath = PathBackSlash(strDir) + fd.cFileName;
 					int nIconIndex = GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes);
-					if (m_bUseFileType == TRUE) strType = GetPathTypeFromMap(fullpath, bIsDir);
-					else strType = Get_Ext(fd.cFileName, bIsDir, FALSE);
-					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, 
-						fd.cFileName, strDate, strSize, strType));
+					strType = GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType);
+					strMemo = GetPathMemo(fullpath, dwItemData, m_bCheckOpen);
+					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, fd.cFileName, strDate, strSize, strType, strMemo));
 				}
 				b = FindNextFileW(hFind, &fd);
 			}
@@ -968,9 +968,10 @@ void CFileListCtrl::DisplayPathItems()
 	{
 		PathItem& pi = m_aPathItem.GetAt(i);
 		nItem = InsertItem(i, pi.str0, pi.nIconIndex);
-		SetItemText(nItem, 1, pi.str1);
-		SetItemText(nItem, 2, pi.str2);
-		SetItemText(nItem, 3, pi.str3);
+		if (pi.str1.IsEmpty() == FALSE) SetItemText(nItem, 1, pi.str1);
+		if (pi.str2.IsEmpty() == FALSE) SetItemText(nItem, 2, pi.str2);
+		if (pi.str3.IsEmpty() == FALSE) SetItemText(nItem, 3, pi.str3);
+		if (pi.str4.IsEmpty() == FALSE) SetItemText(nItem, 4, pi.str4);
 		SetItemData(nItem, pi.dwData);
 		if (bSelect == TRUE) 
 		{
@@ -1340,7 +1341,7 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 		if (bUpdateIcon) //시간이 걸릴수 있고 확장자가 바뀌지 않은 경우 필요가 없으므로 옵션 처리
 		{
 			//종류
-			CString strType = GetPathTypeFromMap(strPath, bIsDir);
+			CString strType = GetPathTypeFromMap(strPath, bIsDir, m_bUseFileType);
 			SetItemText(nItem, COL_TYPE, strType);
 			//아이콘
 			int nImage = GetFileImageIndexFromMap(strPath, fd.dwFileAttributes);
@@ -1349,6 +1350,7 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 	}
 	SetItemText(nItem, COL_NAME, Get_Name(strPath));
 	SetItemText(nItem, COL_DATE, strTime);
+	SetItemText(nItem, COL_MEMO, GetPathMemo(strPath, fd.dwFileAttributes, m_bCheckOpen));
 	FindClose(hFind);
 }
 
@@ -1500,8 +1502,8 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 				SetItemData(nItem, dwItemData);
 				SetItemText(nItem, COL_DATE, strDate);
 				SetItemText(nItem, COL_SIZE, strSize);
-				if (m_bUseFileType == TRUE) SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir));
-				else SetItemText(nItem, COL_TYPE, Get_Ext(fd.cFileName, bIsDir, FALSE));
+				SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType));
+				SetItemText(nItem, COL_MEMO, GetPathMemo(fullpath, dwItemData, m_bCheckOpen));
 			}
 		}
 		b = FindNextFileW(hFind, &fd);
@@ -1675,52 +1677,6 @@ void CFileListCtrl::OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult)
 	ClientToScreen(&pt);
 	ShowContextMenu(pt);*/
 	*pResult = 0;
-}
-
-void CFileListCtrl::ShowContextMenu(CPoint* pPoint)
-{
-	CPoint pt;
-	CStringArray aSelectedPath;
-	if (pPoint == NULL)
-	{	//pPoint가 NULL인 경우 무조건 빈 공간 클릭시 나오는 메뉴로 처리
-		GetCursorPos(&pt);
-	}
-	else
-	{	//pPoint가 NULL이 아니라면 현재 선택된 항목을 확인하여 처리
-		int nIndex = GetNextItem(-1, LVNI_SELECTED);
-		while (nIndex != -1)
-		{
-			aSelectedPath.Add(GetItemFullPath(nIndex));
-			nIndex = GetNextItem(nIndex, LVNI_SELECTED);
-		}
-		//현재 마우스의 좌표와 pPoint의 좌표를 비교하여 다른 경우
-		//주로 키보드의 메뉴 키를 누른 경우에 해당
-		//이 경우 pPoint 값이 (-1, -1)로 나오므로 좌표를 다시 계산해야 함
-		GetCursorPos(&pt);
-		if (pPoint->x != pt.x || pPoint->y != pt.y)
-		{
-			if (aSelectedPath.GetSize() > 0)
-			{	//선택된 항목이 있는 경우에는 첫 항목의 좌표 이용
-				nIndex = GetNextItem(-1, LVNI_SELECTED);
-				if (nIndex != -1)
-				{
-					CRect rc;
-					GetItemRect(nIndex, rc, LVIR_LABEL);
-					ClientToScreen(rc);
-					pt.SetPoint(rc.left + 5, rc.bottom - 3);    
-				}
-			}
-			//else 선택된 항목이 없는 경우에는 그냥 마우스 좌표 이용
-		}
-	}
-	//현재 마우스의 좌표와 point의 좌표를 비교
-	m_bMenuOn = TRUE;
-	CFileListContextMenu context_menu;
-	context_menu.SetParent(this);
-	context_menu.SetPathArray(m_strFolder, aSelectedPath);
-	UINT idCommand = context_menu.ShowContextMenu(this, pt);
-	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
-	m_bMenuOn = FALSE;
 }
 
 
@@ -2002,14 +1958,6 @@ void CFileListCtrl::OnDestroy()
 
 
 
-void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
-{
-	//메뉴가 이미 떠있는지 체크하고 표시	
-	if (m_bMenuOn == TRUE) return;
-	ShowContextMenu(&point);
-}
-
-
 void CFileListCtrl::BrowsePathHistory(BOOL bPrevious)
 {
 	if (m_posPathHistory == NULL || m_aPathHistory.GetSize() < 2) return;
@@ -2192,6 +2140,7 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_FILE_CUT:		ClipBoardExport(TRUE);		break;
 	case IDM_FILE_PASTE:	case IDM_PASTE_FILE:		ClipBoardImport();		break; //툴바 또는 메뉴
 	case IDM_CONVERT_NFD:	ConvertNFDNames();		break;
+	case IDM_CHECK_LOCKED: UpdateMemo();		break;
 	case IDM_OPEN_PREV:		BrowsePathHistory(TRUE); break;
 	case IDM_OPEN_NEXT:		BrowsePathHistory(FALSE); break;
 	case IDM_PLAY_ITEM:		OpenSelectedItem(); break;
@@ -2237,4 +2186,71 @@ CString CFileListCtrl::GetBarString()
 		strReturn.Format(_T("%d%s"), GetItemCount(), (LPCTSTR)IDSTR(IDS_ITEM_COUNT));
 	}
 	return strReturn;
+}
+
+
+void CFileListCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
+{
+	//메뉴가 이미 떠있는지 체크하고 표시	
+	if (m_bMenuOn == TRUE) return;
+	ShowContextMenu(&point);
+}
+
+void CFileListCtrl::ShowContextMenu(CPoint* pPoint)
+{
+	CPoint pt;
+	CStringArray aSelectedPath;
+	if (pPoint == NULL)
+	{	//pPoint가 NULL인 경우 무조건 빈 공간 클릭시 나오는 메뉴로 처리
+		GetCursorPos(&pt);
+	}
+	else
+	{	//pPoint가 NULL이 아니라면 현재 선택된 항목을 확인하여 처리
+		int nIndex = GetNextItem(-1, LVNI_SELECTED);
+		while (nIndex != -1)
+		{
+			aSelectedPath.Add(GetItemFullPath(nIndex));
+			nIndex = GetNextItem(nIndex, LVNI_SELECTED);
+		}
+		//현재 마우스의 좌표와 pPoint의 좌표를 비교하여 다른 경우
+		//주로 키보드의 메뉴 키를 누른 경우에 해당
+		//이 경우 pPoint 값이 (-1, -1)로 나오므로 좌표를 다시 계산해야 함
+		GetCursorPos(&pt);
+		if (pPoint->x != pt.x || pPoint->y != pt.y)
+		{
+			if (aSelectedPath.GetSize() > 0)
+			{	//선택된 항목이 있는 경우에는 첫 항목의 좌표 이용
+				nIndex = GetNextItem(-1, LVNI_SELECTED);
+				if (nIndex != -1)
+				{
+					CRect rc;
+					GetItemRect(nIndex, rc, LVIR_LABEL);
+					ClientToScreen(rc);
+					pt.SetPoint(rc.left + 5, rc.bottom - 3);
+				}
+			}
+			//else 선택된 항목이 없는 경우에는 그냥 마우스 좌표 이용
+		}
+	}
+	//현재 마우스의 좌표와 point의 좌표를 비교
+	m_bMenuOn = TRUE;
+	CFileListContextMenu context_menu;
+	context_menu.SetParent(this);
+	context_menu.SetPathArray(m_strFolder, aSelectedPath);
+	UINT idCommand = context_menu.ShowContextMenu(this, pt);
+	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
+	m_bMenuOn = FALSE;
+}
+
+void CFileListCtrl::UpdateMemo()
+{
+	BOOL bBackup = m_bCheckOpen;
+	m_bCheckOpen = TRUE;
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	while (nItem != -1)
+	{
+		UpdateItem(nItem, _T(""), FALSE);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+	}
+	m_bCheckOpen = bBackup;
 }

@@ -9,7 +9,6 @@
 #include "CFileListCtrl.h"
 #include "CMyShellListCtrl.h"
 #include "CDlgCFG_View.h"
-#include "CDlgCFG_Layout.h"
 
 #define IDC_LIST_FILE 50000
 #define IDM_UPDATE_FROMLIST 55000
@@ -107,6 +106,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_FILE_PASTE: //툴바에서 오는 경우
 	case IDM_PASTE_FILE:  //메뉴에서 오는 경우
 	case IDM_CONVERT_NFD:
+	case IDM_CHECK_LOCKED:
 	case IDM_OPEN_PREV:
 	case IDM_OPEN_NEXT:
 	case IDM_PLAY_ITEM:
@@ -423,6 +423,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 			pMyList->m_bAsc = pti.bSortAscend;
 			pMyList->m_bUseFileType = APP()->m_bUseFileType;
 			pMyList->m_bUseFileIcon = APP()->m_bUseFileIcon;
+			pMyList->m_bCheckOpen = APP()->m_bCheckOpen;
 			pMyList->SetIconType(GetIconType());
 			pMyList->DisplayFolder_Start(pti.strPath);
 		}

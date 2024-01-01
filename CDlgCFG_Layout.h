@@ -29,6 +29,9 @@ public:
 	BOOL m_bToolBarVertical;
 	BOOL m_bViewShortCut1;
 	BOOL m_bViewShortCut2;
+	BOOL m_bUseFileIcon;
+	BOOL m_bUseFileType;
+	BOOL m_bCheckOpen;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME
@@ -43,10 +46,6 @@ public:
 	virtual BOOL OnInitDialog();
 	virtual void OnOK();
 	virtual void OnCancel();
-	afx_msg void OnBnClickedRadioLayoutHorizontal();
-	afx_msg void OnBnClickedRadioLayoutVertical();
-	afx_msg void OnBnClickedRadioLayoutSingle1();
-	afx_msg void OnBnClickedRadioLayoutSingle2();
 	afx_msg void OnBnClickedRadioLayoutPercent();
 	afx_msg void OnBnClickedRadioLayoutFixed();
 	afx_msg void OnBnClickedRadioLayoutDynamic();

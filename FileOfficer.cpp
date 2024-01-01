@@ -35,7 +35,6 @@ CFileOfficerApp::CFileOfficerApp()
 	m_nLayoutSizeType = 0;
 	m_nLayoutSizePercent = 50;
 	m_nLayoutSizeFixed = 300;
-	m_bUseFileType = FALSE;
 	m_bViewShortCut1 = TRUE;
 	m_bViewShortCut2 = TRUE;
 	m_nDragBarPos1 = 100;
@@ -44,7 +43,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_bToolBarVertical = FALSE;
 	m_hIcon = NULL;
 	m_bUseFileIcon = TRUE;
-	m_bUseFileType = TRUE;
+	m_bUseFileType = FALSE;
 	m_nDefaultListType = TABTYPE_CUSTOM_LIST;
 	m_nShortCutViewType1 = LVS_ICON;
 	m_nShortCutViewType2 = LVS_ICON;
@@ -195,6 +194,7 @@ void CFileOfficerApp::INISave(CString strFile)
 	}
 	strLine.Format(_T("UseFileType=%d\r\n"), m_bUseFileType);	strData += strLine;
 	strLine.Format(_T("UseFileIcon=%d\r\n"), m_bUseFileIcon);	strData += strLine;
+	strLine.Format(_T("CheckOpen=%d\r\n"), m_bCheckOpen);	strData += strLine;
 	strLine.Format(_T("CurrentTab1=%d\r\n"), m_nCurrentTab1);	strData += strLine;
 	strLine.Format(_T("CurrentTab2=%d\r\n"), m_nCurrentTab2);	strData += strLine;
 	strLine.Format(_T("Focused=%d\r\n"), m_nFocus);	strData += strLine;
@@ -270,6 +270,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		if (str1.CompareNoCase(_T("RectMain")) == 0) m_rcMain = ConvertString2Rect(str2);
 		else if (str1.CompareNoCase(_T("UseFileType")) == 0) m_bUseFileType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("UseFileIcon")) == 0) m_bUseFileIcon = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("CheckOpen")) == 0) m_bCheckOpen = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab1")) == 0) m_nCurrentTab1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CurrentTab2")) == 0) m_nCurrentTab2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Focused")) == 0) m_nFocus = _ttoi(str2);

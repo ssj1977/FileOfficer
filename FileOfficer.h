@@ -179,6 +179,7 @@ public:
 	int m_nDragBarPos2;
 	BOOL m_bUseFileType; //map을 이용해서 속도를 향상시켰기 때문에 옵션 불필요? 
 	BOOL m_bUseFileIcon;
+	BOOL m_bCheckOpen;
 	int m_nToolBarButtonSize; //BOOL m_bToolBarText;
 	BOOL m_bToolBarVertical;
 	BOOL m_nDefaultListType;

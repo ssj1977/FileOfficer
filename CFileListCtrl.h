@@ -12,6 +12,7 @@ struct PathItem
 	CString str1; //COL_DATE, COL_DRIVEPATH
 	CString str2; //COL_SIZE, COL_FREESPACE
 	CString str3; //COL_TYPE, COL_TOTALSPACE
+	CString str4; //COL_MEMO
 	DWORD dwData; 
 	int nIconIndex;
 
@@ -20,7 +21,7 @@ struct PathItem
 		dwData = 0;
 		nIconIndex = 0;
 	};
-	PathItem(DWORD _dwData, int _nIconIndex, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"")
+	PathItem(DWORD _dwData, int _nIconIndex, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"", CString _str4=L"")
 	{
 		this->dwData = _dwData;
 		this->nIconIndex = _nIconIndex;
@@ -28,6 +29,7 @@ struct PathItem
 		this->str1 = _str1;
 		this->str2 = _str2;
 		this->str3 = _str3;
+		this->str4 = _str4;
 	};
 	PathItem(const PathItem& pti)
 	{
@@ -37,6 +39,7 @@ struct PathItem
 		this->str1 = pti.str1;
 		this->str2 = pti.str2;
 		this->str3 = pti.str3;
+		this->str4 = pti.str4;
 	}
 	PathItem& operator= (const PathItem& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
 	{
@@ -46,6 +49,7 @@ struct PathItem
 		this->str1 = pti.str1;
 		this->str2 = pti.str2;
 		this->str3 = pti.str3;
+		this->str4 = pti.str4;
 		return *this;
 	};
 };
@@ -66,7 +70,6 @@ public:
 	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE, BOOL bForceUpdate = FALSE);
 	void InitColumns(int nType);
 	void SetColTexts(int* pStringId, int* pColFmt, int size);
-	void ShowContextMenu(CPoint* pPoint); //pPoint가 NULL인 경우 현재 마우스 위치로 처리
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
 	CString GetCurrentItemPath();
@@ -100,7 +103,6 @@ public:
 	
 	//상태 확인
 	BOOL m_bAsc;
-	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
 	CUIntArray m_aColWidth;
 	int m_nSortCol;
 	int m_nType;
@@ -114,6 +116,7 @@ public:
 	void DeleteSelected(BOOL bRecycle);
 	void RenameSelectedItem();
 	void ConvertNFDNames();
+	void UpdateMemo();
 	void RenameFiles(CStringArray& aPath, CString strNewPath);
 	void ClearSelected();
 	
@@ -154,6 +157,11 @@ public:
 	void UpdateMsgBar(int nStringID = 0);
 	COLORREF ApplyColorRule(int nRow, int nColumn, BOOL bBk);
 
+	//컨텍스트 메뉴 처리용
+	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+	void ShowContextMenu(CPoint* pPoint); //pPoint가 NULL인 경우 현재 마우스 위치로 처리
+	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
+
 protected:
 	DECLARE_MESSAGE_MAP()
 
@@ -168,7 +176,6 @@ public:
 	afx_msg void OnNMRClick(NMHDR* pNMHDR, LRESULT* pResult);
 	virtual BOOL Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UINT nID);
 	afx_msg void OnDestroy();
-	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	virtual COLORREF OnGetCellTextColor(int nRow, int nColumn);
 	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
 	afx_msg void OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult);

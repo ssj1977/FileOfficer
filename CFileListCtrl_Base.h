@@ -8,6 +8,10 @@ typedef std::map<CString, CString> CTypeMap;
 //CFileListCtrl, CShortCutList 등에 쓰임
 class CFileListCtrl_Base :  public CMFCListCtrl
 {
+	DECLARE_DYNAMIC(CFileListCtrl_Base)
+protected:
+//	DECLARE_MESSAGE_MAP()
+
 public:
 	CFileListCtrl_Base();
 	virtual ~CFileListCtrl_Base();
@@ -29,11 +33,15 @@ public:
 
 	BOOL m_bUseFileType; //파일의 종류를 설명하는 정보를 가져올지 구분, FALSE 이면 확장자로 대체, 속도면에서 많은 차이가 있음
 	static CString GetPathType(CString strPath);
-	CString GetPathTypeFromMap(CString strPath, BOOL bIsDirectory);
+	CString GetPathTypeFromMap(CString strPath, BOOL bIsDirectory, BOOL bUseFileType);
 	static CTypeMap mapType;  //확장자에 해당하는 파일타입 기억
 
+	BOOL m_bCheckOpen;
+	CString GetPathMemo(CString strPath, DWORD dwAttributes, BOOL bCheckOpen);
 	static CString GetPathName(CString strPath);
 	HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath);
+
+//	DECLARE_MESSAGE_MAP()
 };
 

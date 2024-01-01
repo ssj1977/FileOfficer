@@ -275,6 +275,9 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			dlg.m_bToolBarVertical = APP()->m_bToolBarVertical;
 			dlg.m_bViewShortCut1 = APP()->m_bViewShortCut1;
 			dlg.m_bViewShortCut2 = APP()->m_bViewShortCut2;
+			dlg.m_bUseFileIcon = APP()->m_bUseFileIcon;
+			dlg.m_bUseFileType = APP()->m_bUseFileType;
+			dlg.m_bCheckOpen = APP()->m_bCheckOpen;
 
 			if (dlg.DoModal() == IDOK)
 			{
@@ -312,6 +315,9 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 					m_tv2.ArrangeCtrl();
 				}
 				ArrangeCtrl();
+				APP()->m_bUseFileIcon = dlg.m_bUseFileIcon;
+				APP()->m_bUseFileType = dlg.m_bUseFileType;
+				APP()->m_bCheckOpen = dlg.m_bCheckOpen;
 			}
 		}
 		return TRUE;

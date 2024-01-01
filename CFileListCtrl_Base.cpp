@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "CFileListCtrl_Base.h"
 #include "EtcFunctions.h"
+#include "resource.h"
 #include <vector>
 #include <CommonControls.h> //For IID_IImageList
 
@@ -57,6 +58,8 @@
 #define SI_HIBERNATE 48	//Hibernate
 /////////////////////////////////////////////////
 
+IMPLEMENT_DYNAMIC(CFileListCtrl_Base, CMFCListCtrl)
+
 HIMAGELIST CFileListCtrl_Base::m_hSysImgList_SMALL = NULL;
 HIMAGELIST CFileListCtrl_Base::m_hSysImgList_LARGE = NULL;
 HIMAGELIST CFileListCtrl_Base::m_hSysImgList_EXTRALARGE = NULL;
@@ -71,6 +74,7 @@ CFileListCtrl_Base::CFileListCtrl_Base()
 	m_nIconType = SHIL_SMALL;
 	m_bUseFileType = TRUE;
 	m_bUseFileIcon = TRUE;
+	m_bCheckOpen = FALSE;
 }
 
 CFileListCtrl_Base::~CFileListCtrl_Base()
@@ -78,6 +82,8 @@ CFileListCtrl_Base::~CFileListCtrl_Base()
 
 }
 
+//BEGIN_MESSAGE_MAP(CFileListCtrl_Base, CMFCListCtrl)
+//END_MESSAGE_MAP()
 
 void CFileListCtrl_Base::SetIconType(int nIconType)
 {
@@ -179,11 +185,24 @@ int CFileListCtrl_Base::GetDriveImageIndex(int nDriveType)
 }
 /////////////////////////////////////////////////
 
-CString CFileListCtrl_Base::GetPathTypeFromMap(CString strPath, BOOL bIsDirectory)
+static CString strFolderTypeText = _T("");
+
+CString CFileListCtrl_Base::GetPathTypeFromMap(CString strPath, BOOL bIsDirectory, BOOL bUseFileType)
 {
-	if (bIsDirectory) return _T("");
+	if (bIsDirectory)
+	{
+		if (strFolderTypeText.IsEmpty())
+		{
+			strFolderTypeText = GetPathType(strPath);
+		}
+		return strFolderTypeText;
+	}
 	CString strType;
 	CString strExt = Get_Ext(strPath, FALSE, FALSE);
+	if (bUseFileType == FALSE)
+	{
+		return strExt;
+	}
 	CTypeMap::iterator it = mapType.find(strExt);
 	if (it == mapType.end())
 	{
@@ -313,4 +332,29 @@ HRESULT CFileListCtrl_Base::CreateShellItemArrayFromPaths(CStringArray& aPath, I
 	for (auto& pid : pidl_items) CoTaskMemFree(pid);
 	pidl_items.clear();
 	return hr;
+}
+
+CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOOL bCheckOpen)
+{
+	CString strMemo;
+
+	if (bCheckOpen == TRUE && (dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+	{
+		HANDLE hFile = CreateFile(strPath, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
+		{
+			strMemo += IDSTR(IDS_MEMO_LOCKED);
+		}
+		else
+		{
+			CloseHandle(hFile);
+		}
+	}
+
+	if (dwAttributes & FILE_ATTRIBUTE_HIDDEN) strMemo += IDSTR(IDS_MEMO_HIDDEN);
+	if (dwAttributes & FILE_ATTRIBUTE_READONLY) strMemo += IDSTR(IDS_MEMO_READONLY);
+	if (dwAttributes & FILE_ATTRIBUTE_COMPRESSED) strMemo += IDSTR(IDS_MEMO_COMPRESSED);
+	if (dwAttributes & FILE_ATTRIBUTE_ENCRYPTED) strMemo += IDSTR(IDS_MEMO_ENCRYPTED);
+
+	return strMemo;
 }
