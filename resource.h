@@ -84,6 +84,8 @@
 #define IDS_CLR_RULE_NAME_GUIDE         153
 #define IDR_MENU_SHORTCUT               155
 #define IDR_MENU_TAB                    156
+#define IDD_DIALOG1                     158
+#define IDD_SEARCH                      158
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -200,7 +202,7 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        158
+#define _APS_NEXT_RESOURCE_VALUE        160
 #define _APS_NEXT_COMMAND_VALUE         32839
 #define _APS_NEXT_CONTROL_VALUE         1046
 #define _APS_NEXT_SYMED_VALUE           101

@@ -355,6 +355,7 @@ CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOO
 	if (dwAttributes & FILE_ATTRIBUTE_READONLY) strMemo += IDSTR(IDS_MEMO_READONLY);
 	if (dwAttributes & FILE_ATTRIBUTE_COMPRESSED) strMemo += IDSTR(IDS_MEMO_COMPRESSED);
 	if (dwAttributes & FILE_ATTRIBUTE_ENCRYPTED) strMemo += IDSTR(IDS_MEMO_ENCRYPTED);
+	if (bCheckOpen == TRUE && strMemo.IsEmpty()) strMemo = L"-";
 
 	return strMemo;
 }

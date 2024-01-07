@@ -711,7 +711,7 @@ void CDlgTabView::ArrangeCtrl()
 		m_listShortCut.ShowWindow(SW_SHOW);
 		m_wndDragTab.ShowWindow(SW_SHOW);
 		GetDlgItem(IDC_ST_SHORTCUT)->ShowWindow(SW_SHOW);
-		GetDlgItem(IDC_ST_SHORTCUT)->MoveWindow(rcSC.left, rcSC.top, rcSC.Width(), BH - 1, FALSE);
+		GetDlgItem(IDC_ST_SHORTCUT)->MoveWindow(rcSC.left, rcSC.top, rcSC.Width(), BH - 1, TRUE);
 		GetDlgItem(IDC_ST_SHORTCUT)->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN);
 		rcSC.top += BH;
 		m_listShortCut.MoveWindow(rcSC, TRUE); 
