@@ -78,6 +78,9 @@
     <ClInclude Include="CFileListCtrl_Base.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="CDlgFileSearch.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FileOfficer.cpp">
@@ -132,6 +135,9 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CFileListCtrl_Base.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="CDlgFileSearch.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

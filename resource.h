@@ -84,8 +84,7 @@
 #define IDS_CLR_RULE_NAME_GUIDE         153
 #define IDR_MENU_SHORTCUT               155
 #define IDR_MENU_TAB                    156
-#define IDD_DIALOG1                     158
-#define IDD_SEARCH                      158
+#define IDD_FILE_SEARCH                 158
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -143,8 +142,32 @@
 #define IDC_CHECK_VIEW_SHORTCUT_2       1045
 #define IDC_LIST_SHORTCUT               1046
 #define IDC_CHECK_USEFILEICON           1046
+#define IDC_ST_FILENAME                 1046
 #define IDC_CHECK_USEFILETYPE           1047
+#define IDC_ST_FILEEXT                  1047
 #define IDC_CHECK_CHECKOPEN             1048
+#define IDC_ST_FILESIZE                 1048
+#define IDC_ST_FILEDATETIME             1049
+#define IDC_LIST_SEARCH                 1050
+#define IDC_ST_FILESTATE                1051
+#define IDC_EDIT_FILENAME               1052
+#define IDC_EDIT_FILEEXT                1053
+#define IDC_EDIT_FILESIZE_MIN           1054
+#define IDC_EDIT_FILESIZE_MAX           1055
+#define IDC_ST_FILEPATH                 1056
+#define IDC_EDIT_FILEPATH               1057
+#define IDC_FILE_TIME_FROM              1058
+#define IDC_FILE_TIME_UNTIL             1059
+#define IDC_FILE_DATE_FROM              1060
+#define IDC_FILE_DATE_UNTIL             1061
+#define IDC_CHK_DATETIME_FROM           1062
+#define IDC_CHK_DATETIME_UNTIL          1063
+#define IDC_CHK_FILESTATE_LOCKED        1064
+#define IDC_CHK_FILESTATE_HIDDEN        1065
+#define IDC_CHK_FILESTATE_READONLY      1066
+#define IDC_CHK_FILESTATE_ENCRYPTED     1067
+#define IDC_ST_SIZERANGE                1068
+#define IDC_ST_DATETIMERANGE            1069
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -202,9 +225,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        160
+#define _APS_NEXT_RESOURCE_VALUE        161
 #define _APS_NEXT_COMMAND_VALUE         32839
-#define _APS_NEXT_CONTROL_VALUE         1046
+#define _APS_NEXT_CONTROL_VALUE         1070
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
