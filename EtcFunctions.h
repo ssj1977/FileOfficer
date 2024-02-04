@@ -13,4 +13,6 @@ CString Get_Name(CString strFile, BOOL bKeepExt = TRUE);
 CString Get_Ext(CString strFile, BOOL bIsDirectory = FALSE, BOOL bIncludeDot = TRUE);
 CString PathBackSlash(CString strPath, BOOL bUseBackSlash = TRUE);
 CString ConvertNFD(CString strSrc);
+ULONGLONG Str2Size(CString str);
+CString GetFileSizeString(ULONGLONG nSize, int nUnit);
 #endif

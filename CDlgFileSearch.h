@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "afxdialogex.h"
-
+#include "CMyEditBrowseCtrl.h"
+#include "CSearchListCtrl.h"
 
 // CDlgFileSearch 대화 상자
 
@@ -23,4 +24,20 @@ protected:
 	DECLARE_MESSAGE_MAP()
 	virtual void OnCancel();
 	virtual void OnOK();
+public:
+	virtual BOOL OnInitDialog();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnBnClickedBtnSearchStart();
+	void ArrangeCtrl();
+	CMyEditBrowseCtrl m_editFilePath;
+	CSearchListCtrl m_listSearch;
+
+	int m_nIconType;
+	afx_msg void OnBnClickedChkDatetimeFrom();
+	afx_msg void OnBnClickedChkDatetimeUntil();
+	COleDateTime m_dateFrom;
+	COleDateTime m_dateUntil;
+	COleDateTime m_timeFrom;
+	COleDateTime m_timeUntil;
 };

@@ -10,6 +10,7 @@
 #include "CFileListCtrl.h"
 #include "EtcFunctions.h"
 #include "CDlgCFG_Layout.h"
+#include "CDlgFileSearch.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -324,6 +325,12 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 		/*APP()->m_nViewMode += 1;
 		if (APP()->m_nViewMode == 3) APP()->m_nViewMode = 0;
 		ArrangeCtrl();*/
+	case IDM_FILE_SEARCH:
+		{
+			CDlgFileSearch dlg;
+			dlg.DoModal();
+		}
+		return TRUE;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}

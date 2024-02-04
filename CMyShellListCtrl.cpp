@@ -1361,8 +1361,6 @@ HRESULT CMyShellListCtrl::DisplayFolder_CustomSort(LPCTSTR lpszPath)
 	return hr;
 }
 
-ULONGLONG Str2Size(CString str);
-CString GetFileSizeString(ULONGLONG nSize, int nUnit);
 
 CString CMyShellListCtrl::GetBarString()
 {

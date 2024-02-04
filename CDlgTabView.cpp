@@ -823,6 +823,11 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 			ToggleFindMode();
 			return TRUE;
 		}
+		if (pMsg->wParam == VK_F4)
+		{
+			GetParent()->PostMessageW(WM_COMMAND, IDM_FILE_SEARCH, 0);
+			return TRUE;
+		}
 		if (pMsg->wParam == VK_ESCAPE)
 		{
 			return TRUE;

@@ -42,6 +42,9 @@ public:
 	HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath);
 
+	void SetColTexts(int* pStringId, int* pColFmt, int size);
+	CUIntArray m_aColWidth;
+
 //	DECLARE_MESSAGE_MAP()
 };
 

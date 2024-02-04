@@ -44,6 +44,9 @@
 #define IDS_MEMO_ENCRYPTED              49
 #define IDS_MEMO_LOCKED                 50
 #define IDS_CHECK_LOCKED                51
+#define IDS_CONFIRM_CLOSE_SEARCH        52
+#define IDS_MSG_FILERANGE_ERROR         53
+#define IDS_MSG_TIMERANGE_ERROR         54
 #define IDS_MSG_COLORRULE_DATEERR       55
 #define IDS_MSG_COLORRULE_EERR          55
 #define IDS_MSG_INVALIDFONTSIZE         56
@@ -85,6 +88,7 @@
 #define IDR_MENU_SHORTCUT               155
 #define IDR_MENU_TAB                    156
 #define IDD_FILE_SEARCH                 158
+#define IDR_MENU_MAIN                   161
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -168,6 +172,7 @@
 #define IDC_CHK_FILESTATE_ENCRYPTED     1067
 #define IDC_ST_SIZERANGE                1068
 #define IDC_ST_DATETIMERANGE            1069
+#define IDC_BTN_SEARCH_START            1070
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -220,14 +225,15 @@
 #define IDM_SHORTCUT_ICONSIZE_48        32836
 #define IDM_SHORTCUT_ICONSIZE_256       32837
 #define IDM_CHECK_LOCKED                32838
+#define IDM_FILE_SEARCH                 32839
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        161
-#define _APS_NEXT_COMMAND_VALUE         32839
-#define _APS_NEXT_CONTROL_VALUE         1070
+#define _APS_NEXT_RESOURCE_VALUE        162
+#define _APS_NEXT_COMMAND_VALUE         32840
+#define _APS_NEXT_CONTROL_VALUE         1071
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

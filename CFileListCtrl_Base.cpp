@@ -359,3 +359,22 @@ CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOO
 
 	return strMemo;
 }
+
+
+void CFileListCtrl_Base::SetColTexts(int* pStringId, int* pColFmt, int size)
+{
+	CString strText;
+	LVCOLUMN col;
+	col.mask = LVCF_TEXT | LVCF_FMT;
+	for (int i = 0; i < size; i++)
+	{
+		BOOL b = strText.LoadString(*(pStringId + i));
+		if (b)
+		{
+			col.pszText = strText.GetBuffer();
+			col.fmt = *(pColFmt + i);
+			SetColumn(i, &col);
+			strText.ReleaseBuffer();
+		}
+	}
+}

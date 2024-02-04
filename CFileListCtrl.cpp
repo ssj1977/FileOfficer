@@ -254,25 +254,6 @@ int CFileListCtrl::GetNameColumnIndex()
 	return (m_nType == LIST_TYPE_DRIVE) ? COL_DRIVEPATH : COL_NAME;
 }
 
-void CFileListCtrl::SetColTexts(int* pStringId, int* pColFmt, int size)
-{
-	CString strText;
-	LVCOLUMN col;
-	col.mask = LVCF_TEXT | LVCF_FMT;
-	for (int i = 0; i < size; i++)
-	{
-		BOOL b = strText.LoadString(*(pStringId+i));
-		if (b)
-		{
-			col.pszText = strText.GetBuffer();
-			col.fmt = *(pColFmt + i);
-			SetColumn(i, &col);
-			strText.ReleaseBuffer();
-		}
-	}
-
-}
-
 void CFileListCtrl::InitColumns(int nType)
 {
 	int nIconWidth = 0;
@@ -411,44 +392,6 @@ void CFileListCtrl::OpenParentFolder()
 	}
 }
 
-CString GetFileSizeString(ULONGLONG nSize, int nUnit)
-{
-	TCHAR pBuf[135];
-	ZeroMemory(pBuf, 135);
-	CString strSize, strReturn;
-	if (nUnit > 4) nUnit = 4;
-	if (nUnit < 0) nUnit = 0;
-	nSize = nSize / (int)pow(2, 10 * nUnit);
-	strSize.Format(_T("%I64u"), nSize);
-	int nLen = strSize.GetLength();
-	if (nLen < 100)
-	{
-		int nPos = 0;
-		for (int i = 0; i < nLen; i++)
-		{
-			pBuf[nPos] = strSize.GetAt(i);
-			nPos += 1;
-			if (i < nLen - 3 && (nLen - i - 1) % 3 == 0)
-			{
-				pBuf[nPos] = _T(',');
-				nPos += 1;
-			}
-		}
-		pBuf[99] = _T('\0');
-		strReturn = (LPCTSTR)pBuf;
-		//if (nUnit == 0) strReturn += "B";
-		if (nUnit == 1) strReturn += "KB";
-		else if (nUnit == 2) strReturn += "MB";
-		else if (nUnit == 3) strReturn += "GB";
-		else if (nUnit == 4) strReturn += "TB";
-	}
-	else
-	{
-		strReturn = _T("The size is too large.");
-	}
-	return strReturn;
-}
-
 CString GetFileSizeString2(ULONGLONG nSize)
 {
 	CString str;
@@ -480,21 +423,6 @@ CString GetDriveSizeString(ULARGE_INTEGER size)
 	return GetFileSizeString2(nSize);
 }
 
-
-
-ULONGLONG Str2Size(CString str)
-{
-	str.Remove(_T(','));
-	ULONGLONG size = _wcstoui64(str, NULL, 10);
-	if (str.GetLength() > 2)
-	{
-		CString strUnit = str.Right(2);
-		if (strUnit == _T("GB")) size = size * 1073741824;
-		else if (strUnit == _T("MB")) size = size * 1048576;
-		else if (strUnit == _T("KB")) size = size * 1024;
-	}
-	return size;
-}
 
 void CFileListCtrl::WatchEventHandler()
 {

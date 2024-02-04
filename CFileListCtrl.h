@@ -69,7 +69,6 @@ public:
 	void UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon);
 	void UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath = FALSE, BOOL bForceUpdate = FALSE);
 	void InitColumns(int nType);
-	void SetColTexts(int* pStringId, int* pColFmt, int size);
 	CString GetItemFullPath(int nItem);
 	CString GetCurrentFolder();
 	CString GetCurrentItemPath();
@@ -103,7 +102,6 @@ public:
 	
 	//상태 확인
 	BOOL m_bAsc;
-	CUIntArray m_aColWidth;
 	int m_nSortCol;
 	int m_nType;
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
