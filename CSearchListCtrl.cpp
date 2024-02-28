@@ -21,7 +21,6 @@ CSearchListCtrl::CSearchListCtrl()
 	//m_aNameMatch; // 이름 조건
 	//m_aExtMatch; // 확장자 조건
 	m_bNameAnd = FALSE; // 이름 조건이 여러개일때 AND로 적용할지 OR로 적용할지
-	m_bExtAnd = FALSE; // 확장자 조건이 여러개일때 AND로 적용할지 OR로 적용할지
 	//m_dtFrom; // 일시 조건 (시작시점)
 	//m_dtUntil; // 일시 조건 (종료시점)
 	m_bDateTimeFrom = FALSE; // 시작시점을 사용할지
@@ -83,12 +82,6 @@ void CSearchListCtrl::InitColumns()
 void CSearchListCtrl::FileSearch_Begin()
 {
 	DeleteAllItems();
-	// 이름 및 확장자 검색 키워드 초기화
-	CString strNames, strExts;
-	GetDlgItemText(IDC_EDIT_FILENAME, strNames);
-	GetDlgItemText(IDC_EDIT_FILEEXT, strExts);
-	GetStringArray(strNames, L'/', m_aNameMatch);
-	GetStringArray(strExts, L'/', m_aExtMatch);
 	//찾기 시작
 	FileSearch_Do(m_strStartFolder);
 }
@@ -124,6 +117,7 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	while (b)
 	{
 		dwItemData = fd.dwFileAttributes;
+		bIsDir = (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
 		nLen = _tcsclen(fd.cFileName);
 		// '.', '..' 인 경우를 식별하여 무시
 		if ((nLen == 1 && fd.cFileName[0] == _T('.'))
@@ -139,7 +133,7 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 		{
 			fullpath = PathBackSlash(strFolder) + fd.cFileName;
 			//파일 경로인 경우 저장해 두었다가 나중에 재귀호출
-			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			if (bIsDir)
 			{
 				aSubFolders.Add(fullpath);
 			}
@@ -150,13 +144,13 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 				//조건 검사 : 파일 상태
 				if (m_bLocked || m_bHidden || m_bReadOnly || m_bEncrypted) bMatch = IsMatch_State(fd, fullpath);
 				//조건 검사 : 파일 크기
-				if (m_bSizeMax || m_bSizeMin) bMatch = IsMatch_Size(fd);
-				//조건 검사 : 파일 변경 시점d
-				if (m_bDateTimeFrom || m_bDateTimeUntil) bMatch = IsMatch_Time(fd);
+				if (bMatch == TRUE && (m_bSizeMax || m_bSizeMin)) bMatch = IsMatch_Size(fd);
+				//조건 검사 : 파일 변경 시점
+				if (bMatch == TRUE && (m_bDateTimeFrom || m_bDateTimeUntil)) bMatch = IsMatch_Time(fd);
 				//조건 검사 : 파일명
-				if (m_aNameMatch.GetCount() > 0) bMatch = IsMatch_Name(fd);
+				if (bMatch == TRUE && m_aNameMatch.GetCount() > 0) bMatch = IsMatch_Name(fd);
 				//조건 검사 : 확장자
-				if (m_aExtMatch.GetCount() > 0) bMatch = IsMatch_Ext(fd);
+				if (bMatch == TRUE && bIsDir == FALSE && m_aExtMatch.GetCount() > 0) bMatch = IsMatch_Ext(fd);
 				// 조건이 맞는 파일만 표시
 				if (bMatch == TRUE)
 				{
@@ -210,18 +204,46 @@ BOOL CSearchListCtrl::IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath)
 
 BOOL CSearchListCtrl::IsMatch_Name(WIN32_FIND_DATA& fd)
 {
-	return TRUE;
+	int nCount = (int)m_aNameMatch.GetCount();
+	if (m_aNameMatch.GetCount() <= 0) return TRUE;
+	CString strName = Get_Name(fd.cFileName, FALSE);
+	strName.MakeLower();
+	BOOL bMatch = TRUE;
+	for (int i = 0; i < nCount; i++)
+	{
+		if (strName.Find(m_aNameMatch[i]) == -1)
+		{	//포함되지 않음
+			if (m_bNameAnd == TRUE) return FALSE; // AND 조건인 경우 바로 실패
+			else bMatch = FALSE; // OR 이고 못찾았으면 다음 키워드로 재시도
+		}
+		else
+		{	//포함됨
+			if (m_bNameAnd == FALSE) return TRUE; // OR 조건인 경우 바로 성공
+			else bMatch = TRUE; // AND 이고 찾았으면 다음 키워드로 추가 확인
+		}
+	}
+	return bMatch; // AND 일때는 TRUE, OR 일때는 FALSE
 }
 
 
 BOOL CSearchListCtrl::IsMatch_Ext(WIN32_FIND_DATA& fd)
 {
-	return TRUE;
+	int nCount = (int)m_aExtMatch.GetCount();
+	if (m_aExtMatch.GetCount() <= 0) return TRUE;
+	CString strExt = Get_Ext(fd.cFileName, FALSE, FALSE);
+	for (int i = 0; i < nCount; i++)
+	{
+		if (strExt.CompareNoCase(m_aExtMatch[i]) == 0) return TRUE;
+	}
+	return FALSE;
 }
 
 
 BOOL CSearchListCtrl::IsMatch_Time(WIN32_FIND_DATA& fd)
 {
+	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
+	if (m_bDateTimeFrom == TRUE && m_dtFrom > tTemp) return FALSE;
+	if (m_bDateTimeUntil == TRUE && m_dtUntil < tTemp) return FALSE;
 	return TRUE;
 }
 

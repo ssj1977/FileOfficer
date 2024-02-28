@@ -77,7 +77,7 @@ void GetToken(CString& strLine, CString& str1, CString& str2, TCHAR cSplit, BOOL
 	str2.TrimLeft(); str2.TrimRight();
 }
 
-int GetStringArray(CString strSource, TCHAR cSplit, CStringArray& aStr)
+int GetStringArray(CString strSource, TCHAR cSplit, CStringArray& aStr, BOOL bMakeLower)
 {
 	aStr.RemoveAll();
 	if (strSource.IsEmpty()) return 0;
@@ -85,6 +85,7 @@ int GetStringArray(CString strSource, TCHAR cSplit, CStringArray& aStr)
 	int i = 0;
 	while (AfxExtractSubString(strToken, strSource, i, cSplit))
 	{
+		if (bMakeLower) strToken.MakeLower();
 		aStr.Add(strToken);
 		i++;
 	}

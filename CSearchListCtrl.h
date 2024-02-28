@@ -22,7 +22,6 @@ public:
 	CStringArray m_aNameMatch; // 이름 조건
 	CStringArray m_aExtMatch; // 확장자 조건
 	BOOL m_bNameAnd; // 이름 조건이 여러개일때 AND로 적용할지 OR로 적용할지
-	BOOL m_bExtAnd; // 확장자 조건이 여러개일때 AND로 적용할지 OR로 적용할지
 	COleDateTime m_dtFrom; // 일시 조건 (시작시점)
 	COleDateTime m_dtUntil; // 일시 조건 (종료시점)
 	BOOL m_bDateTimeFrom; // 시작시점을 사용할지

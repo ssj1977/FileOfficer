@@ -85,7 +85,6 @@ BOOL CDlgFileSearch::OnInitDialog()
 	GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
 
 	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
-	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
 
 	ArrangeCtrl();
 
@@ -141,7 +140,7 @@ void CDlgFileSearch::ArrangeCtrl()
 
 	GetDlgItem(IDC_ST_FILEEXT)->MoveWindow(cx, cy, rcST.Width(), nDH);
 	GetDlgItem(IDC_EDIT_FILEEXT)->MoveWindow(tx, cy, tw - rcCB.Width() - 2, nDH);
-	GetDlgItem(IDC_CB_EXT)->MoveWindow(tx + (tw - rcCB.Width()), cy, rcCB.Width(), nDH);
+	GetDlgItem(IDC_ST_GUIDE)->MoveWindow(tx + (tw - rcCB.Width()), cy, rcCB.Width(), nDH);
 	cy += nDH + sh;;
 
 	GetDlgItem(IDC_ST_FILESIZE)->MoveWindow(cx, cy, rcST.Width(), nDH);
@@ -225,6 +224,13 @@ void CDlgFileSearch::OnBnClickedBtnSearchStart()
 		AfxMessageBox(IDSTR(IDS_MSG_TIMERANGE_ERROR));
 		return;
 	}
+	CString strNames, strExts;
+	GetDlgItemText(IDC_EDIT_FILENAME, strNames);
+	GetDlgItemText(IDC_EDIT_FILEEXT, strExts);
+	GetStringArray(strNames, L'/', m_listSearch.m_aNameMatch);
+	GetStringArray(strExts, L'/', m_listSearch.m_aExtMatch);
+	m_listSearch.m_bNameAnd = (((CComboBox*)GetDlgItem(IDC_CB_NAME))->GetCurSel() == 0) ? FALSE : TRUE;
+
 	m_listSearch.FileSearch_Begin();
 }
 
