@@ -173,6 +173,9 @@
 #define IDC_ST_SIZERANGE                1068
 #define IDC_ST_DATETIMERANGE            1069
 #define IDC_BTN_SEARCH_START            1070
+#define IDC_CB_NAME                     1071
+#define IDC_CB_NAME2                    1073
+#define IDC_CB_EXT                      1073
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -233,7 +236,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        162
 #define _APS_NEXT_COMMAND_VALUE         32840
-#define _APS_NEXT_CONTROL_VALUE         1071
+#define _APS_NEXT_CONTROL_VALUE         1072
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

@@ -12,6 +12,12 @@ public:
 	void FileSearch_Begin();
 	void FileSearch_Do(CString strFolder);
 
+	BOOL IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath);
+	BOOL IsMatch_Name(WIN32_FIND_DATA& fd);
+	BOOL IsMatch_Ext(WIN32_FIND_DATA& fd);
+	BOOL IsMatch_Time(WIN32_FIND_DATA& fd);
+	BOOL IsMatch_Size(WIN32_FIND_DATA& fd);
+
 	CString m_strStartFolder; // 처음 검색을 시작할 위치
 	CStringArray m_aNameMatch; // 이름 조건
 	CStringArray m_aExtMatch; // 확장자 조건

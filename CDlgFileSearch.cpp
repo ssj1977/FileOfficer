@@ -84,6 +84,9 @@ BOOL CDlgFileSearch::OnInitDialog()
 	GetDlgItem(IDC_FILE_DATE_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
 	GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
 
+	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
+	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
+
 	ArrangeCtrl();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -115,51 +118,58 @@ inline int MoveKeepWidth(CWnd* pWnd, int x, int y, int h)
 
 void CDlgFileSearch::ArrangeCtrl()
 {
-	CRect rcDlg, rcST, rcTemp; 
+	CRect rcDlg, rcST, rcCB, rcTemp;
 	GetClientRect(rcDlg);
 	int cx = 0, cy = 0, tx = 0, tw = 0, tx2 = 0, sw = 5, sh=5;
 	GetDlgItem(IDC_ST_FILEPATH)->GetWindowRect(rcST);
+	GetDlgItem(IDC_CB_NAME)->GetWindowRect(rcCB);
+
 	cx = sw; cy = sh;
 	tx = cx + rcST.Width() + sw; 
 	tw = rcDlg.Width() - tx - sw ;
-	GetDlgItem(IDC_ST_FILEPATH)->MoveWindow(cx, cy, rcST.Width(), rcST.Height());
-	GetDlgItem(IDC_EDIT_FILEPATH)->MoveWindow(tx, cy, tw, rcST.Height());
-	cy += rcST.Height() + sh;
 
-	GetDlgItem(IDC_ST_FILENAME)->MoveWindow(cx, cy, rcST.Width(), rcST.Height());
-	GetDlgItem(IDC_EDIT_FILENAME)->MoveWindow(tx, cy, tw, rcST.Height());
-	cy += rcST.Height() + sh;;
+	int nDH = rcCB.Height();
 
-	GetDlgItem(IDC_ST_FILEEXT)->MoveWindow(cx, cy, rcST.Width(), rcST.Height());
-	GetDlgItem(IDC_EDIT_FILEEXT)->MoveWindow(tx, cy, tw, rcST.Height());
-	cy += rcST.Height() + sh;;
+	GetDlgItem(IDC_ST_FILEPATH)->MoveWindow(cx, cy, rcST.Width(), nDH);
+	GetDlgItem(IDC_EDIT_FILEPATH)->MoveWindow(tx, cy, tw, nDH);
+	cy += nDH + sh;
 
-	GetDlgItem(IDC_ST_FILESIZE)->MoveWindow(cx, cy, rcST.Width(), rcST.Height());
+	GetDlgItem(IDC_ST_FILENAME)->MoveWindow(cx, cy, rcST.Width(), nDH);
+	GetDlgItem(IDC_EDIT_FILENAME)->MoveWindow(tx, cy, tw - rcCB.Width() - 2, nDH);
+	GetDlgItem(IDC_CB_NAME)->MoveWindow(tx + (tw - rcCB.Width()), cy, rcCB.Width(), nDH);
+	cy += nDH + sh;;
+
+	GetDlgItem(IDC_ST_FILEEXT)->MoveWindow(cx, cy, rcST.Width(), nDH);
+	GetDlgItem(IDC_EDIT_FILEEXT)->MoveWindow(tx, cy, tw - rcCB.Width() - 2, nDH);
+	GetDlgItem(IDC_CB_EXT)->MoveWindow(tx + (tw - rcCB.Width()), cy, rcCB.Width(), nDH);
+	cy += nDH + sh;;
+
+	GetDlgItem(IDC_ST_FILESIZE)->MoveWindow(cx, cy, rcST.Width(), nDH);
 	tx2 = tx;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_EDIT_FILESIZE_MIN), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_ST_SIZERANGE), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_EDIT_FILESIZE_MAX), tx2, cy, rcST.Height()) + sw;
-	cy += rcST.Height() + sh;;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_EDIT_FILESIZE_MIN), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_ST_SIZERANGE), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_EDIT_FILESIZE_MAX), tx2, cy, nDH) + sw;
+	cy += nDH + sh;;
 
-	GetDlgItem(IDC_ST_FILEDATETIME)->MoveWindow(cx, cy, rcST.Width(), rcST.Height());
+	GetDlgItem(IDC_ST_FILEDATETIME)->MoveWindow(cx, cy, rcST.Width(), nDH);
 	tx2 = tx;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_DATETIME_FROM), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_DATE_FROM), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_TIME_FROM), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_ST_DATETIMERANGE), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_DATETIME_UNTIL), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_DATE_UNTIL), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_TIME_UNTIL), tx2, cy, rcST.Height()) + sw;
-	cy += rcST.Height() + sh;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_DATETIME_FROM), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_DATE_FROM), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_TIME_FROM), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_ST_DATETIMERANGE), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_DATETIME_UNTIL), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_DATE_UNTIL), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_TIME_UNTIL), tx2, cy, nDH) + sw;
+	cy += nDH + sh;
 
-	GetDlgItem(IDC_ST_FILESTATE)->MoveWindow(cx, cy, rcST.Width(), rcST.Height());
+	GetDlgItem(IDC_ST_FILESTATE)->MoveWindow(cx, cy, rcST.Width(), nDH);
 	tx2 = tx;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_LOCKED), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_HIDDEN), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_READONLY), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED), tx2, cy, rcST.Height()) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_BTN_SEARCH_START), tx2, cy, rcST.Height()) + sw;
-	cy += rcST.Height() + sh;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_LOCKED), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_HIDDEN), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_READONLY), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED), tx2, cy, nDH) + sw;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_BTN_SEARCH_START), tx2, cy, nDH) + sw;
+	cy += nDH + sh;
 
 	GetDlgItem(IDC_LIST_SEARCH)->MoveWindow(cx, cy, rcDlg.Width() - (cx * 2), rcDlg.Height() - cy - sh);
 

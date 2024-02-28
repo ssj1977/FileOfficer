@@ -83,8 +83,16 @@ void CSearchListCtrl::InitColumns()
 void CSearchListCtrl::FileSearch_Begin()
 {
 	DeleteAllItems();
+	// 이름 및 확장자 검색 키워드 초기화
+	CString strNames, strExts;
+	GetDlgItemText(IDC_EDIT_FILENAME, strNames);
+	GetDlgItemText(IDC_EDIT_FILEEXT, strExts);
+	GetStringArray(strNames, L'/', m_aNameMatch);
+	GetStringArray(strExts, L'/', m_aExtMatch);
+	//찾기 시작
 	FileSearch_Do(m_strStartFolder);
 }
+
 
 void CSearchListCtrl::FileSearch_Do(CString strFolder)
 {
@@ -110,8 +118,9 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	BOOL b = TRUE, bIsDir = FALSE;
 	CString fullpath;
 	BOOL bIsDot = FALSE;
-	
+	ULARGE_INTEGER filesize;
 	CStringArray aSubFolders; // 재귀호출용 하위폴더 저장
+
 	while (b)
 	{
 		dwItemData = fd.dwFileAttributes;
@@ -139,35 +148,15 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 			{
 				BOOL bMatch = TRUE;
 				//조건 검사 : 파일 상태
-				if (m_bLocked && bMatch)
-				{
-					HANDLE hFile = CreateFile(fullpath, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
-					if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
-					{
-						bMatch = TRUE;
-					}
-					else
-					{
-						bMatch = FALSE;
-						CloseHandle(hFile);
-					}
-				}
-				if (m_bHidden && bMatch) bMatch = (fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? TRUE : FALSE;
-				if (m_bReadOnly && bMatch) bMatch = (fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) ? TRUE : FALSE;
-				if (m_bEncrypted && bMatch) bMatch = (fd.dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED) ? TRUE : FALSE;
-				
-				// 조건 검사 : 파일 크기
-				ULARGE_INTEGER filesize;
-				filesize.HighPart = fd.nFileSizeHigh;
-				filesize.LowPart = fd.nFileSizeLow;
-				if (m_bSizeMax && bMatch)
-				{
-					if (filesize.QuadPart > m_sizeMax) bMatch = FALSE;
-				}
-				if (m_bSizeMin && bMatch)
-				{
-					if (filesize.QuadPart < m_sizeMin) bMatch = FALSE;
-				}
+				if (m_bLocked || m_bHidden || m_bReadOnly || m_bEncrypted) bMatch = IsMatch_State(fd, fullpath);
+				//조건 검사 : 파일 크기
+				if (m_bSizeMax || m_bSizeMin) bMatch = IsMatch_Size(fd);
+				//조건 검사 : 파일 변경 시점d
+				if (m_bDateTimeFrom || m_bDateTimeUntil) bMatch = IsMatch_Time(fd);
+				//조건 검사 : 파일명
+				if (m_aNameMatch.GetCount() > 0) bMatch = IsMatch_Name(fd);
+				//조건 검사 : 확장자
+				if (m_aExtMatch.GetCount() > 0) bMatch = IsMatch_Ext(fd);
 				// 조건이 맞는 파일만 표시
 				if (bMatch == TRUE)
 				{
@@ -193,4 +182,64 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	{
 		FileSearch_Do(aSubFolders[i]);
 	}
+}
+
+
+BOOL CSearchListCtrl::IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath)
+{
+	BOOL bIsLocked = TRUE, bIsHidden = TRUE, bIsReadOnly = TRUE, bIsEncrypted = TRUE;
+	if (m_bLocked) // 잠긴 파일인지 검사
+	{
+		HANDLE hFile = CreateFile(fullpath, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
+		if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
+		{
+			bIsLocked = TRUE;
+		}
+		else
+		{
+			bIsLocked = FALSE;
+			CloseHandle(hFile);
+		}
+	}
+	if (m_bHidden) bIsHidden = (fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? TRUE : FALSE;
+	if (m_bReadOnly) bIsReadOnly = (fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) ? TRUE : FALSE;
+	if (m_bEncrypted) bIsEncrypted = (fd.dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED) ? TRUE : FALSE;
+	return bIsLocked && bIsHidden && bIsReadOnly && bIsEncrypted;
+}
+
+
+BOOL CSearchListCtrl::IsMatch_Name(WIN32_FIND_DATA& fd)
+{
+	return TRUE;
+}
+
+
+BOOL CSearchListCtrl::IsMatch_Ext(WIN32_FIND_DATA& fd)
+{
+	return TRUE;
+}
+
+
+BOOL CSearchListCtrl::IsMatch_Time(WIN32_FIND_DATA& fd)
+{
+	return TRUE;
+}
+
+
+BOOL CSearchListCtrl::IsMatch_Size(WIN32_FIND_DATA& fd) 
+{
+	// 조건 검사 : 파일 크기
+	BOOL bMatch = TRUE;
+	ULARGE_INTEGER filesize;
+	filesize.HighPart = fd.nFileSizeHigh;
+	filesize.LowPart = fd.nFileSizeLow;
+	if (m_bSizeMax && bMatch)
+	{
+		if (filesize.QuadPart > m_sizeMax) bMatch = FALSE;
+	}
+	if (m_bSizeMin && bMatch)
+	{
+		if (filesize.QuadPart < m_sizeMin) bMatch = FALSE;
+	}
+	return bMatch;
 }

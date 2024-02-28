@@ -77,6 +77,21 @@ void GetToken(CString& strLine, CString& str1, CString& str2, TCHAR cSplit, BOOL
 	str2.TrimLeft(); str2.TrimRight();
 }
 
+int GetStringArray(CString strSource, TCHAR cSplit, CStringArray& aStr)
+{
+	aStr.RemoveAll();
+	if (strSource.IsEmpty()) return 0;
+	CString strToken;
+	int i = 0;
+	while (AfxExtractSubString(strToken, strSource, i, cSplit))
+	{
+		aStr.Add(strToken);
+		i++;
+	}
+	return (int)aStr.GetCount();
+}
+
+
 BOOL WriteCStringToFile(CString strFile, CString& strContent)
 {
 	try
