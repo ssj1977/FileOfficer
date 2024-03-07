@@ -86,6 +86,7 @@ int GetStringArray(CString strSource, TCHAR cSplit, CStringArray& aStr, BOOL bMa
 	while (AfxExtractSubString(strToken, strSource, i, cSplit))
 	{
 		if (bMakeLower) strToken.MakeLower();
+		strToken.Trim();
 		aStr.Add(strToken);
 		i++;
 	}

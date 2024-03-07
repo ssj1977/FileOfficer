@@ -378,3 +378,74 @@ void CFileListCtrl_Base::SetColTexts(int* pStringId, int* pColFmt, int size)
 		}
 	}
 }
+
+int CFileListCtrl_Base::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
+{
+	int nRet = 0;
+	CString str1 = GetItemText((int)item1, nCol);
+	CString str2 = GetItemText((int)item2, nCol);
+	if (nType == COL_COMP_STR)
+	{
+		nRet = StrCmp(str1, str2);
+	}
+	else if (nType == COL_COMP_PATH)
+	{
+		BOOL bIsDir1 = IsDir((int)item1);
+		BOOL bIsDir2 = IsDir((int)item2);
+		if (bIsDir1 != bIsDir2)
+		{
+			nRet = int(bIsDir2 - bIsDir1);
+		}
+		else
+		{
+			nRet = StrCmpLogicalW(str1.GetBuffer(), str2.GetBuffer());
+			str1.ReleaseBuffer();
+			str2.ReleaseBuffer();
+		}
+	}
+	else if (nType == COL_COMP_SIZE)
+	{
+		ULONGLONG size1 = Str2Size(str1);
+		ULONGLONG size2 = Str2Size(str2);
+		if (size1 == size2) nRet = 0;
+		else if (size1 > size2) nRet = 1;
+		else if (size1 < size2) nRet = -1;
+	}
+	else if (nType == COL_COMP_DRIVE)
+	{
+		// 드라이브 라벨 컬럼 클릭시 드라이브끼리의 정렬은 경로 순서로 해야 함 
+		// 라벨에서 경로 정보를 추출하여 처리
+		CString strPath1 = GetDrivePathFromName(str1);
+		CString strPath2 = GetDrivePathFromName(str2);
+		BOOL bIsDrive1 = !(strPath1.IsEmpty());
+		BOOL bIsDrive2 = !(strPath2.IsEmpty());
+		if (bIsDrive1 != bIsDrive2) //드라이브가 항상 드라이브 아닌 것 보다 우선
+		{
+			nRet = int(bIsDrive2 - bIsDrive1);
+		}
+		else
+		{
+			if (bIsDrive1) // 드라이브 끼리 비교할때는 경로로
+			{
+				nRet = StrCmpLogicalW(strPath1.GetBuffer(), strPath2.GetBuffer());
+				strPath1.ReleaseBuffer();
+				strPath2.ReleaseBuffer();
+			}
+			else // 드라이브 아닌 것 끼리 비교할때는 라벨로
+			{
+				nRet = StrCmpLogicalW(str1.GetBuffer(), str2.GetBuffer());
+				str1.ReleaseBuffer();
+				str2.ReleaseBuffer();
+			}
+		}
+	}
+	return nRet;
+}
+
+CString CFileListCtrl_Base::GetDrivePathFromName(CString strPath)
+{
+	//드라이브 라벨에는 항상 괄호 안에 실제 드라이브 경로가 포함되어 있음
+	int nFind = strPath.Find(_T(':'));
+	if (nFind < 1) return _T("");
+	return strPath.Mid(nFind - 1, 2); //콜론 기준 앞의 한글자와 콜론을 반환
+}

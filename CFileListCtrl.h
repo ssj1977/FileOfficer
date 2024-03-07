@@ -86,10 +86,8 @@ public:
 	void* m_pColorRuleArray;
 	void BrowsePathHistory(BOOL bPrevious);
 	void AddPathHistory(CString strPath);
-	BOOL IsDrive(int nItem);
 	int GetNameColumnIndex();
 	inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
-	inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
 	
 
 	//경로 히스토리 관련
@@ -104,7 +102,6 @@ public:
 	BOOL m_bAsc;
 	int m_nSortCol;
 	int m_nType;
-	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateFromList;
 	int CMD_UpdateBar;

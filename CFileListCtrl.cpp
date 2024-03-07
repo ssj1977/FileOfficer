@@ -125,10 +125,6 @@ IFACEMETHODIMP_(ULONG) MyProgress::Release()
 #define LIST_TYPE_FOLDER 1
 #define LIST_TYPE_UNCSERVER 2
 
-#define COL_COMP_STR 0
-#define COL_COMP_PATH 1
-#define COL_COMP_SIZE 2
-#define COL_COMP_DRIVE 3
 
 //쓰레드의 상태를 관리하기 위한 static 변수
 typedef std::map<CFileListCtrl*, BOOL> ThreadStatusMap;
@@ -1485,72 +1481,10 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 	}
 }
 
-BOOL CFileListCtrl::IsDrive(int nItem)
-{
-	if (m_nType != LIST_TYPE_DRIVE) return FALSE;
-	CString strPath = GetItemText(nItem, COL_DRIVEPATH);
-	if (strPath.GetLength() != 2) return FALSE; //드라이브 경로는 항상 두글자 
-	if (strPath.Find('\\') != -1) return FALSE; //드라이브 경로에는 '\' 가 없음
-	return TRUE;
-}
-
-int CFileListCtrl::CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType)
-{
-	int nRet = 0;
-	CString str1 = GetItemText((int)item1, nCol);
-	CString str2 = GetItemText((int)item2, nCol);
-	if (nType == COL_COMP_STR)
-	{
-		nRet = StrCmp(str1, str2);
-	}
-	else if (nType == COL_COMP_PATH)
-	{
-		BOOL bIsDir1 = IsDir((int)item1);
-		BOOL bIsDir2 = IsDir((int)item2);
-		if (bIsDir1 != bIsDir2)
-		{
-			nRet = int(bIsDir2 - bIsDir1);
-		}
-		else
-		{
-			nRet = StrCmpLogicalW(str1.GetBuffer(), str2.GetBuffer());
-			str1.ReleaseBuffer();
-			str2.ReleaseBuffer();
-		}
-	}
-	else if (nType == COL_COMP_SIZE)
-	{
-		ULONGLONG size1 = Str2Size(str1);
-		ULONGLONG size2 = Str2Size(str2);
-		if (size1 == size2) nRet = 0;
-		else if (size1 > size2) nRet = 1;
-		else if (size1 < size2) nRet = -1;
-	}
-	else if (nType == COL_COMP_DRIVE)
-	{
-		BOOL bIsDrive1 = IsDrive((int)item1);
-		BOOL bIsDrive2 = IsDrive((int)item2);
-		if (bIsDrive1 != bIsDrive2)
-		{
-			nRet = int(bIsDrive2 - bIsDrive1);
-		}
-		else
-		{
-			if (bIsDrive1)
-			{
-				str1 = GetItemText((int)item1, COL_DRIVEPATH);
-				str2 = GetItemText((int)item2, COL_DRIVEPATH);
-			}
-			nRet = StrCmpLogicalW(str1.GetBuffer(), str2.GetBuffer());
-			str1.ReleaseBuffer();
-			str2.ReleaseBuffer();
-		}
-	}
-	return nRet;
-}
 
 int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 {
+	//if (m_aColCompareType.GetCount() <= iColumn) return 0;
 	int nRet = 0;
 	if (m_nType == LIST_TYPE_FOLDER)
 	{
@@ -1569,6 +1503,10 @@ int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
 	else if (m_nType == LIST_TYPE_UNCSERVER)
 	{
 		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+	}
+	else
+	{
+		//nRet = CompareItemByType(lParam1, lParam2, iColumn, m_aColCompareType[iColumn]);
 	}
 
 	return nRet;

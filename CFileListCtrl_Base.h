@@ -4,6 +4,13 @@
 typedef std::map<CString, int> CExtMap;
 typedef std::map<CString, CString> CTypeMap;
 
+#ifndef COL_COMP_STR
+#define COL_COMP_STR 0
+#define COL_COMP_PATH 1
+#define COL_COMP_SIZE 2
+#define COL_COMP_DRIVE 3
+#endif
+
 //파일 보기 리스트 컨트롤의 기본적인 함수와 속성을 포함한 클래스
 //CFileListCtrl, CShortCutList 등에 쓰임
 class CFileListCtrl_Base :  public CMFCListCtrl
@@ -44,6 +51,12 @@ public:
 
 	void SetColTexts(int* pStringId, int* pColFmt, int size);
 	CUIntArray m_aColWidth;
+	CUIntArray m_aColCompareType;
+
+	inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
+	static CString GetDrivePathFromName(CString strPath);
+
+	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 
 //	DECLARE_MESSAGE_MAP()
 };
