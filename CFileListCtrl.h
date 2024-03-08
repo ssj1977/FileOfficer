@@ -164,7 +164,7 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
-	virtual int OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn);
+	//virtual int OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn);
 	virtual void Sort(int iColumn, BOOL bAscending = TRUE, BOOL bAdd = FALSE);
 	afx_msg void OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult);
 	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);

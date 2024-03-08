@@ -3,7 +3,7 @@
 #include "CSearchListCtrl.h"
 #include "EtcFunctions.h"
 
-#ifndef NUM_OF_COLUMNS
+//#ifndef NUM_OF_COLUMNS
 #define NUM_OF_COLUMNS 6 // 일반적인 파일 목록과 다름에 주의
 #define COL_NAME 0
 #define COL_FOLDER 1
@@ -11,9 +11,13 @@
 #define COL_SIZE 3
 #define COL_TYPE 4
 #define COL_MEMO 5
-#endif
+//#endif
 
 IMPLEMENT_DYNAMIC(CSearchListCtrl, CFileListCtrl_Base)
+BEGIN_MESSAGE_MAP(CSearchListCtrl, CFileListCtrl_Base)
+	//ON_NOTIFY(HDN_ITEMCLICKA, 0, &CSearchListCtrl::OnHdnItemclick)
+	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CSearchListCtrl::OnHdnItemclick)
+END_MESSAGE_MAP()
 
 CSearchListCtrl::CSearchListCtrl()
 {
@@ -73,8 +77,8 @@ void CSearchListCtrl::InitColumns()
 	}
 	int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DRIVE_PATH, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER, IDS_COL_MEMO };
 	int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT, LVCFMT_LEFT, LVCFMT_LEFT };
-	SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
-
+	int sort_type[] = { COL_COMP_PATH, COL_COMP_STR, COL_COMP_STR, COL_COMP_SIZE, COL_COMP_STR, COL_COMP_STR, COL_COMP_STR };
+	SetColTexts(string_id, col_fmt, sort_type, NUM_OF_COLUMNS);
 }
 
 
@@ -82,8 +86,12 @@ void CSearchListCtrl::InitColumns()
 void CSearchListCtrl::FileSearch_Begin()
 {
 	DeleteAllItems();
+	SetSortColumn(-1, m_bAscending);
 	//찾기 시작
+	SetRedraw(FALSE);
 	FileSearch_Do(m_strStartFolder);
+	SetRedraw(TRUE);
+	// if (m_iSortedColumn>=0 && m_iSortedColumn < GetHeaderCtrl().GetItemCount())Sort(m_iSortedColumn, m_bAscending);
 }
 
 
@@ -264,4 +272,23 @@ BOOL CSearchListCtrl::IsMatch_Size(WIN32_FIND_DATA& fd)
 		if (filesize.QuadPart < m_sizeMin) bMatch = FALSE;
 	}
 	return bMatch;
+}
+
+void CSearchListCtrl::Sort(int iColumn, BOOL bAscending, BOOL bAdd)
+{
+	m_iSortedColumn = iColumn;
+	m_bAscending = bAscending;
+	SortItemsEx(CompareProc, (LPARAM)this);
+}
+
+
+void CSearchListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMHEADER phdr = reinterpret_cast<LPNMHEADER>(pNMHDR);
+	Default();
+	SetSortColumn(m_iSortedColumn, m_bAscending);
+	//m_bAsc = m_bAscending;
+	//m_nSortCol = m_iSortedColumn;
+	//GetParent()->PostMessageW(WM_COMMAND, CMD_UpdateSortInfo, (DWORD_PTR)this);
+	*pResult = 0;
 }

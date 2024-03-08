@@ -18,6 +18,8 @@ public:
 	BOOL IsMatch_Time(WIN32_FIND_DATA& fd);
 	BOOL IsMatch_Size(WIN32_FIND_DATA& fd);
 
+	virtual void Sort(int iColumn, BOOL bAscending = TRUE, BOOL bAdd = FALSE);
+
 	CString m_strStartFolder; // 처음 검색을 시작할 위치
 	CStringArray m_aNameMatch; // 이름 조건
 	CStringArray m_aExtMatch; // 확장자 조건
@@ -34,5 +36,8 @@ public:
 	BOOL m_bHidden; // 숨겨진 파일 여부
 	BOOL m_bReadOnly; // 읽기 전용 파일 여부
 	BOOL m_bEncrypted; // 암호화 파일 여부
+
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
 };
 

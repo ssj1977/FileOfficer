@@ -283,19 +283,22 @@ void CFileListCtrl::InitColumns(int nType)
 	{
 		int string_id[] = { IDS_COL_DRIVE_NAME, IDS_COL_DRIVE_PATH, IDS_COL_FREESPACE_DRIVE, IDS_COL_TOTALSPACE_DRIVE, IDS_COL_EMPTY };
 		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_RIGHT, LVCFMT_RIGHT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
+		int sort_type[] = { COL_COMP_DRIVE , COL_COMP_STR , COL_COMP_SIZE, COL_COMP_SIZE, COL_COMP_STR };
+		SetColTexts(string_id, col_fmt, sort_type, NUM_OF_COLUMNS);
 	}
 	else if (nType == LIST_TYPE_FOLDER)
 	{
 		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER, IDS_COL_MEMO };
 		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
+		int sort_type[] = { COL_COMP_PATH, COL_COMP_STR , COL_COMP_SIZE, COL_COMP_STR, COL_COMP_STR };
+		SetColTexts(string_id, col_fmt, sort_type, NUM_OF_COLUMNS);
 	}
 	else if (nType == LIST_TYPE_UNCSERVER)
 	{
 		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
 		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT, LVCFMT_LEFT };
-		SetColTexts(string_id, col_fmt, NUM_OF_COLUMNS);
+		int sort_type[] = { COL_COMP_STR , COL_COMP_STR , COL_COMP_STR, COL_COMP_STR, COL_COMP_STR };
+		SetColTexts(string_id, col_fmt, sort_type, NUM_OF_COLUMNS);
 	}
 }
 
@@ -1482,35 +1485,6 @@ void CFileListCtrl::DeleteInvalidPath(CString strPath)
 }
 
 
-int CFileListCtrl::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
-{
-	//if (m_aColCompareType.GetCount() <= iColumn) return 0;
-	int nRet = 0;
-	if (m_nType == LIST_TYPE_FOLDER)
-	{
-		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_PATH);
-		else if (iColumn == COL_DATE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
-		else if (iColumn == COL_SIZE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
-		else if (iColumn == COL_TYPE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
-	}
-	else if (m_nType == LIST_TYPE_DRIVE)
-	{
-		if (iColumn == COL_DRIVENAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_DRIVE);
-		else if (iColumn == COL_DRIVEPATH) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
-		else if (iColumn == COL_FREESPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
-		else if (iColumn == COL_TOTALSPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
-	}
-	else if (m_nType == LIST_TYPE_UNCSERVER)
-	{
-		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
-	}
-	else
-	{
-		//nRet = CompareItemByType(lParam1, lParam2, iColumn, m_aColCompareType[iColumn]);
-	}
-
-	return nRet;
-}
 
 void CFileListCtrl::Sort(int iColumn, BOOL bAscending, BOOL bAdd)
 {

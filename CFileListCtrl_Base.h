@@ -49,13 +49,14 @@ public:
 	HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath);
 
-	void SetColTexts(int* pStringId, int* pColFmt, int size);
+	void SetColTexts(int* pStringId, int* pColFmt, int* pColSortType, int size);
 	CUIntArray m_aColWidth;
-	CUIntArray m_aColCompareType;
+	CUIntArray m_aColSortType;
 
 	inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
 	static CString GetDrivePathFromName(CString strPath);
 
+	virtual int OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn);
 	int CompareItemByType(LPARAM item1, LPARAM item2, int nCol, int nType);
 
 //	DECLARE_MESSAGE_MAP()

@@ -361,11 +361,12 @@ CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOO
 }
 
 
-void CFileListCtrl_Base::SetColTexts(int* pStringId, int* pColFmt, int size)
+void CFileListCtrl_Base::SetColTexts(int* pStringId, int* pColFmt, int* pColSortType, int size)
 {
 	CString strText;
 	LVCOLUMN col;
 	col.mask = LVCF_TEXT | LVCF_FMT;
+	m_aColSortType.RemoveAll();
 	for (int i = 0; i < size; i++)
 	{
 		BOOL b = strText.LoadString(*(pStringId + i));
@@ -376,6 +377,7 @@ void CFileListCtrl_Base::SetColTexts(int* pStringId, int* pColFmt, int size)
 			SetColumn(i, &col);
 			strText.ReleaseBuffer();
 		}
+		m_aColSortType.Add(*(pColSortType + i));
 	}
 }
 
@@ -448,4 +450,32 @@ CString CFileListCtrl_Base::GetDrivePathFromName(CString strPath)
 	int nFind = strPath.Find(_T(':'));
 	if (nFind < 1) return _T("");
 	return strPath.Mid(nFind - 1, 2); //콜론 기준 앞의 한글자와 콜론을 반환
+}
+
+
+int CFileListCtrl_Base::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColumn)
+{
+	if (m_aColSortType.GetCount() <= iColumn) return 0;
+	/*	int nRet = 0;
+	if (m_nType == LIST_TYPE_FOLDER)
+	{
+		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_PATH);
+		else if (iColumn == COL_DATE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+		else if (iColumn == COL_SIZE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
+		else if (iColumn == COL_TYPE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+	}
+	else if (m_nType == LIST_TYPE_DRIVE)
+	{
+		if (iColumn == COL_DRIVENAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_DRIVE);
+		else if (iColumn == COL_DRIVEPATH) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+		else if (iColumn == COL_FREESPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
+		else if (iColumn == COL_TOTALSPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
+	}
+	else if (m_nType == LIST_TYPE_UNCSERVER)
+	{
+		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
+	}
+		//nRet = CompareItemByType(lParam1, lParam2, iColumn, m_aColSortType[iColumn]);
+	}*/
+	return CompareItemByType(lParam1, lParam2, iColumn, m_aColSortType[iColumn]);
 }
