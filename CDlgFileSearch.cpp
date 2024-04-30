@@ -51,11 +51,12 @@ END_MESSAGE_MAP()
 
 void CDlgFileSearch::OnCancel()
 {
-	if (m_listSearch.GetItemCount() > 0)
+	GetParent()->PostMessage(WM_COMMAND, IDM_TOGGLE_SEARCHDLG, 0);
+	/*if (m_listSearch.GetItemCount() > 0)
 	{
 		if (AfxMessageBox(IDSTR(IDS_CONFIRM_CLOSE_SEARCH), MB_YESNO) == IDNO) return;
 	}
-	CDialogEx::OnCancel();
+	CDialogEx::OnCancel();*/
 }
 
 
@@ -68,6 +69,9 @@ void CDlgFileSearch::OnOK()
 BOOL CDlgFileSearch::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
+	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	SetIcon(m_hIcon, TRUE);
+	SetIcon(m_hIcon, FALSE);
 
 	m_editFilePath.EnableFolderBrowseButton();
 	m_listSearch.SetExtendedStyle(LVS_EX_FULLROWSELECT);

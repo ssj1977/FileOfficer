@@ -16,7 +16,7 @@
 #define new DEBUG_NEW
 #endif
 
-
+static CDlgFileSearch st_dlgSearch;
 // CFileOfficerDlg 대화 상자
 
 
@@ -71,6 +71,9 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	//Create Temporary List for Default Option Values
 	m_wndDragMain.CreateDragBar(TRUE, this, 35000);
 	m_wndDragMain.m_pBarPos = &(m_nDragMainPos);
+	//Create Search Dialog (Modaless)
+	st_dlgSearch.Create(IDD_FILE_SEARCH, this);
+	st_dlgSearch.ShowWindow(SW_HIDE);
 
 	int nDefaultSize = 0;
 	if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
@@ -129,7 +132,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_nDragMainPos = nDefaultSize;
 	ArrangeTabLayout();
-	MoveWindow(APP()->m_rcMain, TRUE);
+	if (APP()->m_rcMain.IsRectEmpty() == FALSE) MoveWindow(APP()->m_rcMain, TRUE);
+	if (APP()->m_rcSearch.IsRectEmpty() == FALSE) st_dlgSearch.MoveWindow(APP()->m_rcSearch, TRUE);
 	ArrangeCtrl();
 	m_tv1.PathArrayImport(APP()->m_aShortCutPath1);
 	m_tv2.PathArrayImport(APP()->m_aShortCutPath2);
@@ -325,10 +329,13 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 		/*APP()->m_nViewMode += 1;
 		if (APP()->m_nViewMode == 3) APP()->m_nViewMode = 0;
 		ArrangeCtrl();*/
-	case IDM_FILE_SEARCH:
+	case IDM_TOGGLE_SEARCHDLG:
 		{
-			CDlgFileSearch dlg;
-			dlg.DoModal();
+			if (::IsWindow(st_dlgSearch.GetSafeHwnd()))
+			{
+				if (st_dlgSearch.IsWindowVisible()) st_dlgSearch.ShowWindow(SW_HIDE);
+				else st_dlgSearch.ShowWindow(SW_SHOW);
+			}
 		}
 		return TRUE;
 	default:
@@ -395,6 +402,7 @@ void CFileOfficerDlg::OnCancel()
 
 	ShowWindow(SW_SHOWNORMAL);
 	GetWindowRect(APP()->m_rcMain);
+	st_dlgSearch.GetWindowRect(APP()->m_rcSearch);
 	m_tv1.UpdateColWidths();
 	m_tv2.UpdateColWidths();
 	APP()->m_nCurrentTab1 = m_tv1.m_nCurrentTab;

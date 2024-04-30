@@ -28,6 +28,7 @@ CFileOfficerApp::CFileOfficerApp()
 	m_bSortAscend_Default = TRUE;
 	m_strPath_Default.Empty();
 	m_rcMain = CRect(10, 10, 780, 580);
+	m_rcSearch.SetRectEmpty();
 	m_nCurrentTab1 = 0;
 	m_nCurrentTab2 = 0;
 	m_nFocus = 1;
@@ -192,6 +193,11 @@ void CFileOfficerApp::INISave(CString strFile)
 		strLine.Format(_T("RectMain=%d,%d,%d,%d\r\n"), m_rcMain.left, m_rcMain.top, m_rcMain.right, m_rcMain.bottom);
 		strData += strLine;;
 	}
+	if (m_rcSearch.IsRectEmpty() == FALSE)
+	{
+		strLine.Format(_T("RectSearch=%d,%d,%d,%d\r\n"), m_rcSearch.left, m_rcSearch.top, m_rcSearch.right, m_rcSearch.bottom);
+		strData += strLine;;
+	}
 	strLine.Format(_T("UseFileType=%d\r\n"), m_bUseFileType);	strData += strLine;
 	strLine.Format(_T("UseFileIcon=%d\r\n"), m_bUseFileIcon);	strData += strLine;
 	strLine.Format(_T("CheckOpen=%d\r\n"), m_bCheckOpen);	strData += strLine;
@@ -268,6 +274,7 @@ void CFileOfficerApp::INILoad(CString strFile)
 		nPos = GetLine(strData, nPos, strLine, _T("\r\n"));
 		GetToken(strLine, str1, str2, _T('='), FALSE);
 		if (str1.CompareNoCase(_T("RectMain")) == 0) m_rcMain = ConvertString2Rect(str2);
+		else if (str1.CompareNoCase(_T("RectSearch")) == 0) m_rcSearch = ConvertString2Rect(str2);
 		else if (str1.CompareNoCase(_T("UseFileType")) == 0) m_bUseFileType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("UseFileIcon")) == 0) m_bUseFileIcon = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("CheckOpen")) == 0) m_bCheckOpen = _ttoi(str2);

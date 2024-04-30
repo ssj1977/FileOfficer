@@ -12,6 +12,7 @@ class CDlgFileSearch : public CDialogEx
 public:
 	CDlgFileSearch(CWnd* pParent = nullptr);   // 표준 생성자입니다.
 	virtual ~CDlgFileSearch();
+	HICON m_hIcon;
 
 // 대화 상자 데이터입니다.
 #ifdef AFX_DESIGN_TIME

@@ -158,6 +158,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_TAB_CLOSE:	case IDM_CLOSE_LIST: CloseFileListTab(m_nCurrentTab); break;
 	case IDM_CONFIG: ConfigViewOption(); break;
 	case IDM_TOGGLE_FIND: ToggleFindMode(); break;
+	case IDM_TOGGLE_SEARCHDLG: GetParent()->PostMessage(WM_COMMAND, wParam, lParam); break;
 	case IDM_CFG_LAYOUT: GetParent()->SendMessage(WM_COMMAND, wParam, lParam); break;
 	case IDM_TAB_LEFT: MoveCurrentTab(FALSE); break;
 	case IDM_TAB_RIGHT: MoveCurrentTab(TRUE); break;
@@ -823,9 +824,9 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 			ToggleFindMode();
 			return TRUE;
 		}
-		if (pMsg->wParam == VK_F4)
+		if (pMsg->wParam == VK_F4) // Ctrl + F 로 바꿀지 생각해 볼것
 		{
-			GetParent()->PostMessageW(WM_COMMAND, IDM_FILE_SEARCH, 0);
+			GetParent()->PostMessageW(WM_COMMAND, IDM_TOGGLE_SEARCHDLG, 0);
 			return TRUE;
 		}
 		if (pMsg->wParam == VK_ESCAPE)

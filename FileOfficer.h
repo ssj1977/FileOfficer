@@ -165,6 +165,7 @@ public:
 
 	HICON m_hIcon;
 	CRect m_rcMain;
+	CRect m_rcSearch;
 	CString m_strINIPath;
 	
 	PathTabInfoArray m_aTab1;
