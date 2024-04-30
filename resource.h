@@ -88,6 +88,7 @@
 #define IDR_MENU_SHORTCUT               155
 #define IDR_MENU_TAB                    156
 #define IDD_FILE_SEARCH                 158
+#define IDR_TB_SEARCH                   162
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -228,13 +229,18 @@
 #define IDM_SHORTCUT_ICONSIZE_256       32837
 #define IDM_CHECK_LOCKED                32838
 #define IDM_TOGGLE_SEARCHDLG            32841
+#define IDM_SEARCH_BEGIN                32842
+#define ID_BUTTON32843                  32843
+#define IDM_SEARCH_STOP                 32843
+#define IDM_SEARCH_EXPORT_TXT           32844
+#define IDM_SEARCH_EXPORT_CSV           32845
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        162
-#define _APS_NEXT_COMMAND_VALUE         32842
+#define _APS_NEXT_RESOURCE_VALUE        164
+#define _APS_NEXT_COMMAND_VALUE         32846
 #define _APS_NEXT_CONTROL_VALUE         1072
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

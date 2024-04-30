@@ -424,6 +424,7 @@ void CFileOfficerDlg::OnCancel()
 	m_tv2.PathArrayExport(APP()->m_aShortCutPath2);
 	m_tv1.Clear();
 	m_tv2.Clear();
+	if (::IsWindow(st_dlgSearch.GetSafeHwnd())) st_dlgSearch.DestroyWindow();
 	CDialogEx::OnCancel();
 }
 

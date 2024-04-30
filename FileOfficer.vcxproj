@@ -257,6 +257,7 @@
     <Image Include="res\bitmap1.bmp" />
     <Image Include="res\FileOfficer.ico" />
     <Image Include="res\tb_tab2.bmp" />
+    <Image Include="res\toolbar1.bmp" />
     <Image Include="res\toolbar_Main.bmp" />
     <Image Include="res\toolbar_Tab1.bmp" />
   </ItemGroup>
