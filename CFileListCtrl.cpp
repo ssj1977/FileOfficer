@@ -1664,17 +1664,25 @@ void CFileListCtrl::DeleteSelected(BOOL bRecycle)
 	//UI에서 삭제하기
 	nItem = GetNextItem(-1, LVNI_SELECTED);
 	this->SetRedraw(FALSE);
+	int nFirstSelected = nItem;
 	while (nItem != -1)
 	{
 		if (IsItemExist(nItem))
-		{	//실제로는 안지워진 경우
-			SetItemState(nItem, 0, LVIS_SELECTED | LVIS_FOCUSED);
-			nItem = GetNextItem(-1, LVNI_SELECTED);
+		{	//실제로는 안지워진 경우 => 다음 아이템부터 다음 지울 것을 찾는다.
+			nItem = GetNextItem(nItem, LVNI_SELECTED);
 		}
 		else
-		{	//지워진 경우
+		{	//지워진 경우 => 해당 아이템부터 다음 지울 것을 찾는다.
 			DeleteItem(nItem);
+			nItem = GetNextItem(nItem -1 , LVNI_SELECTED);
 		}
+	}
+	//모든 항목이 다 지워진 경우 스크롤이 위로 튀지 않도록 해당 위치를 다시 선택해준다.
+	nItem = GetNextItem(- 1, LVNI_SELECTED);
+	if (nItem == -1)
+	{
+		if (nFirstSelected >= GetItemCount()) nFirstSelected = GetItemCount() - 1;
+		SetItemState(nFirstSelected, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 	}
 	UpdateMsgBar();
 	this->SetRedraw(TRUE);
