@@ -230,7 +230,6 @@
 #define IDM_CHECK_LOCKED                32838
 #define IDM_TOGGLE_SEARCHDLG            32841
 #define IDM_SEARCH_BEGIN                32842
-#define ID_BUTTON32843                  32843
 #define IDM_SEARCH_STOP                 32843
 #define IDM_SEARCH_EXPORT_TXT           32844
 #define IDM_SEARCH_EXPORT_CSV           32845

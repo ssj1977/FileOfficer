@@ -20,6 +20,7 @@
 
 CString GetParentFolder(CString strFolder);
 CString GetActualPath(CString strPath);
+void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH);
 // CDlgTabView 대화 상자
 
 IMPLEMENT_DYNAMIC(CDlgTabView, CDialogEx)
@@ -752,24 +753,6 @@ void CDlgTabView::ArrangeCtrl()
 	GetDlgItem(IDC_ST_BAR)->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN);
 }
 
-static void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH)
-{
-	//출처: https://stackoverflow.com/questions/2770855/how-do-you-scale-a-cbitmap-object
-	BITMAP bm = { 0 };
-	bmp_src.GetBitmap(&bm);
-	auto size = CSize(bm.bmWidth, bm.bmHeight);
-	CWindowDC wndDC(NULL);
-	CDC srcDC;
-	srcDC.CreateCompatibleDC(&wndDC);
-	auto oldSrcBmp = srcDC.SelectObject(&bmp_src);
-
-	CDC destDC;
-	destDC.CreateCompatibleDC(&wndDC);
-	bmp_dst.CreateCompatibleBitmap(&wndDC, dstW, dstH);
-	auto oldDestBmp = destDC.SelectObject(&bmp_dst);
-	destDC.StretchBlt(0, 0, dstW, dstH, &srcDC, 0, 0, size.cx, size.cy, SRCCOPY);
-}
-
 void CDlgTabView::ResizeToolBar(int width, int height)
 {
 	if (m_pTool == NULL) return;
@@ -793,10 +776,10 @@ void CDlgTabView::ResizeToolBar(int width, int height)
 	imgList.Detach();
 	bm_original.Detach();
 	bm_resized.Detach();
-	DWORD dwSize;
+	/*DWORD dwSize;
 	dwSize = m_pTool->GetToolBarCtrl().GetButtonSize();
 	int cx = LOWORD(dwSize);
-	int cy = LOWORD(dwSize);
+	int cy = LOWORD(dwSize);*/
 }
 
 

@@ -40,7 +40,6 @@ void CDlgFileSearch::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CDlgFileSearch, CDialogEx)
 	ON_WM_SIZE()
-	ON_BN_CLICKED(IDC_BTN_SEARCH_START, &CDlgFileSearch::OnBnClickedBtnSearchStart)
 	ON_BN_CLICKED(IDC_CHK_DATETIME_FROM, &CDlgFileSearch::OnBnClickedChkDatetimeFrom)
 	ON_BN_CLICKED(IDC_CHK_DATETIME_UNTIL, &CDlgFileSearch::OnBnClickedChkDatetimeUntil)
 END_MESSAGE_MAP()
@@ -62,7 +61,7 @@ void CDlgFileSearch::OnCancel()
 
 void CDlgFileSearch::OnOK()
 {
-	OnBnClickedBtnSearchStart();
+	SearchStart();
 }
 
 
@@ -72,6 +71,9 @@ BOOL CDlgFileSearch::OnInitDialog()
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
+
+	m_toolSearch.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
+	InitToolBar();
 
 	m_editFilePath.EnableFolderBrowseButton();
 	m_listSearch.SetExtendedStyle(LVS_EX_FULLROWSELECT);
@@ -179,7 +181,7 @@ void CDlgFileSearch::ArrangeCtrl()
 }
 
 
-void CDlgFileSearch::OnBnClickedBtnSearchStart()
+void CDlgFileSearch::SearchStart()
 {
 	m_editFilePath.GetWindowText(m_listSearch.m_strStartFolder);
 	m_listSearch.m_bLocked = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
@@ -252,4 +254,71 @@ void CDlgFileSearch::OnBnClickedChkDatetimeUntil()
 	m_listSearch.m_bDateTimeUntil = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	GetDlgItem(IDC_FILE_DATE_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
 	GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
+}
+
+
+BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
+{
+	switch (wParam)
+	{
+	case IDM_SEARCH_BEGIN:
+		SearchStart();
+		break;
+	case IDM_SEARCH_STOP:
+		break;
+	}
+
+	return CDialogEx::OnCommand(wParam, lParam);
+}
+
+
+void CDlgFileSearch::InitToolBar()
+{
+	ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
+	//m_toolText.LoadToolBar(IDR_TB_TAB);
+/*	UINT nStyle;
+	int nCount = m_toolText.GetCount();
+	int nTextIndex = 0;
+	for (int i = 0; i < nCount; i++)
+	{
+		nStyle = m_toolText.GetButtonStyle(i);
+		if (!(nStyle & TBBS_SEPARATOR))
+		{
+			m_toolText.SetButtonText(i, IDSTR(IDS_TB_00 + nTextIndex));
+			nTextIndex++;
+		}
+	}
+	m_btnsize_text = m_toolText.GetToolBarCtrl().GetButtonSize();*/
+	//m_btnsize_icon = m_toolIcon.GetToolBarCtrl().GetButtonSize();
+}
+
+void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH);
+
+void CDlgFileSearch::ResizeToolBar(int width, int height)
+{
+	if (::IsWindow(m_toolSearch.GetSafeHwnd()) == FALSE) return;
+	//DWORD dwSize = m_toolIcon.GetToolBarCtrl().GetButtonSize();
+	//int nHP = 0, nVP = 0; //Horizontal / Vertical
+	//m_toolIcon.GetToolBarCtrl().GetPadding(nHP, nVP);
+	//CSize btnsize(LOWORD(dwSize), HIWORD(dwSize));
+	//btnsize.cx = width;
+	//btnsize.cy = height;
+	//m_pTool->GetToolBarCtrl().SetButtonSize(CSize(width, height));
+	int nCount = m_toolSearch.GetToolBarCtrl().GetButtonCount();
+	CImageList imgList;
+	CBitmap bm_original, bm_resized;
+	bm_original.LoadBitmap(IDR_TB_TAB);
+	int size_x = width * nCount;
+	int size_y = height;
+	ResizeBitmap(bm_original, bm_resized, size_x, size_y);
+	imgList.Create(width, height, ILC_COLORDDB | ILC_MASK, nCount, 0);
+	imgList.Add(&bm_resized, RGB(255, 0, 255));
+	m_toolSearch.SendMessage(TB_SETIMAGELIST, 0, (LPARAM)imgList.m_hImageList);
+	imgList.Detach();
+	bm_original.Detach();
+	bm_resized.Detach();
+/*	DWORD dwSize;
+	dwSize = m_toolSearch.GetToolBarCtrl().GetButtonSize();
+	int cx = LOWORD(dwSize);
+	int cy = LOWORD(dwSize);*/
 }

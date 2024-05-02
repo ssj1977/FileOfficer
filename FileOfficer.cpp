@@ -514,3 +514,20 @@ void TabViewOption::StringImport(CString strData)
 	}
 }
 
+void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH)
+{
+	//출처: https://stackoverflow.com/questions/2770855/how-do-you-scale-a-cbitmap-object
+	BITMAP bm = { 0 };
+	bmp_src.GetBitmap(&bm);
+	auto size = CSize(bm.bmWidth, bm.bmHeight);
+	CWindowDC wndDC(NULL);
+	CDC srcDC;
+	srcDC.CreateCompatibleDC(&wndDC);
+	auto oldSrcBmp = srcDC.SelectObject(&bmp_src);
+
+	CDC destDC;
+	destDC.CreateCompatibleDC(&wndDC);
+	bmp_dst.CreateCompatibleBitmap(&wndDC, dstW, dstH);
+	auto oldDestBmp = destDC.SelectObject(&bmp_dst);
+	destDC.StretchBlt(0, 0, dstW, dstH, &srcDC, 0, 0, size.cx, size.cy, SRCCOPY);
+}

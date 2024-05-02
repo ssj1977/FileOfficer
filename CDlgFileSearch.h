@@ -21,18 +21,22 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 지원입니다.
-
 	DECLARE_MESSAGE_MAP()
 	virtual void OnCancel();
 	virtual void OnOK();
+
 public:
 	virtual BOOL OnInitDialog();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
-	afx_msg void OnBnClickedBtnSearchStart();
+	void SearchStart();
 	void ArrangeCtrl();
 	CMyEditBrowseCtrl m_editFilePath;
 	CSearchListCtrl m_listSearch;
+
+	CToolBar m_toolSearch;
+	void InitToolBar();
+	void ResizeToolBar(int width, int height);
 
 	int m_nIconType;
 	afx_msg void OnBnClickedChkDatetimeFrom();
@@ -41,4 +45,5 @@ public:
 	COleDateTime m_dateUntil;
 	COleDateTime m_timeFrom;
 	COleDateTime m_timeUntil;
+	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 };
