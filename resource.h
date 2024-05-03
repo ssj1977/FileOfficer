@@ -72,6 +72,12 @@
 #define IDS_CLR_RULE_COLSIZE            76
 #define IDS_CLR_RULE_COLTYPE            77
 #define IDS_CLR_RULE_NAME               78
+#define IDS_TB_SEARCH_00                79
+#define IDS_TB_SEARCH_01                80
+#define IDS_TB_SEARCH_02                81
+#define IDS_TB_SEARCH_03                82
+#define IDS_TB_SEARCH_04                83
+#define IDS_TB_SEARCH_05                84
 #define IDD_FILEOFFICER_DIALOG          102
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
@@ -176,6 +182,8 @@
 #define IDC_BTN_SEARCH_START            1075
 #define IDC_CB_NAME                     1076
 #define IDC_ST_FILEEXT2                 1077
+#define IDC_EDIT1                       1077
+#define IDC_EDIT_SEARCH_MSG             1078
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774
@@ -231,16 +239,19 @@
 #define IDM_TOGGLE_SEARCHDLG            32841
 #define IDM_SEARCH_BEGIN                32842
 #define IDM_SEARCH_STOP                 32843
-#define IDM_SEARCH_EXPORT_TXT           32844
-#define IDM_SEARCH_EXPORT_CSV           32845
+#define IDM_SEARCH_CLEAR                32844
+#define IDM_SEARCH_SETTING              32845
+#define IDM_SEARCH_CRITERIA_LOAD        32847
+#define IDM_SEARCH_CRITERIA_SAVE        32848
+#define IDM_CRITERIA_LOAD               32850
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32846
-#define _APS_NEXT_CONTROL_VALUE         1072
+#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

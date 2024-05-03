@@ -72,7 +72,7 @@ BOOL CDlgFileSearch::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);
 	SetIcon(m_hIcon, FALSE);
 
-	m_toolSearch.CreateEx(this, TBSTYLE_FLAT | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
+	m_toolSearch.CreateEx(this, TBSTYLE_LIST | TBSTYLE_WRAPABLE, WS_CHILD | WS_VISIBLE | CBRS_BORDER_ANY); // TBSTYLE_TRANSPARENT
 	InitToolBar();
 
 	m_editFilePath.EnableFolderBrowseButton();
@@ -129,12 +129,23 @@ void CDlgFileSearch::ArrangeCtrl()
 	GetDlgItem(IDC_ST_FILEPATH)->GetWindowRect(rcST);
 	GetDlgItem(IDC_CB_NAME)->GetWindowRect(rcCB);
 
-	cx = sw; cy = sh;
+	cx = sw; cy = 0;
 	tx = cx + rcST.Width() + sw; 
 	tw = rcDlg.Width() - tx - sw ;
 
 	int nDH = rcCB.Height();
 
+	//Toolbar
+	DWORD btnsize = m_toolSearch.GetToolBarCtrl().GetButtonSize();
+	int nHP = 0, nVP = 0; //Horizontal / Vertical
+	m_toolSearch.GetToolBarCtrl().GetPadding(nHP, nVP);
+	int nBtnW = LOWORD(btnsize);
+	int nBtnH = HIWORD(btnsize);
+	int nToolH = nBtnH + nVP;
+	m_toolSearch.MoveWindow(cx, cy, rcDlg.Width() - (cx * 2), nToolH, TRUE);
+	cy += nToolH + sh;
+
+	//Conditions
 	GetDlgItem(IDC_ST_FILEPATH)->MoveWindow(cx, cy, rcST.Width(), nDH);
 	GetDlgItem(IDC_EDIT_FILEPATH)->MoveWindow(tx, cy, tw, nDH);
 	cy += nDH + sh;
@@ -176,8 +187,10 @@ void CDlgFileSearch::ArrangeCtrl()
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_BTN_SEARCH_START), tx2, cy, nDH) + sw;
 	cy += nDH + sh;
 
-	GetDlgItem(IDC_LIST_SEARCH)->MoveWindow(cx, cy, rcDlg.Width() - (cx * 2), rcDlg.Height() - cy - sh);
-
+	int nListHeight = rcDlg.Height() - cy - sh - nDH;
+	GetDlgItem(IDC_LIST_SEARCH)->MoveWindow(cx, cy, rcDlg.Width() - (cx * 2), rcDlg.Height() - cy - sh - nDH);
+	cy += nListHeight;
+	GetDlgItem(IDC_EDIT_SEARCH_MSG)->MoveWindow(cx, cy, rcDlg.Width() - (cx * 2), nDH);
 }
 
 
@@ -266,6 +279,9 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 		break;
 	case IDM_SEARCH_STOP:
 		break;
+	case IDM_SEARCH_CLEAR:
+		m_listSearch.DeleteAllItems();
+		break;
 	}
 
 	return CDialogEx::OnCommand(wParam, lParam);
@@ -274,22 +290,20 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 
 void CDlgFileSearch::InitToolBar()
 {
-	ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
-	//m_toolText.LoadToolBar(IDR_TB_TAB);
-/*	UINT nStyle;
-	int nCount = m_toolText.GetCount();
+	m_toolSearch.LoadToolBar(IDR_TB_SEARCH);
+	UINT nStyle;
+	int nCount = m_toolSearch.GetCount();
 	int nTextIndex = 0;
 	for (int i = 0; i < nCount; i++)
 	{
-		nStyle = m_toolText.GetButtonStyle(i);
+		nStyle = m_toolSearch.GetButtonStyle(i);
 		if (!(nStyle & TBBS_SEPARATOR))
 		{
-			m_toolText.SetButtonText(i, IDSTR(IDS_TB_00 + nTextIndex));
+			m_toolSearch.SetButtonText(i, IDSTR(IDS_TB_SEARCH_00 + nTextIndex));
 			nTextIndex++;
 		}
 	}
-	m_btnsize_text = m_toolText.GetToolBarCtrl().GetButtonSize();*/
-	//m_btnsize_icon = m_toolIcon.GetToolBarCtrl().GetButtonSize();
+	ResizeToolBar(3, APP()->m_nToolBarButtonSize);
 }
 
 void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH);
@@ -297,17 +311,10 @@ void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH);
 void CDlgFileSearch::ResizeToolBar(int width, int height)
 {
 	if (::IsWindow(m_toolSearch.GetSafeHwnd()) == FALSE) return;
-	//DWORD dwSize = m_toolIcon.GetToolBarCtrl().GetButtonSize();
-	//int nHP = 0, nVP = 0; //Horizontal / Vertical
-	//m_toolIcon.GetToolBarCtrl().GetPadding(nHP, nVP);
-	//CSize btnsize(LOWORD(dwSize), HIWORD(dwSize));
-	//btnsize.cx = width;
-	//btnsize.cy = height;
-	//m_pTool->GetToolBarCtrl().SetButtonSize(CSize(width, height));
 	int nCount = m_toolSearch.GetToolBarCtrl().GetButtonCount();
 	CImageList imgList;
 	CBitmap bm_original, bm_resized;
-	bm_original.LoadBitmap(IDR_TB_TAB);
+	bm_original.LoadBitmap(IDR_TB_SEARCH);
 	int size_x = width * nCount;
 	int size_y = height;
 	ResizeBitmap(bm_original, bm_resized, size_x, size_y);
@@ -317,8 +324,4 @@ void CDlgFileSearch::ResizeToolBar(int width, int height)
 	imgList.Detach();
 	bm_original.Detach();
 	bm_resized.Detach();
-/*	DWORD dwSize;
-	dwSize = m_toolSearch.GetToolBarCtrl().GetButtonSize();
-	int cx = LOWORD(dwSize);
-	int cy = LOWORD(dwSize);*/
 }
