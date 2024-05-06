@@ -1,5 +1,10 @@
 #pragma once
 #include "CFileListCtrl_Base.h"
+
+#ifndef IDM_LIST_MSG
+#define IDM_SEARCH_MSG 55100
+#endif
+
 class CSearchListCtrl : public CFileListCtrl_Base
 {
 	DECLARE_DYNAMIC(CSearchListCtrl)
@@ -11,6 +16,7 @@ public:
 
 	void FileSearch_Begin();
 	void FileSearch_Do(CString strFolder);
+	static UINT FileSearch_RunThread(void* lParam);
 
 	BOOL IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath);
 	BOOL IsMatch_Name(WIN32_FIND_DATA& fd);
@@ -36,6 +42,7 @@ public:
 	BOOL m_bHidden; // 숨겨진 파일 여부
 	BOOL m_bReadOnly; // 읽기 전용 파일 여부
 	BOOL m_bEncrypted; // 암호화 파일 여부
+	CString m_strMsg; //상태창에 표시할 메시지
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);

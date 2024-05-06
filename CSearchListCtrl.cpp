@@ -88,12 +88,20 @@ void CSearchListCtrl::FileSearch_Begin()
 	DeleteAllItems();
 	SetSortColumn(-1, m_bAscending);
 	//찾기 시작
-	SetRedraw(FALSE);
-	FileSearch_Do(m_strStartFolder);
-	SetRedraw(TRUE);
+	CWinThread* pThread = AfxBeginThread(FileSearch_RunThread, this);
 	// if (m_iSortedColumn>=0 && m_iSortedColumn < GetHeaderCtrl().GetItemCount())Sort(m_iSortedColumn, m_bAscending);
 }
 
+UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
+{
+	CSearchListCtrl* pList = (CSearchListCtrl*)lParam;
+	pList->FileSearch_Do(pList->m_strStartFolder);
+
+	pList->m_strMsg.Format(_T("검색 완료 : %d개 찾음"), pList->GetItemCount()); //리소스 처리 필요
+	pList->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
+
+	return 0;
+}
 
 void CSearchListCtrl::FileSearch_Do(CString strFolder)
 {
@@ -121,6 +129,10 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	BOOL bIsDot = FALSE;
 	ULARGE_INTEGER filesize;
 	CStringArray aSubFolders; // 재귀호출용 하위폴더 저장
+
+	//현재 보고 있는 폴더 위치를 표시해준다
+	m_strMsg.Format(_T("검색중 : %s"), strFolder); //리소스 처리 필요
+	GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
 
 	while (b)
 	{

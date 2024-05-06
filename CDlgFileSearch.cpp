@@ -129,7 +129,7 @@ void CDlgFileSearch::ArrangeCtrl()
 	GetDlgItem(IDC_ST_FILEPATH)->GetWindowRect(rcST);
 	GetDlgItem(IDC_CB_NAME)->GetWindowRect(rcCB);
 
-	cx = sw; cy = 0;
+	cx = sw; cy = sw;
 	tx = cx + rcST.Width() + sw; 
 	tw = rcDlg.Width() - tx - sw ;
 
@@ -184,7 +184,6 @@ void CDlgFileSearch::ArrangeCtrl()
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_HIDDEN), tx2, cy, nDH) + sw;
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_READONLY), tx2, cy, nDH) + sw;
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED), tx2, cy, nDH) + sw;
-	tx2 += MoveKeepWidth(GetDlgItem(IDC_BTN_SEARCH_START), tx2, cy, nDH) + sw;
 	cy += nDH + sh;
 
 	int nListHeight = rcDlg.Height() - cy - sh - nDH;
@@ -282,6 +281,9 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_SEARCH_CLEAR:
 		m_listSearch.DeleteAllItems();
 		break;
+	case IDM_SEARCH_MSG:
+		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);
+		break;
 	}
 
 	return CDialogEx::OnCommand(wParam, lParam);
@@ -303,7 +305,7 @@ void CDlgFileSearch::InitToolBar()
 			nTextIndex++;
 		}
 	}
-	ResizeToolBar(3, APP()->m_nToolBarButtonSize);
+	ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
 }
 
 void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH);
