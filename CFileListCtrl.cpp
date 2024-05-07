@@ -1592,9 +1592,44 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 			GlobalUnlock(hEffect);
 			SetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), hEffect);
 		}
+		//텍스트 경로 방식의 클립보드 정보
 		SetClipboardData(CF_HDROP, hgDrop);
+
+		//쉘ID 방식의 클립보드 정보
+		IShellItemArray* shi_array = NULL;
+		CStringArray aSrcPath;
+		int nItem = GetNextItem(-1, LVNI_SELECTED);
+		while (nItem != -1)
+		{
+			aSrcPath.Add(GetItemFullPath(nItem));
+			nItem = GetNextItem(nItem, LVNI_SELECTED);
+		}
+		// Allocate memory for the shell item identifiers
+		const int numItems = aSrcPath.GetSize();
+		const int totalSize = (numItems + 1) * sizeof(DWORD); // Include the null terminator
+		HGLOBAL hGlob = GlobalAlloc(GMEM_FIXED, totalSize);
+		LPITEMIDLIST* pShellIDs = (LPITEMIDLIST*)hGlob;
+
+		// Convert file paths to shell item identifiers
+		for (int i = 0; i < numItems; ++i)
+		{
+			SHParseDisplayName(aSrcPath[i], nullptr, &pShellIDs[i], 0, nullptr);
+		}
+
+		// Set the Clipboard data format (CFSTR_SHELLIDLIST)
+		if (SetClipboardData(RegisterClipboardFormat(CFSTR_SHELLIDLIST), hGlob) == NULL)
+		{
+			AfxMessageBox(_T("Unable to set Clipboard data"));
+			CloseClipboard();
+			GlobalFree(hGlob);
+			return;
+		}
+
+
 		CloseClipboard();
 	}
+
+
 }
 
 void CFileListCtrl::ClipBoardImport()
