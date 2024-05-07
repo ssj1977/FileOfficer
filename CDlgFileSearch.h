@@ -37,6 +37,9 @@ public:
 	CToolBar m_toolSearch;
 	void InitToolBar();
 	void ResizeToolBar(int width, int height);
+	void CriteriaClear();
+	void CriteriaSave();
+	void CriteriaLoad();
 
 	int m_nIconType;
 	afx_msg void OnBnClickedChkDatetimeFrom();

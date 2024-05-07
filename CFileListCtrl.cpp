@@ -1595,7 +1595,7 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 		//텍스트 경로 방식의 클립보드 정보
 		SetClipboardData(CF_HDROP, hgDrop);
 
-		//쉘ID 방식의 클립보드 정보
+/*		//쉘ID 방식의 클립보드 정보
 		IShellItemArray* shi_array = NULL;
 		CStringArray aSrcPath;
 		int nItem = GetNextItem(-1, LVNI_SELECTED);
@@ -1623,8 +1623,7 @@ void CFileListCtrl::ClipBoardExport(BOOL bMove)
 			CloseClipboard();
 			GlobalFree(hGlob);
 			return;
-		}
-
+		}*/
 
 		CloseClipboard();
 	}

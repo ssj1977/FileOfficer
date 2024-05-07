@@ -281,6 +281,12 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_SEARCH_CLEAR:
 		m_listSearch.DeleteAllItems();
 		break;
+	case IDM_SEARCH_CRITERIA_SAVE:
+		break;
+	case IDM_SEARCH_CRITERIA_LOAD:
+		break;
+	case IDM_SEARCH_CRITERIA_CLEAR:
+		break;
 	case IDM_SEARCH_MSG:
 		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);
 		break;
@@ -326,4 +332,19 @@ void CDlgFileSearch::ResizeToolBar(int width, int height)
 	imgList.Detach();
 	bm_original.Detach();
 	bm_resized.Detach();
+}
+
+void CDlgFileSearch::CriteriaClear()
+{
+
+}
+
+void CDlgFileSearch::CriteriaSave()
+{
+
+}
+
+void CDlgFileSearch::CriteriaLoad()
+{
+
 }

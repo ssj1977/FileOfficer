@@ -78,6 +78,7 @@
 #define IDS_TB_SEARCH_03                82
 #define IDS_TB_SEARCH_04                83
 #define IDS_TB_SEARCH_05                84
+#define IDS_TB_SEARCH_06                85
 #define IDD_FILEOFFICER_DIALOG          102
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
@@ -244,13 +245,15 @@
 #define IDM_SEARCH_CRITERIA_LOAD        32847
 #define IDM_SEARCH_CRITERIA_SAVE        32848
 #define IDM_CRITERIA_LOAD               32850
+#define IDM_CRITERIA_CLEAR              32851
+#define IDM_SEARCH_CRITERIA_CLEAR       32851
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_COMMAND_VALUE         32852
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
