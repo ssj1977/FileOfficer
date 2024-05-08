@@ -90,8 +90,8 @@ BOOL CDlgFileSearch::OnInitDialog()
 	GetDlgItem(IDC_FILE_DATE_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
 	GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(m_listSearch.m_bDateTimeUntil);
 
-	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
-
+	CriteriaClear();
+	CriteriaInit();
 	ArrangeCtrl();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -169,6 +169,7 @@ void CDlgFileSearch::ArrangeCtrl()
 
 	GetDlgItem(IDC_ST_FILEDATETIME)->MoveWindow(cx, cy, rcST.Width(), nDH);
 	tx2 = tx;
+	tx2 += MoveKeepWidth(GetDlgItem(IDC_CB_TIMERANGE), tx2, cy, nDH) + sw;
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_CHK_DATETIME_FROM), tx2, cy, nDH) + sw;
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_DATE_FROM), tx2, cy, nDH) + sw;
 	tx2 += MoveKeepWidth(GetDlgItem(IDC_FILE_TIME_FROM), tx2, cy, nDH) + sw;
@@ -195,60 +196,7 @@ void CDlgFileSearch::ArrangeCtrl()
 
 void CDlgFileSearch::SearchStart()
 {
-	m_editFilePath.GetWindowText(m_listSearch.m_strStartFolder);
-	m_listSearch.m_bLocked = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	m_listSearch.m_bHidden = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	m_listSearch.m_bReadOnly = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	m_listSearch.m_bEncrypted = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-
-	CString strMin, strMax;
-	GetDlgItemText(IDC_EDIT_FILESIZE_MIN, strMin);
-	GetDlgItemText(IDC_EDIT_FILESIZE_MAX, strMax);
-	ULONGLONG sizeMin = Str2Size(strMin);
-	ULONGLONG sizeMax = Str2Size(strMax);
-	m_listSearch.m_bSizeMin = FALSE;
-	m_listSearch.m_bSizeMax = FALSE;
-	if (strMin.IsEmpty() == FALSE && strMax.IsEmpty() == FALSE && sizeMin > sizeMax)
-	{
-		AfxMessageBox(IDSTR(IDS_MSG_FILERANGE_ERROR));
-		return;
-	}
-	else
-	{
-		if (strMin.IsEmpty() == FALSE)
-		{
-			if (strMin == L"0" && sizeMin == 0) m_listSearch.m_bSizeMin = TRUE;
-			if (sizeMin > 0) m_listSearch.m_bSizeMin = TRUE;
-			if (m_listSearch.m_bSizeMin) m_listSearch.m_sizeMin = sizeMin;
-		}
-		if (strMax.IsEmpty() == FALSE)
-		{
-			if (strMax == L"0" && sizeMax == 0) m_listSearch.m_bSizeMax = TRUE;
-			if (sizeMax > 0) m_listSearch.m_bSizeMax = TRUE;
-			if (m_listSearch.m_bSizeMax) m_listSearch.m_sizeMax = sizeMax;
-		}
-	}
-	
-	m_listSearch.m_bDateTimeFrom = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	m_listSearch.m_bDateTimeUntil = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-	UpdateData(TRUE);
-	m_listSearch.m_dtFrom.SetDateTime(m_dateFrom.GetYear(), m_dateFrom.GetMonth(), m_dateFrom.GetDay(),
-						m_timeFrom.GetHour(), m_timeFrom.GetMinute(), m_dateFrom.GetSecond());
-	m_listSearch.m_dtUntil.SetDateTime(m_dateUntil.GetYear(), m_dateUntil.GetMonth(), m_dateUntil.GetDay(),
-						m_timeUntil.GetHour(), m_timeUntil.GetMinute(), m_timeUntil.GetSecond());
-	if (m_listSearch.m_bDateTimeFrom && m_listSearch.m_bDateTimeUntil
-		&& m_listSearch.m_dtFrom > m_listSearch.m_dtUntil)
-	{
-		AfxMessageBox(IDSTR(IDS_MSG_TIMERANGE_ERROR));
-		return;
-	}
-	CString strNames, strExts;
-	GetDlgItemText(IDC_EDIT_FILENAME, strNames);
-	GetDlgItemText(IDC_EDIT_FILEEXT, strExts);
-	GetStringArray(strNames, L'/', m_listSearch.m_aNameMatch);
-	GetStringArray(strExts, L'/', m_listSearch.m_aExtMatch);
-	m_listSearch.m_bNameAnd = (((CComboBox*)GetDlgItem(IDC_CB_NAME))->GetCurSel() == 0) ? FALSE : TRUE;
-
+	if (CriteriaReadFromUI() == FALSE) return;
 	m_listSearch.FileSearch_Begin();
 }
 
@@ -274,19 +222,17 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	switch (wParam)
 	{
 	case IDM_SEARCH_BEGIN:
-		SearchStart();
+		if (m_listSearch.m_bWorking == FALSE) SearchStart();
 		break;
 	case IDM_SEARCH_STOP:
+		if (m_listSearch.m_bWorking == TRUE) m_listSearch.m_bBreak = TRUE;
 		break;
 	case IDM_SEARCH_CLEAR:
 		m_listSearch.DeleteAllItems();
 		break;
-	case IDM_SEARCH_CRITERIA_SAVE:
-		break;
-	case IDM_SEARCH_CRITERIA_LOAD:
-		break;
-	case IDM_SEARCH_CRITERIA_CLEAR:
-		break;
+	case IDM_SEARCH_CRITERIA_EXPORT:	CriteriaImport();	break;
+	case IDM_SEARCH_CRITERIA_IMPORT:	CriteriaExport();	break;
+	case IDM_SEARCH_CRITERIA_CLEAR:		CriteriaClear();	break;
 	case IDM_SEARCH_MSG:
 		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);
 		break;
@@ -334,17 +280,101 @@ void CDlgFileSearch::ResizeToolBar(int width, int height)
 	bm_resized.Detach();
 }
 
+BOOL CDlgFileSearch::CriteriaReadFromUI()
+{
+	m_editFilePath.GetWindowText(m_listSearch.m_strStartFolder);
+	m_listSearch.m_bLocked = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_listSearch.m_bHidden = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_listSearch.m_bReadOnly = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_listSearch.m_bEncrypted = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+
+	CString strMin, strMax;
+	GetDlgItemText(IDC_EDIT_FILESIZE_MIN, strMin);
+	GetDlgItemText(IDC_EDIT_FILESIZE_MAX, strMax);
+	ULONGLONG sizeMin = Str2Size(strMin);
+	ULONGLONG sizeMax = Str2Size(strMax);
+	m_listSearch.m_bSizeMin = FALSE;
+	m_listSearch.m_bSizeMax = FALSE;
+	if (strMin.IsEmpty() == FALSE && strMax.IsEmpty() == FALSE && sizeMin > sizeMax)
+	{
+		AfxMessageBox(IDSTR(IDS_MSG_FILERANGE_ERROR));
+		return FALSE;
+	}
+	else
+	{
+		if (strMin.IsEmpty() == FALSE)
+		{
+			if (strMin == L"0" && sizeMin == 0) m_listSearch.m_bSizeMin = TRUE;
+			if (sizeMin > 0) m_listSearch.m_bSizeMin = TRUE;
+			if (m_listSearch.m_bSizeMin) m_listSearch.m_sizeMin = sizeMin;
+		}
+		if (strMax.IsEmpty() == FALSE)
+		{
+			if (strMax == L"0" && sizeMax == 0) m_listSearch.m_bSizeMax = TRUE;
+			if (sizeMax > 0) m_listSearch.m_bSizeMax = TRUE;
+			if (m_listSearch.m_bSizeMax) m_listSearch.m_sizeMax = sizeMax;
+		}
+	}
+
+	m_listSearch.m_bDateTimeFrom = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_listSearch.m_bDateTimeUntil = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	UpdateData(TRUE);
+	m_listSearch.m_dtFrom.SetDateTime(m_dateFrom.GetYear(), m_dateFrom.GetMonth(), m_dateFrom.GetDay(),
+		m_timeFrom.GetHour(), m_timeFrom.GetMinute(), m_dateFrom.GetSecond());
+	m_listSearch.m_dtUntil.SetDateTime(m_dateUntil.GetYear(), m_dateUntil.GetMonth(), m_dateUntil.GetDay(),
+		m_timeUntil.GetHour(), m_timeUntil.GetMinute(), m_timeUntil.GetSecond());
+	if (m_listSearch.m_bDateTimeFrom && m_listSearch.m_bDateTimeUntil
+		&& m_listSearch.m_dtFrom > m_listSearch.m_dtUntil)
+	{
+		AfxMessageBox(IDSTR(IDS_MSG_TIMERANGE_ERROR));
+		return FALSE;
+	}
+	CString strNames, strExts;
+	GetDlgItemText(IDC_EDIT_FILENAME, strNames);
+	GetDlgItemText(IDC_EDIT_FILEEXT, strExts);
+	GetStringArray(strNames, L'/', m_listSearch.m_aNameMatch);
+	GetStringArray(strExts, L'/', m_listSearch.m_aExtMatch);
+	m_listSearch.m_bNameAnd = (((CComboBox*)GetDlgItem(IDC_CB_NAME))->GetCurSel() == 0) ? FALSE : TRUE;
+	return TRUE;
+}
+
 void CDlgFileSearch::CriteriaClear()
 {
+	m_editFilePath.SetWindowTextW(_T(""));
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->SetCheck(BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->SetCheck(BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->SetCheck(BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED))->SetCheck(BST_UNCHECKED);
 
+	SetDlgItemText(IDC_EDIT_FILESIZE_MIN, _T(""));
+	SetDlgItemText(IDC_EDIT_FILESIZE_MAX, _T(""));
+	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
+
+	((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->SetCheck(BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->SetCheck(BST_UNCHECKED);
+	((CComboBox*)GetDlgItem(IDC_CB_TIMERANGE))->SetCurSel(0);
+
+	m_listSearch.m_bDateTimeFrom = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_listSearch.m_bDateTimeUntil = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
+	m_dateFrom = COleDateTime::GetCurrentTime(); m_timeFrom.SetTime(0, 0, 0);
+	m_dateUntil = COleDateTime::GetCurrentTime(); m_timeUntil.SetTime(23, 59, 59);
+	UpdateData(FALSE);
+
+	SetDlgItemText(IDC_EDIT_FILENAME, _T(""));
+	SetDlgItemText(IDC_EDIT_FILEEXT, _T(""));
 }
 
-void CDlgFileSearch::CriteriaSave()
+void CDlgFileSearch::CriteriaExport()
 {
-
+	if (CriteriaReadFromUI() == FALSE) return;
 }
 
-void CDlgFileSearch::CriteriaLoad()
+void CDlgFileSearch::CriteriaImport()
+{
+	
+}
+
+void CDlgFileSearch::CriteriaInit()
 {
 
 }

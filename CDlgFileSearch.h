@@ -38,8 +38,10 @@ public:
 	void InitToolBar();
 	void ResizeToolBar(int width, int height);
 	void CriteriaClear();
-	void CriteriaSave();
-	void CriteriaLoad();
+	void CriteriaInit();
+	BOOL CriteriaReadFromUI();
+	void CriteriaExport();
+	void CriteriaImport();
 
 	int m_nIconType;
 	afx_msg void OnBnClickedChkDatetimeFrom();

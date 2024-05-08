@@ -42,6 +42,8 @@ public:
 	BOOL m_bHidden; // 숨겨진 파일 여부
 	BOOL m_bReadOnly; // 읽기 전용 파일 여부
 	BOOL m_bEncrypted; // 암호화 파일 여부
+	BOOL m_bWorking; // 검색 쓰레드가 동작중일때 TRUE
+	BOOL m_bBreak; //검색을 중단할때 쓰는 플래그
 	CString m_strMsg; //상태창에 표시할 메시지
 
 	DECLARE_MESSAGE_MAP()

@@ -40,6 +40,9 @@ CSearchListCtrl::CSearchListCtrl()
 	
 	m_bUseFileType = TRUE;
 	m_bCheckOpen = TRUE;
+	//동작 관련 플래그들
+	m_bWorking = FALSE;
+	m_bBreak = FALSE;
 }
 
 CSearchListCtrl::~CSearchListCtrl()
@@ -95,9 +98,18 @@ void CSearchListCtrl::FileSearch_Begin()
 UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
 {
 	CSearchListCtrl* pList = (CSearchListCtrl*)lParam;
+	pList->m_bWorking = TRUE;
+	pList->m_bBreak = FALSE;
 	pList->FileSearch_Do(pList->m_strStartFolder);
-
-	pList->m_strMsg.Format(_T("검색 완료 : %d개 찾음"), pList->GetItemCount()); //리소스 처리 필요
+	pList->m_bWorking = FALSE;
+	if (pList->m_bBreak == FALSE)
+	{
+		pList->m_strMsg.Format(_T("검색 완료 : %d개 찾음"), pList->GetItemCount()); //리소스 처리 필요
+	}
+	else
+	{
+		pList->m_strMsg.Format(_T("검색 중단 : %d개 찾음"), pList->GetItemCount()); //리소스 처리 필요
+	}
 	pList->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
 
 	return 0;
@@ -134,7 +146,7 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	m_strMsg.Format(_T("검색중 : %s"), strFolder); //리소스 처리 필요
 	GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
 
-	while (b)
+	while (b && !(m_bBreak))
 	{
 		dwItemData = fd.dwFileAttributes;
 		bIsDir = (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
@@ -192,9 +204,12 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 		b = FindNextFileW(hFind, &fd);
 	}
 	FindClose(hFind);
-	for (int i = 0; i < aSubFolders.GetSize(); i++)
+	if (m_bBreak == FALSE)
 	{
-		FileSearch_Do(aSubFolders[i]);
+		for (int i = 0; i < aSubFolders.GetSize(); i++)
+		{
+			FileSearch_Do(aSubFolders[i]);
+		}
 	}
 }
 
