@@ -184,7 +184,6 @@
 #define IDC_CB_NAME                     1076
 #define IDC_ST_FILEEXT2                 1077
 #define IDC_EDIT1                       1077
-#define IDC_CB_NAME2                    1077
 #define IDC_CB_TIMERANGE                1077
 #define IDC_EDIT_SEARCH_MSG             1078
 #define IDM_PLAY_ITEM                   32772
@@ -242,18 +241,19 @@
 #define IDM_TOGGLE_SEARCHDLG            32841
 #define IDM_SEARCH_BEGIN                32842
 #define IDM_SEARCH_STOP                 32843
-#define IDM_SEARCH_CLEAR                32844
+#define IDM_SEARCH_RESULT_CLEAR         32844
 #define IDM_SEARCH_SETTING              32845
 #define IDM_SEARCH_CRITERIA_EXPORT      32846
 #define IDM_SEARCH_CRITERIA_IMPORT      32847
 #define IDM_SEARCH_CRITERIA_CLEAR       32848
+#define IDM_SEARCH_RESULT_EXPORT        32849
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32849
+#define _APS_NEXT_COMMAND_VALUE         32851
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
