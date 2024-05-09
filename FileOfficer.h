@@ -148,6 +148,34 @@ struct CListItem
 typedef CArray<CListItem> ListItemArray;
 #endif
 
+#ifndef CSearchCriteria
+class CSearchCriteria
+{
+public: 
+	CString strPath;
+	CString strName;
+	BOOL bNameAnd;
+	CString strExt;
+	ULONGLONG sizeMax;
+	ULONGLONG sizeMin;
+	BOOL bLocked;
+	BOOL bHidden;
+	BOOL bEncrypted;
+	BOOL bReadOnly;
+	BOOL bDateTimeFrom;
+	BOOL bDateTimeUntil;
+	CString strDateTimeFrom;
+	CString strDateTimeUntil;
+	int nDateTimeType;
+
+	CSearchCriteria();
+	void Empty();
+	CString ExportString();
+	CString GetSizeMinString();
+	CString GetSizeMaxString();
+};
+#endif
+
 // CFileOfficerApp:
 // 이 클래스의 구현에 대해서는 FileOfficer.cpp을(를) 참조하세요.
 //
@@ -192,6 +220,8 @@ public:
 	int m_nShortCutViewType2;
 	int m_nShortCutIconType1;
 	int m_nShortCutIconType2;
+	//검색창 조건 저장용 
+	CSearchCriteria m_defaultSC;
 
 	//선택항목 관리, CUT 기능에서 음영 처리의 일관성 유지에 필요
 	ListItemArray m_aCutItem;

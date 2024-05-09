@@ -220,6 +220,8 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("DragBarPos2=%d\r\n"), m_nDragBarPos2); strData += strLine;
 	strLine.Format(_T("ToolBarButtonSize=%d\r\n"), m_nToolBarButtonSize); strData += strLine;
 	strLine.Format(_T("ToolBarVertical=%d\r\n"), m_bToolBarVertical); strData += strLine;
+	//검색창 조건값 저장
+	strData += m_defaultSC.ExportString();
 	//탭뷰설정값 저장
 	for (int i = 0; i < m_aTabViewOption.GetSize(); i++)
 	{
@@ -309,14 +311,30 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);
 		else if (str1.CompareNoCase(_T("TabViewOption")) == 0)
 		{   //사후 처리를 위해 배열에 저장(항목추가)
-			nTabViewOptionIndex = (int)aTabViewOptionString.Add(strLine); 
+			nTabViewOptionIndex = (int)aTabViewOptionString.Add(strLine);
 		}
-		else if (str1.Find(_T("TVO_")) == 0 && nTabViewOptionIndex != -1) 
+		else if (str1.Find(_T("TVO_")) == 0 && nTabViewOptionIndex != -1)
 		{	// TVO_로 시작하는 부분을 모두 모아서 더함
 			aTabViewOptionString.SetAt(nTabViewOptionIndex, aTabViewOptionString.GetAt(nTabViewOptionIndex) + _T("\r\n") + strLine);
 		}
 		else if (str1.CompareNoCase(_T("ShortCutPath1")) == 0)	m_aShortCutPath1.Add(str2);
 		else if (str1.CompareNoCase(_T("ShortCutPath2")) == 0)	m_aShortCutPath2.Add(str2);
+		//검색조건 읽어오기
+		else if (str1.CompareNoCase(_T("SearchPath")) == 0)	m_defaultSC.strPath = str2;
+		else if (str1.CompareNoCase(_T("SearchCriteria_Name")) == 0)	m_defaultSC.strName = str2;
+		else if (str1.CompareNoCase(_T("SearchCriteria_NameAnd")) == 0)	m_defaultSC.bNameAnd = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_Ext")) == 0)		m_defaultSC.strExt = str2;
+		else if (str1.CompareNoCase(_T("SearchCriteria_SizeMin")) == 0)	m_defaultSC.sizeMin = _tcstoull(str2, NULL, 10);
+		else if (str1.CompareNoCase(_T("SearchCriteria_SizeMax")) == 0)	m_defaultSC.sizeMax = _tcstoull(str2, NULL, 10);
+		else if (str1.CompareNoCase(_T("SearchCriteria_Locked")) == 0)		m_defaultSC.bLocked = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_Hidden")) == 0)		m_defaultSC.bHidden = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_Encrypted")) == 0)	m_defaultSC.bEncrypted = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_ReadOnly")) == 0)	m_defaultSC.bReadOnly = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_UseDateTimeFrom")) == 0)		m_defaultSC.bDateTimeFrom = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_UseDateTimeUntil")) == 0)	m_defaultSC.bDateTimeUntil = _ttoi(str2);
+		else if (str1.CompareNoCase(_T("SearchCriteria_DateTimeFromString")) == 0)	m_defaultSC.strDateTimeFrom = str2;
+		else if (str1.CompareNoCase(_T("SearchCriteria_DateTimeUntilString")) == 0)	m_defaultSC.strDateTimeUntil = str2;
+		else if (str1.CompareNoCase(_T("SearchCriteria_DateTimeType")) == 0)		m_defaultSC.nDateTimeType = _ttoi(str2);
 	}
 	//추출한 탭뷰설정값 저장 부분을 사후 처리 
 	for (int i = 0; i < aTabViewOptionString.GetSize(); i++)
@@ -530,4 +548,49 @@ void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH)
 	bmp_dst.CreateCompatibleBitmap(&wndDC, dstW, dstH);
 	auto oldDestBmp = destDC.SelectObject(&bmp_dst);
 	destDC.StretchBlt(0, 0, dstW, dstH, &srcDC, 0, 0, size.cx, size.cy, SRCCOPY);
+}
+
+CSearchCriteria::CSearchCriteria()
+{
+	Empty();
+}
+
+void CSearchCriteria::Empty()
+{
+	strPath = _T("");
+	strName = _T("");
+	bNameAnd = FALSE;
+	strExt = _T("");
+	sizeMax = 0;
+	sizeMin = 0;
+	bLocked = FALSE;
+	bHidden = FALSE;
+	bEncrypted = FALSE;
+	bReadOnly = FALSE;
+	bDateTimeFrom = FALSE;
+	bDateTimeUntil = FALSE;
+	strDateTimeFrom = _T("");
+	strDateTimeUntil = _T("");
+	nDateTimeType = 0;
+}
+
+CString CSearchCriteria::ExportString()
+{
+	CString strData, strLine;
+	strLine.Format(_T("SearchPath=%s\r\n"), strPath);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_Name=%s\r\n"), strName);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_NameAnd=%d\r\n"), bNameAnd);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_Ext=%s\r\n"), strExt);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_SizeMin=%I64d\r\n"), sizeMax);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_SizeMax=%I64d\r\n"), sizeMin);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_Locked=%d\r\n"), bLocked);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_Hidden=%d\r\n"), bHidden);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_Encrypted=%d\r\n"), bEncrypted);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_ReadOnly=%d\r\n"), bReadOnly);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_UseDateTimeFrom=%d\r\n"), bDateTimeFrom);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_UseDateTimeUntil=%d\r\n"), bDateTimeUntil);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_DateTimeFromString=%s\r\n"), strDateTimeFrom);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_DateTimeUntilString=%s\r\n"),strDateTimeUntil);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_DateTimeType=%s\r\n"), nDateTimeType);	strData += strLine;
+	return strData;
 }

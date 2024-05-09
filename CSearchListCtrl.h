@@ -24,6 +24,10 @@ public:
 	BOOL IsMatch_Time(WIN32_FIND_DATA& fd);
 	BOOL IsMatch_Size(WIN32_FIND_DATA& fd);
 
+	CString GetItemFullPath(int nItem);
+	BOOL GetDataForClipBoard(int nState, HGLOBAL& hgDrop, CString& strData);
+	void ClipBoardExport(BOOL bMove);
+
 	virtual void Sort(int iColumn, BOOL bAscending = TRUE, BOOL bAdd = FALSE);
 
 	CString m_strStartFolder; // 처음 검색을 시작할 위치
@@ -33,7 +37,7 @@ public:
 	COleDateTime m_dtFrom; // 일시 조건 (시작시점)
 	COleDateTime m_dtUntil; // 일시 조건 (종료시점)
 	BOOL m_bDateTimeFrom; // 시작시점을 사용할지
-	BOOL m_bDateTimeUntil; // 종료시점을 사용할지
+	BOOL m_bDateTimeUntil; // 종료시점을 사용할지W
 	BOOL m_bSizeMin; // 크기 조건 (최소) 사용 여부
 	BOOL m_bSizeMax; // 크기 조건 (최대) 사용 여부
 	ULONGLONG m_sizeMin; // 크기 조건 (최소)
@@ -48,5 +52,6 @@ public:
 
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
 };
 

@@ -42,6 +42,7 @@ public:
 	BOOL CriteriaReadFromUI();
 	void CriteriaExport();
 	void CriteriaImport();
+	void ResultExport();
 
 	int m_nIconType;
 	afx_msg void OnBnClickedChkDatetimeFrom();

@@ -44,7 +44,7 @@ public:
 	static CTypeMap mapType;  //확장자에 해당하는 파일타입 기억
 
 	BOOL m_bCheckOpen;
-	CString GetPathMemo(CString strPath, DWORD dwAttributes, BOOL bCheckOpen);
+	CString GetPathMemo(CString strPath, DWORD dwAttributes, BOOL bCheckLocked);
 	static CString GetPathName(CString strPath);
 	HRESULT CreateShellItemArrayFromPaths(CStringArray& aPath, IShellItemArray*& shi_array);
 	static LPITEMIDLIST GetPIDLfromPath(CString strPath);

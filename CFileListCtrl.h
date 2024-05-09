@@ -75,7 +75,7 @@ public:
 	CString GetBarString();
 	void DeleteInvalidPath(CString strPath);
 	void PasteFiles(CStringArray& aOldPath, BOOL bMove);
-	void ClipBoardExport(BOOL bCut);
+	void ClipBoardExport(BOOL bMove); //Move = Cut 
 	void ClipBoardImport();
 	HGLOBAL GetOleDataForClipboard(int nState);
 	CString m_strFolder;

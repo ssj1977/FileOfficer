@@ -1,16 +1,17 @@
 #include "pch.h"
 #include "resource.h"
+#include "FileOfficer.h"
 #include "CSearchListCtrl.h"
 #include "EtcFunctions.h"
 
 //#ifndef NUM_OF_COLUMNS
 #define NUM_OF_COLUMNS 6 // 일반적인 파일 목록과 다름에 주의
-#define COL_NAME 0
-#define COL_FOLDER 1
-#define COL_DATE 2
-#define COL_SIZE 3
-#define COL_TYPE 4
-#define COL_MEMO 5
+#define COL_SEARCH_NAME 0
+#define COL_SEARCH_FOLDER 1
+#define COL_SEARCH_DATE 2
+#define COL_SEARCH_SIZE 3
+#define COL_SEARCH_TYPE 4
+#define COL_SEARCH_MEMO 5
 //#endif
 
 IMPLEMENT_DYNAMIC(CSearchListCtrl, CFileListCtrl_Base)
@@ -193,11 +194,11 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 					strSize = GetFileSizeString(filesize.QuadPart, 0);
 					nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes));
 					SetItemData(nItem, dwItemData);
-					SetItemText(nItem, COL_FOLDER, strFolder);
-					SetItemText(nItem, COL_DATE, strDate);
-					SetItemText(nItem, COL_SIZE, strSize);
-					SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType));
-					SetItemText(nItem, COL_MEMO, GetPathMemo(fullpath, dwItemData, m_bCheckOpen));
+					SetItemText(nItem, COL_SEARCH_FOLDER, strFolder);
+					SetItemText(nItem, COL_SEARCH_DATE, strDate);
+					SetItemText(nItem, COL_SEARCH_SIZE, strSize);
+					SetItemText(nItem, COL_SEARCH_TYPE, GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType));
+					SetItemText(nItem, COL_SEARCH_MEMO, GetPathMemo(fullpath, dwItemData, m_bCheckOpen));
 				}
 			}
 		}
@@ -318,4 +319,113 @@ void CSearchListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 	//m_nSortCol = m_iSortedColumn;
 	//GetParent()->PostMessageW(WM_COMMAND, CMD_UpdateSortInfo, (DWORD_PTR)this);
 	*pResult = 0;
+}
+
+
+BOOL CSearchListCtrl::PreTranslateMessage(MSG* pMsg)
+{
+	if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+	{
+		if (pMsg->wParam == _T('C'))
+		{
+			ClipBoardExport(FALSE); //Copy
+		}
+		else if (pMsg->wParam == _T('X'))
+		{
+			ClipBoardExport(TRUE); //Cut
+		}
+
+	}
+
+	return CFileListCtrl_Base::PreTranslateMessage(pMsg);
+}
+
+CString CSearchListCtrl::GetItemFullPath(int nItem)
+{
+	if (nItem < 0 || nItem >= GetItemCount()) 	return _T("");
+	CString strPath;
+	strPath = PathBackSlash(GetItemText(nItem, COL_SEARCH_FOLDER)) + GetItemText(nItem, COL_SEARCH_NAME);
+	return strPath;
+}
+
+
+BOOL CSearchListCtrl::GetDataForClipBoard(int nState, HGLOBAL& hgDrop, CString& strData)
+{
+	ListItemArray& aCut = APP()->m_aCutItem;
+	CStringList aFiles;
+	CString strPath;
+	strData.Empty();
+	size_t uBuffSize = 0;
+	APP()->ClearPreviousCutItems();
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return FALSE;
+	while (nItem != -1)
+	{
+		strPath = GetItemFullPath(nItem);
+		aFiles.AddTail(strPath);
+		strData += strPath + _T("\r\n"); //텍스트로 복사할 경로
+		SetItemState(nItem, nState, LVIS_CUT);
+		aCut.Add(CListItem(this, nItem));
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+		uBuffSize += strPath.GetLength() + 1;
+	}
+	uBuffSize = sizeof(DROPFILES) + sizeof(TCHAR) * (uBuffSize + 1);
+	hgDrop = ::GlobalAlloc(GHND | GMEM_SHARE, uBuffSize);
+	if (hgDrop != NULL)
+	{
+		DROPFILES* pDrop = (DROPFILES*)GlobalLock(hgDrop);;
+		if (NULL == pDrop)
+		{
+			GlobalFree(hgDrop);
+			return FALSE;
+		}
+		pDrop->pFiles = sizeof(DROPFILES);
+		pDrop->fWide = TRUE;
+		TCHAR* pszBuff = NULL;
+		POSITION pos = aFiles.GetHeadPosition();
+		pszBuff = (TCHAR*)(LPBYTE(pDrop) + sizeof(DROPFILES));
+		while (NULL != pos && pszBuff != NULL)
+		{
+			lstrcpy(pszBuff, (LPCTSTR)aFiles.GetNext(pos));
+			pszBuff = _tcschr(pszBuff, _T('\0')) + 1;
+		}
+		GlobalUnlock(hgDrop);
+	}
+	return TRUE;
+}
+
+void CSearchListCtrl::ClipBoardExport(BOOL bMove)
+{
+	HGLOBAL hgDrop = NULL;
+	CString strText; 
+	if (GetDataForClipBoard((bMove ? LVIS_CUT : 0), hgDrop, strText) == FALSE) return;
+	if (hgDrop == NULL) return;
+	if (OpenClipboard())
+	{
+		EmptyClipboard();
+
+		SetClipboardData(CF_HDROP, hgDrop);
+
+		HGLOBAL hEffect = GlobalAlloc(GMEM_ZEROINIT | GMEM_MOVEABLE | GMEM_DDESHARE, sizeof(DWORD));
+		if (hEffect != NULL)
+		{
+			DROPEFFECT effect = bMove ? DROPEFFECT_MOVE : DROPEFFECT_COPY;
+			DWORD* pdw1 = (DWORD*)GlobalLock(hEffect);
+			if (pdw1 != NULL) (*pdw1) = effect;
+			GlobalUnlock(hEffect);
+			SetClipboardData(RegisterClipboardFormat(CFSTR_PREFERREDDROPEFFECT), hEffect);
+		}
+		HGLOBAL hClipboardData = GlobalAlloc(GMEM_MOVEABLE, (strText.GetLength() + 1) * sizeof(TCHAR));
+		if (hClipboardData) 
+		{
+			LPTSTR pchData = static_cast<LPTSTR>(GlobalLock(hClipboardData));
+			if (pchData) 
+			{
+				_tcscpy_s(pchData, strText.GetLength() + 1, strText);
+				GlobalUnlock(hClipboardData);
+				SetClipboardData(CF_UNICODETEXT, hClipboardData);
+			}
+		}
+		CloseClipboard();
+	}
 }

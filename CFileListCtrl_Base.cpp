@@ -334,11 +334,11 @@ HRESULT CFileListCtrl_Base::CreateShellItemArrayFromPaths(CStringArray& aPath, I
 	return hr;
 }
 
-CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOOL bCheckOpen)
+CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOOL bCheckLocked)
 {
 	CString strMemo;
 
-	if (bCheckOpen == TRUE && (dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
+	if (bCheckLocked == TRUE && (dwAttributes & FILE_ATTRIBUTE_DIRECTORY) == 0)
 	{
 		HANDLE hFile = CreateFile(strPath, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 		if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
@@ -355,7 +355,7 @@ CString CFileListCtrl_Base::GetPathMemo(CString strPath, DWORD dwAttributes, BOO
 	if (dwAttributes & FILE_ATTRIBUTE_READONLY) strMemo += IDSTR(IDS_MEMO_READONLY);
 	if (dwAttributes & FILE_ATTRIBUTE_COMPRESSED) strMemo += IDSTR(IDS_MEMO_COMPRESSED);
 	if (dwAttributes & FILE_ATTRIBUTE_ENCRYPTED) strMemo += IDSTR(IDS_MEMO_ENCRYPTED);
-	if (bCheckOpen == TRUE && strMemo.IsEmpty()) strMemo = L"-";
+	if (bCheckLocked == TRUE && strMemo.IsEmpty()) strMemo = L"-";
 
 	return strMemo;
 }

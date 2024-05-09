@@ -227,9 +227,8 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_SEARCH_STOP:
 		if (m_listSearch.m_bWorking == TRUE) m_listSearch.m_bBreak = TRUE;
 		break;
-	case IDM_SEARCH_CLEAR:
-		m_listSearch.DeleteAllItems();
-		break;
+	case IDM_SEARCH_RESULT_CLEAR:		m_listSearch.DeleteAllItems();		break;
+	case IDM_SEARCH_RESULT_EXPORT:		ResultExport();		break;
 	case IDM_SEARCH_CRITERIA_EXPORT:	CriteriaImport();	break;
 	case IDM_SEARCH_CRITERIA_IMPORT:	CriteriaExport();	break;
 	case IDM_SEARCH_CRITERIA_CLEAR:		CriteriaClear();	break;
@@ -340,15 +339,12 @@ BOOL CDlgFileSearch::CriteriaReadFromUI()
 
 void CDlgFileSearch::CriteriaClear()
 {
-	m_editFilePath.SetWindowTextW(_T(""));
-	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->SetCheck(BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->SetCheck(BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->SetCheck(BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED))->SetCheck(BST_UNCHECKED);
+	CSearchCriteria& sc = APP()->m_defaultSC;
+	sc.Empty();
+	CriteriaInit();
 
-	SetDlgItemText(IDC_EDIT_FILESIZE_MIN, _T(""));
-	SetDlgItemText(IDC_EDIT_FILESIZE_MAX, _T(""));
-	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(0);
+
+
 
 	((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->SetCheck(BST_UNCHECKED);
 	((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->SetCheck(BST_UNCHECKED);
@@ -375,6 +371,31 @@ void CDlgFileSearch::CriteriaImport()
 }
 
 void CDlgFileSearch::CriteriaInit()
+{
+	CSearchCriteria& sc = APP()->m_defaultSC;
+	m_editFilePath.SetWindowTextW(sc.strPath);
+	SetDlgItemText(IDC_EDIT_FILENAME, sc.strName);
+	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(sc.bNameAnd);
+	SetDlgItemText(IDC_EDIT_FILEEXT, sc.strExt);
+
+	SetDlgItemText(IDC_EDIT_FILESIZE_MIN, sc.GetSizeMinString());
+	SetDlgItemText(IDC_EDIT_FILESIZE_MAX, sc.GetSizeMaxString());
+
+
+
+	((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->SetCheck(sc.bDateTimeFrom ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->SetCheck(sc.bDateTimeUntil ? BST_CHECKED : BST_UNCHECKED);
+	((CComboBox*)GetDlgItem(IDC_CB_TIMERANGE))->SetCurSel(sc.nDateTimeType);
+
+
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->SetCheck(sc.bLocked ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->SetCheck(sc.bHidden ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->SetCheck(sc.bReadOnly ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED))->SetCheck(sc.bEncrypted ? BST_CHECKED : BST_UNCHECKED);
+
+}
+
+void CDlgFileSearch::ResultExport()
 {
 
 }
