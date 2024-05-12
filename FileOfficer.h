@@ -148,16 +148,17 @@ struct CListItem
 typedef CArray<CListItem> ListItemArray;
 #endif
 
-#ifndef CSearchCriteria
-class CSearchCriteria
+#ifndef SearchCriteria
+struct SearchCriteria
 {
-public: 
-	CString strPath;
+	CString strStartPath;
 	CString strName;
 	BOOL bNameAnd;
 	CString strExt;
-	ULONGLONG sizeMax;
-	ULONGLONG sizeMin;
+	CString strSizeMax; //KB 등의 단위도 인식 가능하도록 문자열 사용
+	CString strSizeMin; //KB 등의 단위도 인식 가능하도록 문자열 사용
+	BOOL bSizeMax;
+	BOOL bSizeMin;
 	BOOL bLocked;
 	BOOL bHidden;
 	BOOL bEncrypted;
@@ -166,13 +167,11 @@ public:
 	BOOL bDateTimeUntil;
 	CString strDateTimeFrom;
 	CString strDateTimeUntil;
-	int nDateTimeType;
+	int nDateTimeType; 
 
-	CSearchCriteria();
+	SearchCriteria();
 	void Empty();
 	CString ExportString();
-	CString GetSizeMinString();
-	CString GetSizeMaxString();
 };
 #endif
 
@@ -221,7 +220,7 @@ public:
 	int m_nShortCutIconType1;
 	int m_nShortCutIconType2;
 	//검색창 조건 저장용 
-	CSearchCriteria m_defaultSC;
+	SearchCriteria m_defaultSC;
 
 	//선택항목 관리, CUT 기능에서 음영 처리의 일관성 유지에 필요
 	ListItemArray m_aCutItem;

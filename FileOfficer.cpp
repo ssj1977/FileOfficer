@@ -320,12 +320,12 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("ShortCutPath1")) == 0)	m_aShortCutPath1.Add(str2);
 		else if (str1.CompareNoCase(_T("ShortCutPath2")) == 0)	m_aShortCutPath2.Add(str2);
 		//검색조건 읽어오기
-		else if (str1.CompareNoCase(_T("SearchPath")) == 0)	m_defaultSC.strPath = str2;
+		else if (str1.CompareNoCase(_T("SearchPath")) == 0)	m_defaultSC.strStartPath = str2;
 		else if (str1.CompareNoCase(_T("SearchCriteria_Name")) == 0)	m_defaultSC.strName = str2;
 		else if (str1.CompareNoCase(_T("SearchCriteria_NameAnd")) == 0)	m_defaultSC.bNameAnd = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("SearchCriteria_Ext")) == 0)		m_defaultSC.strExt = str2;
-		else if (str1.CompareNoCase(_T("SearchCriteria_SizeMin")) == 0)	m_defaultSC.sizeMin = _tcstoull(str2, NULL, 10);
-		else if (str1.CompareNoCase(_T("SearchCriteria_SizeMax")) == 0)	m_defaultSC.sizeMax = _tcstoull(str2, NULL, 10);
+		else if (str1.CompareNoCase(_T("SearchCriteria_SizeMin")) == 0)	m_defaultSC.strSizeMin = str2;
+		else if (str1.CompareNoCase(_T("SearchCriteria_SizeMax")) == 0)	m_defaultSC.strSizeMax = str2;
 		else if (str1.CompareNoCase(_T("SearchCriteria_Locked")) == 0)		m_defaultSC.bLocked = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("SearchCriteria_Hidden")) == 0)		m_defaultSC.bHidden = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("SearchCriteria_Encrypted")) == 0)	m_defaultSC.bEncrypted = _ttoi(str2);
@@ -550,39 +550,41 @@ void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH)
 	destDC.StretchBlt(0, 0, dstW, dstH, &srcDC, 0, 0, size.cx, size.cy, SRCCOPY);
 }
 
-CSearchCriteria::CSearchCriteria()
+SearchCriteria::SearchCriteria()
 {
 	Empty();
 }
 
-void CSearchCriteria::Empty()
+void SearchCriteria::Empty()
 {
-	strPath = _T("");
-	strName = _T("");
+	strStartPath.Empty();
+	strName.Empty();
 	bNameAnd = FALSE;
-	strExt = _T("");
-	sizeMax = 0;
-	sizeMin = 0;
+	strExt.Empty();
+	strSizeMax.Empty();
+	strSizeMin.Empty();
+	bSizeMin = FALSE;
+	bSizeMax = FALSE;
 	bLocked = FALSE;
 	bHidden = FALSE;
 	bEncrypted = FALSE;
 	bReadOnly = FALSE;
 	bDateTimeFrom = FALSE;
 	bDateTimeUntil = FALSE;
-	strDateTimeFrom = _T("");
-	strDateTimeUntil = _T("");
+	strDateTimeFrom.Empty();
+	strDateTimeUntil.Empty();
 	nDateTimeType = 0;
 }
 
-CString CSearchCriteria::ExportString()
+CString SearchCriteria::ExportString()
 {
 	CString strData, strLine;
-	strLine.Format(_T("SearchPath=%s\r\n"), strPath);	strData += strLine;
+	strLine.Format(_T("SearchPath=%s\r\n"), strStartPath);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Name=%s\r\n"), strName);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_NameAnd=%d\r\n"), bNameAnd);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Ext=%s\r\n"), strExt);	strData += strLine;
-	strLine.Format(_T("SearchCriteria_SizeMin=%I64d\r\n"), sizeMax);	strData += strLine;
-	strLine.Format(_T("SearchCriteria_SizeMax=%I64d\r\n"), sizeMin);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_SizeMin=%s\r\n"), strSizeMin);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_SizeMax=%s\r\n"), strSizeMax);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Locked=%d\r\n"), bLocked);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Hidden=%d\r\n"), bHidden);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Encrypted=%d\r\n"), bEncrypted);	strData += strLine;
