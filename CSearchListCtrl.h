@@ -40,6 +40,11 @@ public:
 	CStringArray m_aExtMatch; // 확장자 조건 토큰
 	COleDateTime m_dtFrom; // 일시 조건 (시작시점)
 	COleDateTime m_dtUntil; // 일시 조건 (종료시점)
+	BOOL m_bSizeMin; // 크기 조건 (최소)
+	BOOL m_bSizeMax; // 크기 조건 (최대)
+	ULONGLONG m_sizeMin;
+	ULONGLONG m_sizeMax;
+
 	//작동 상태 처리용 정보
 	BOOL m_bWorking; // 검색 쓰레드가 동작중일때 TRUE
 	BOOL m_bBreak; //검색을 중단할때 쓰는 플래그

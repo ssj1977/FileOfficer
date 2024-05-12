@@ -22,22 +22,14 @@ END_MESSAGE_MAP()
 
 CSearchListCtrl::CSearchListCtrl()
 {
-	m_strStartFolder = L"C:"; // 처음 검색을 시작할 위치
 	//m_aNameMatch; // 이름 조건
 	//m_aExtMatch; // 확장자 조건
-	m_bNameAnd = FALSE; // 이름 조건이 여러개일때 AND로 적용할지 OR로 적용할지
 	//m_dtFrom; // 일시 조건 (시작시점)
 	//m_dtUntil; // 일시 조건 (종료시점)
-	m_bDateTimeFrom = FALSE; // 시작시점을 사용할지
-	m_bDateTimeUntil = FALSE; // 종료시점을 사용할지
 	m_bSizeMin = FALSE; // 크기 조건 (최소)
 	m_bSizeMax = FALSE; // 크기 조건 (최대)
 	m_sizeMin = 0;
 	m_sizeMax = 0;
-	m_bLocked = FALSE; // 잠긴 파일 여부
-	m_bHidden = FALSE; // 숨겨진 파일 여부
-	m_bReadOnly = FALSE; // 읽기 전용 파일 여부
-	m_bEncrypted = FALSE; // 암호화 파일 여부
 	
 	m_bUseFileType = TRUE;
 	m_bCheckOpen = TRUE;
@@ -91,6 +83,39 @@ void CSearchListCtrl::FileSearch_Begin()
 {
 	DeleteAllItems();
 	SetSortColumn(-1, m_bAscending);
+	//여러개의 문자열 조건에 대한 토큰 만들기
+	GetStringArray(m_SC.strName, L'/', m_aNameMatch);
+	GetStringArray(m_SC.strExt, L'/', m_aExtMatch);
+	//날짜+시간 조건 파싱
+	m_dtFrom.ParseDateTime(m_SC.strDateTimeFrom);
+	m_dtUntil.ParseDateTime(m_SC.strDateTimeUntil);
+	//크기 조건 설정
+	ULONGLONG sizeMin = Str2Size(m_SC.strSizeMin);
+	ULONGLONG sizeMax = Str2Size(m_SC.strSizeMax);
+
+	if (strMin.IsEmpty() == FALSE && strMax.IsEmpty() == FALSE && sizeMin > sizeMax)
+	{
+		AfxMessageBox(IDSTR(IDS_MSG_FILERANGE_ERROR));
+		return FALSE;
+	}
+	else
+	{
+		if (strMin.IsEmpty() == FALSE)
+		{
+			if (strMin == L"0" && sizeMin == 0) m_listSearch.m_bSizeMin = TRUE;
+			if (sizeMin > 0) m_listSearch.m_bSizeMin = TRUE;
+			if (m_listSearch.m_bSizeMin) m_listSearch.m_sizeMin = sizeMin;
+		}
+		if (strMax.IsEmpty() == FALSE)
+		{
+			if (strMax == L"0" && sizeMax == 0) m_listSearch.m_bSizeMax = TRUE;
+			if (sizeMax > 0) m_listSearch.m_bSizeMax = TRUE;
+			if (m_listSearch.m_bSizeMax) m_listSearch.m_sizeMax = sizeMax;
+		}
+		sc.strSizeMin = strMin;
+		sc.strSizeMax = strMax;
+	}
+
 	//찾기 시작
 	CWinThread* pThread = AfxBeginThread(FileSearch_RunThread, this);
 	// if (m_iSortedColumn>=0 && m_iSortedColumn < GetHeaderCtrl().GetItemCount())Sort(m_iSortedColumn, m_bAscending);
@@ -101,7 +126,7 @@ UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
 	CSearchListCtrl* pList = (CSearchListCtrl*)lParam;
 	pList->m_bWorking = TRUE;
 	pList->m_bBreak = FALSE;
-	pList->FileSearch_Do(pList->m_strStartFolder);
+	pList->FileSearch_Do(pList->m_SC.strStartPath);
 	pList->m_bWorking = FALSE;
 	if (pList->m_bBreak == FALSE)
 	{

@@ -157,8 +157,6 @@ struct SearchCriteria
 	CString strExt;
 	CString strSizeMax; //KB 등의 단위도 인식 가능하도록 문자열 사용
 	CString strSizeMin; //KB 등의 단위도 인식 가능하도록 문자열 사용
-	BOOL bSizeMax;
-	BOOL bSizeMin;
 	BOOL bLocked;
 	BOOL bHidden;
 	BOOL bEncrypted;

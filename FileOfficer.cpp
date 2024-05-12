@@ -563,8 +563,6 @@ void SearchCriteria::Empty()
 	strExt.Empty();
 	strSizeMax.Empty();
 	strSizeMin.Empty();
-	bSizeMin = FALSE;
-	bSizeMax = FALSE;
 	bLocked = FALSE;
 	bHidden = FALSE;
 	bEncrypted = FALSE;
