@@ -92,11 +92,8 @@ void CSearchListCtrl::FileSearch_Begin()
 	//크기 조건 설정
 	ULONGLONG sizeMin = Str2Size(m_SC.strSizeMin);
 	ULONGLONG sizeMax = Str2Size(m_SC.strSizeMax);
-
-	if (strMin.IsEmpty() == FALSE && strMax.IsEmpty() == FALSE && sizeMin > sizeMax)
+	if (m_SC.strSizeMin.IsEmpty() == FALSE && m_SC.strSizeMax.IsEmpty() == FALSE && sizeMin > sizeMax)
 	{
-		AfxMessageBox(IDSTR(IDS_MSG_FILERANGE_ERROR));
-		return FALSE;
 	}
 	else
 	{
