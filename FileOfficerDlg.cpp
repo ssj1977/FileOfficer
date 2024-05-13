@@ -338,6 +338,9 @@ BOOL CFileOfficerDlg::OnCommand(WPARAM wParam, LPARAM lParam)
 			}
 		}
 		return TRUE;
+	case IDM_SEARCH_RESULT_VIEWTAB:
+		ShowPath(APP()->m_strShowPath);
+		return TRUE;
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
 	}
@@ -445,4 +448,60 @@ void CFileOfficerDlg::OnClipboardUpdate()
 BOOL CFileOfficerDlg::OnEraseBkgnd(CDC* pDC)
 {
 	return CDialogEx::OnEraseBkgnd(pDC);
+}
+
+void CFileOfficerDlg::ShowPath(CString strShow)
+{
+	CString strFolder = Get_Folder(strShow);
+	BOOL bFound = FALSE;
+	CFileListCtrl* pList = NULL;
+	if (bFound == FALSE) // 첫번째 창에서 찾기
+	{
+		PathTabInfoArray& ta = m_tv1.m_aTabInfo;
+		for (int i = 0; i < ta.GetCount(); i++)
+		{
+			if (strFolder.CompareNoCase(ta[i].strPath) == 0)
+			{
+				bFound = TRUE;
+				m_tv1.SetCurrentTab(i);
+				pList = (CFileListCtrl*)ta[i].pWnd;
+			}
+		}
+	}
+	if (bFound == FALSE) // 두번째 창에서 찾기
+	{
+		PathTabInfoArray& ta = m_tv2.m_aTabInfo;
+		for (int i = 0; i < ta.GetCount(); i++)
+		{
+			if (strFolder.CompareNoCase(ta[i].strPath) == 0)
+			{
+				bFound = TRUE;
+				m_tv2.SetCurrentTab(i);
+				pList = (CFileListCtrl*)ta[i].pWnd;
+			}
+		}
+	}
+	if (bFound == FALSE) // 지금까지 못찾았으면 새로운 탭을 추가하기
+	{
+		if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
+		{
+			m_tv2.AddFileListTab(strFolder);
+			pList = (CFileListCtrl*)m_tv2.CurrentList();
+		}
+		else
+		{
+			m_tv1.AddFileListTab(strFolder);
+			pList = (CFileListCtrl*)m_tv1.CurrentList();
+		}
+		bFound = TRUE;
+	}
+
+	if (bFound == TRUE) // 찾아낸 탭에서 해당 항목 선택해서 보여주기
+	{
+		CString strName = Get_Name(strShow, TRUE);
+		for (int i = 0; i < pList->GetItemCount(); i++)
+		{
+			
+		}
+	}
 }

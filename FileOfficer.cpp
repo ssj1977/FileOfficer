@@ -591,6 +591,96 @@ CString SearchCriteria::ExportString()
 	strLine.Format(_T("SearchCriteria_UseDateTimeUntil=%d\r\n"), bDateTimeUntil);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_DateTimeFromString=%s\r\n"), strDateTimeFrom);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_DateTimeUntilString=%s\r\n"),strDateTimeUntil);	strData += strLine;
-	strLine.Format(_T("SearchCriteria_DateTimeType=%s\r\n"), nDateTimeType);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_DateTimeType=%d\r\n"), nDateTimeType);	strData += strLine;
 	return strData;
+}
+
+BOOL SearchCriteria::ValidateCriteriaSize()
+{
+	ULONGLONG sizeMin = Str2Size(strSizeMin);
+	ULONGLONG sizeMax = Str2Size(strSizeMax);
+	if (strSizeMin.IsEmpty() == FALSE)
+	{
+		if (strSizeMin.GetAt(0) != L'0' && sizeMin == 0) return FALSE;
+		if (sizeMin < 0) return FALSE;
+	}
+	if (strSizeMax.IsEmpty() == FALSE && sizeMax < 0) return FALSE;
+	if (strSizeMin.IsEmpty() == FALSE && strSizeMax.IsEmpty() == FALSE && sizeMin > sizeMax) return FALSE;
+	return TRUE;
+}
+
+
+void SearchCriteria::CopySearchCriteria(const SearchCriteria& sc)
+{
+	this->bDateTimeFrom = sc.bDateTimeFrom;
+	this->bDateTimeUntil = sc.bDateTimeUntil;
+	this->bEncrypted = sc.bEncrypted;
+	this->bHidden = sc.bHidden;
+	this->bLocked = sc.bLocked;
+	this->bNameAnd = sc.bNameAnd;
+	this->bReadOnly = sc.bReadOnly;
+	this->nDateTimeType = sc.nDateTimeType;
+	this->strDateTimeFrom = sc.strDateTimeFrom;
+	this->strDateTimeUntil = sc.strDateTimeUntil;
+	this->strExt = sc.strExt;
+	this->strName = sc.strName;
+	this->strSizeMax = sc.strSizeMax;
+	this->strSizeMin = sc.strSizeMin;
+	this->strStartPath = sc.strStartPath;
+}
+
+BOOL SearchCriteria::ValidateCriteriaDateTime()
+{
+	COleDateTime dtNow = COleDateTime::GetCurrentTime();
+	COleDateTime dtFrom, dtUntil;
+	BOOL bRet = TRUE;
+	switch (nDateTimeType)
+	{
+	case 0: // 날짜시간 조건 사용하지 않음
+		bDateTimeFrom = FALSE;
+		bDateTimeUntil = FALSE;
+		break;
+	case 1: // 사용자 지정 기간
+		if (bDateTimeFrom == TRUE && dtFrom.ParseDateTime(strDateTimeFrom) == FALSE) bRet = FALSE;
+		if (bDateTimeUntil == TRUE && dtUntil.ParseDateTime(strDateTimeUntil) == FALSE) bRet = FALSE;
+		if (bDateTimeFrom == TRUE && bDateTimeUntil == TRUE && dtFrom > dtUntil) bRet = FALSE;
+		break;
+	case 2: //오늘
+		dtFrom.SetDateTime(dtNow.GetYear(), dtNow.GetMonth(), dtNow.GetDay(), 0, 0, 0);
+		dtUntil.SetDateTime(dtNow.GetYear(), dtNow.GetMonth(), dtNow.GetDay(), 23, 59, 59);
+		break;
+	case 3: //이번주
+		{
+			int nDayOfWeek = dtNow.GetDayOfWeek();
+			// Calculate the start of the week (Sunday)
+			COleDateTimeSpan spanFromSunday(nDayOfWeek - 1, 0, 0, 0);
+			dtFrom = dtNow - spanFromSunday;
+			COleDateTimeSpan spanToEndOfWeek(6 - nDayOfWeek, 23, 59, 59);
+			dtUntil = dtNow + spanToEndOfWeek;
+		}
+		break;
+	case 4: //이번달
+		{
+			int nYear = dtNow.GetYear();
+			int nMonth = dtNow.GetMonth();
+			dtFrom.SetDateTime(nYear, nMonth, 1, 0, 0, 0);
+			if (nMonth < 12)	dtUntil.SetDateTime(nYear, nMonth + 1, 1, 23, 59, 59);
+			else				dtUntil.SetDateTime(nYear + 1, 1, 1, 23, 59, 59);
+			COleDateTimeSpan oneday(1, 0, 0, 0);
+			dtUntil = dtUntil - oneday;
+		}
+		break;
+	case 5: //올해
+		dtFrom.SetDateTime(dtNow.GetYear(), 1, 1, 0, 0, 0);
+		dtUntil.SetDateTime(dtNow.GetYear(), 12, 31, 23, 59, 59);
+		break;
+	}
+	if (bRet == TRUE && nDateTimeType > 1)
+	{
+		strDateTimeFrom = dtFrom.Format(_T("%Y-%m-%d %H:%M:%S"));
+		strDateTimeUntil = dtUntil.Format(_T("%Y-%m-%d %H:%M:%S"));
+		bDateTimeFrom = TRUE;
+		bDateTimeUntil = TRUE;
+	}
+	return bRet;
 }

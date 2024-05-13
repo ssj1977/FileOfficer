@@ -807,7 +807,7 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 			ToggleFindMode();
 			return TRUE;
 		}
-		if (pMsg->wParam == VK_F4) // Ctrl + F 로 바꿀지 생각해 볼것
+		if (pMsg->wParam == _T('F')) // Ctrl + F 로 바꿀지 생각해 볼것
 		{
 			GetParent()->PostMessageW(WM_COMMAND, IDM_TOGGLE_SEARCHDLG, 0);
 			return TRUE;

@@ -168,8 +168,13 @@ struct SearchCriteria
 	int nDateTimeType; 
 
 	SearchCriteria();
+	BOOL ValidateCriteriaSize();
+	BOOL ValidateCriteriaDateTime();
 	void Empty();
 	CString ExportString();
+	void operator= (const SearchCriteria& sc) { CopySearchCriteria(sc); };
+	void CopySearchCriteria(const SearchCriteria& sc);
+
 };
 #endif
 
@@ -219,6 +224,7 @@ public:
 	int m_nShortCutIconType2;
 	//검색창 조건 저장용 
 	SearchCriteria m_defaultSC;
+	CString m_strShowPath; //폴더 열기 인자 전달용
 
 	//선택항목 관리, CUT 기능에서 음영 처리의 일관성 유지에 필요
 	ListItemArray m_aCutItem;

@@ -79,6 +79,9 @@
 #define IDS_TB_SEARCH_04                83
 #define IDS_TB_SEARCH_05                84
 #define IDS_TB_SEARCH_06                85
+#define IDS_TB_SEARCH_07                86
+#define IDS_SEARCH_MSG_FINISHED         100
+#define IDS_SEARCH_MSG_STOPPED          101
 #define IDD_FILEOFFICER_DIALOG          102
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
@@ -88,6 +91,7 @@
 #define IDD_INPUT                       143
 #define IDD_CFG_LAYOUT                  145
 #define IDR_MENU1                       147
+#define IDR_MENU_ADDITIONAL             147
 #define IDD_COLOR_RULE                  148
 #define IDS_CLR_RULE_EXT_GUIDE          151
 #define IDS_CLR_RULE_DATE_GUIDE         152
@@ -96,6 +100,8 @@
 #define IDR_MENU_TAB                    156
 #define IDD_FILE_SEARCH                 158
 #define IDR_TB_SEARCH                   162
+#define IDR_MENU_SEARCH                 164
+#define IDS_SEARCH_CONFIRM_CLEAR        165
 #define IDC_TAB_PATH                    1001
 #define IDC_EDIT_PATH                   1002
 #define IDC_ST_BAR                      1003
@@ -247,13 +253,26 @@
 #define IDM_SEARCH_CRITERIA_IMPORT      32847
 #define IDM_SEARCH_CRITERIA_CLEAR       32848
 #define IDM_SEARCH_RESULT_EXPORT        32849
+#define ID_POPUP_32851                  32851
+#define ID_POPUP_32852                  32852
+#define ID_POPUP_32853                  32853
+#define ID_POPUP_32854                  32854
+#define ID_POPUP_32855                  32855
+#define ID_POPUP_32856                  32856
+#define IDM_SEARCH_RESULT_COPY          32857
+#define IDM_SEARCH_RESULT_VIEWTAB       32858
+#define IDM_SEARCH_RESULT_OPENFOLDER    32859
+#define IDM_SEARCH_RESULT_CUT           32860
+#define IDM_SEARCH_RESULT_SELECTALL     32861
+#define ID_POPUP_32862                  32862
+#define IDM_P                           32863
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        164
-#define _APS_NEXT_COMMAND_VALUE         32851
+#define _APS_NEXT_RESOURCE_VALUE        166
+#define _APS_NEXT_COMMAND_VALUE         32864
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

@@ -31,7 +31,9 @@ public:
 	CString GetItemFullPath(int nItem);
 	BOOL GetDataForClipBoard(int nState, HGLOBAL& hgDrop, CString& strData);
 	void ClipBoardExport(BOOL bMove);
-
+	void SelectAllItems();
+	void OpenSelectedItem(BOOL bMulti = TRUE);
+	void OpenSelectedParent(BOOL bUseTab);
 	virtual void Sort(int iColumn, BOOL bAscending = TRUE, BOOL bAdd = FALSE);
 
 	SearchCriteria m_SC;
@@ -53,5 +55,6 @@ public:
 	DECLARE_MESSAGE_MAP()
 	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg void OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult);
 };
 

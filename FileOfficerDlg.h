@@ -21,6 +21,7 @@ public:
 	void ArrangeTabLayout();
 	void ArrangeCtrl();
 	void InitDefaultListOption(CWnd* pWnd);
+	void ShowPath(CString strShow);
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_FILEOFFICER_DIALOG };
 #endif

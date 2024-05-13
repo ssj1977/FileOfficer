@@ -42,6 +42,8 @@ BEGIN_MESSAGE_MAP(CDlgFileSearch, CDialogEx)
 	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_CHK_DATETIME_FROM, &CDlgFileSearch::OnBnClickedChkDatetimeFrom)
 	ON_BN_CLICKED(IDC_CHK_DATETIME_UNTIL, &CDlgFileSearch::OnBnClickedChkDatetimeUntil)
+	ON_CBN_SELCHANGE(IDC_CB_TIMERANGE, &CDlgFileSearch::OnCbnSelchangeCbTimerange)
+	ON_WM_CONTEXTMENU()
 END_MESSAGE_MAP()
 
 
@@ -61,7 +63,7 @@ void CDlgFileSearch::OnCancel()
 
 void CDlgFileSearch::OnOK()
 {
-	SearchStart();
+	//SearchStart();
 }
 
 
@@ -83,8 +85,7 @@ BOOL CDlgFileSearch::OnInitDialog()
 	((CDateTimeCtrl*)GetDlgItem(IDC_FILE_TIME_FROM))->SetFormat(L"HH:mm:ss"); //24h
 	((CDateTimeCtrl*)GetDlgItem(IDC_FILE_TIME_UNTIL))->SetFormat(L"HH:mm:ss"); //24h
 
-	CriteriaClear();
-	CriteriaInit();
+	CriteriaInit(APP()->m_defaultSC);
 	ArrangeCtrl();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
@@ -94,8 +95,25 @@ BOOL CDlgFileSearch::OnInitDialog()
 
 BOOL CDlgFileSearch::PreTranslateMessage(MSG* pMsg)
 {
-	// TODO: 여기에 특수화된 코드를 추가 및/또는 기본 클래스를 호출합니다.
-
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_F5)
+		{
+			OnCommand(IDM_SEARCH_BEGIN, 0);
+			return TRUE;
+		}
+	}
+	/*if (GetFocus() == this)
+	{
+		if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+		{
+			if (pMsg->wParam == _T('A'))
+			{
+				m_listSearch.SelectAllItems();
+				return TRUE;
+			}
+		}
+	}*/
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
@@ -218,18 +236,30 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	{
 	case IDM_SEARCH_BEGIN:
 		if (m_listSearch.m_bWorking == FALSE) SearchStart();
-		break;
+		return TRUE;
 	case IDM_SEARCH_STOP:
 		if (m_listSearch.m_bWorking == TRUE) m_listSearch.m_bBreak = TRUE;
-		break;
-	case IDM_SEARCH_RESULT_CLEAR:		m_listSearch.DeleteAllItems();		break;
-	case IDM_SEARCH_RESULT_EXPORT:		ResultExport();		break;
-	case IDM_SEARCH_CRITERIA_EXPORT:	CriteriaImport();	break;
-	case IDM_SEARCH_CRITERIA_IMPORT:	CriteriaExport();	break;
-	case IDM_SEARCH_CRITERIA_CLEAR:		CriteriaClear();	break;
-	case IDM_SEARCH_MSG:
-		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);
-		break;
+		return TRUE;
+	case IDM_SEARCH_RESULT_CLEAR:		
+		if (m_listSearch.GetItemCount() > 0)
+		{
+			if (AfxMessageBox(IDSTR(IDS_SEARCH_CONFIRM_CLEAR), MB_YESNO) == IDNO) return TRUE;
+		}
+		m_listSearch.DeleteAllItems();		
+		return TRUE;
+	case IDM_SEARCH_RESULT_EXPORT:		ResultExport();	return TRUE;
+	case IDM_PLAY_ITEM:		m_listSearch.OpenSelectedItem(TRUE);	return TRUE;
+	case IDM_SEARCH_RESULT_COPY: m_listSearch.ClipBoardExport(FALSE); 	return TRUE;
+	case IDM_SEARCH_RESULT_CUT: m_listSearch.ClipBoardExport(TRUE);		return TRUE;
+	case IDM_SEARCH_CRITERIA_EXPORT:	CriteriaImport();	return TRUE;
+	case IDM_SEARCH_CRITERIA_IMPORT:	CriteriaExport();	return TRUE;
+	case IDM_SEARCH_CRITERIA_CLEAR:		CriteriaClear();	return TRUE;
+	case IDM_SEARCH_RESULT_SELECTALL:	m_listSearch.SelectAllItems();	return TRUE;
+	case IDM_SEARCH_RESULT_OPENFOLDER: m_listSearch.OpenSelectedParent(FALSE); return TRUE;
+	case IDM_SEARCH_RESULT_VIEWTAB: m_listSearch.OpenSelectedParent(TRUE); return TRUE;
+
+	case IDM_SEARCH_MSG: SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);	return TRUE;
+
 	}
 
 	return CDialogEx::OnCommand(wParam, lParam);
@@ -277,64 +307,46 @@ void CDlgFileSearch::ResizeToolBar(int width, int height)
 BOOL CDlgFileSearch::CriteriaReadFromUI()
 {
 	SearchCriteria& sc = m_listSearch.m_SC;
+	//검색 경로
 	m_editFilePath.GetWindowText(sc.strStartPath);
+	// 파일 상태 조건
 	sc.bLocked = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	sc.bHidden = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	sc.bReadOnly = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	sc.bEncrypted = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_ENCRYPTED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
-
-	CString strMin, strMax;
-	GetDlgItemText(IDC_EDIT_FILESIZE_MIN, strMin);
-	GetDlgItemText(IDC_EDIT_FILESIZE_MAX, strMax);
-	ULONGLONG sizeMin = Str2Size(strMin);
-	ULONGLONG sizeMax = Str2Size(strMax);
-	m_listSearch.m_bSizeMin = FALSE;
-	m_listSearch.m_bSizeMax = FALSE;
-	if (strMin.IsEmpty() == FALSE && strMax.IsEmpty() == FALSE && sizeMin > sizeMax)
+	// 크기 조건
+	GetDlgItemText(IDC_EDIT_FILESIZE_MIN, sc.strSizeMin);
+	GetDlgItemText(IDC_EDIT_FILESIZE_MAX, sc.strSizeMax);
+	if (sc.ValidateCriteriaSize() == FALSE)
 	{
 		AfxMessageBox(IDSTR(IDS_MSG_FILERANGE_ERROR));
 		return FALSE;
 	}
-	else
-	{
-		if (strMin.IsEmpty() == FALSE)
-		{
-			if (strMin == L"0" && sizeMin == 0) m_listSearch.m_bSizeMin = TRUE;
-			if (sizeMin > 0) m_listSearch.m_bSizeMin = TRUE;
-			if (m_listSearch.m_bSizeMin) m_listSearch.m_sizeMin = sizeMin;
-		}
-		if (strMax.IsEmpty() == FALSE)
-		{
-			if (strMax == L"0" && sizeMax == 0) m_listSearch.m_bSizeMax = TRUE;
-			if (sizeMax > 0) m_listSearch.m_bSizeMax = TRUE;
-			if (m_listSearch.m_bSizeMax) m_listSearch.m_sizeMax = sizeMax;
-		}
-		sc.strSizeMin = strMin;
-		sc.strSizeMax = strMax;
-	}
-
+	// 날짜와 시간 조건
+	sc.nDateTimeType = ((CComboBox*)GetDlgItem(IDC_CB_TIMERANGE))->GetCurSel();
 	sc.bDateTimeFrom = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	sc.bDateTimeUntil = (((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	UpdateData(TRUE);
-	m_listSearch.m_dtFrom.SetDateTime(m_dateFrom.GetYear(), m_dateFrom.GetMonth(), m_dateFrom.GetDay(),
+	COleDateTime dtFrom, dtUntil;
+	dtFrom.SetDateTime(m_dateFrom.GetYear(), m_dateFrom.GetMonth(), m_dateFrom.GetDay(),
 		m_timeFrom.GetHour(), m_timeFrom.GetMinute(), m_dateFrom.GetSecond());
-	m_listSearch.m_dtUntil.SetDateTime(m_dateUntil.GetYear(), m_dateUntil.GetMonth(), m_dateUntil.GetDay(),
+	dtUntil.SetDateTime(m_dateUntil.GetYear(), m_dateUntil.GetMonth(), m_dateUntil.GetDay(),
 		m_timeUntil.GetHour(), m_timeUntil.GetMinute(), m_timeUntil.GetSecond());
-	if (sc.bDateTimeFrom && sc.bDateTimeUntil && m_listSearch.m_dtFrom > m_listSearch.m_dtUntil)
+	sc.strDateTimeFrom = dtFrom.Format(_T("%Y-%m-%d %H:%M:%S"));
+	sc.strDateTimeUntil = dtUntil.Format(_T("%Y-%m-%d %H:%M:%S"));
+	if (sc.ValidateCriteriaDateTime() == FALSE)
 	{
 		AfxMessageBox(IDSTR(IDS_MSG_TIMERANGE_ERROR));
 		sc.strDateTimeFrom.Empty();
 		sc.strDateTimeUntil.Empty();
 		return FALSE;
 	}
-	else
-	{
-		sc.strDateTimeFrom = m_listSearch.m_dtFrom.Format(_T("%Y-%m-%d %H:%M:%S"));
-		sc.strDateTimeUntil = m_listSearch.m_dtUntil.Format(_T("%Y-%m-%d %H:%M:%S"));
-	}
+	//이름, 확장자 조건
 	GetDlgItemText(IDC_EDIT_FILENAME, sc.strName);
 	GetDlgItemText(IDC_EDIT_FILEEXT, sc.strExt);
 	sc.bNameAnd = (((CComboBox*)GetDlgItem(IDC_CB_NAME))->GetCurSel() == 0) ? FALSE : TRUE;
+	//기본값에 복사 
+	APP()->m_defaultSC = sc;
 	return TRUE;
 }
 
@@ -342,7 +354,7 @@ void CDlgFileSearch::CriteriaClear()
 {
 	SearchCriteria& sc = APP()->m_defaultSC;
 	sc.Empty();
-	CriteriaInit();
+	CriteriaInit(sc);
 }
 
 void CDlgFileSearch::CriteriaExport()
@@ -355,9 +367,8 @@ void CDlgFileSearch::CriteriaImport()
 	
 }
 
-void CDlgFileSearch::CriteriaInit()
+void CDlgFileSearch::CriteriaInit(SearchCriteria& sc)
 {
-	SearchCriteria& sc = APP()->m_defaultSC;
 	m_editFilePath.SetWindowTextW(sc.strStartPath);
 	SetDlgItemText(IDC_EDIT_FILENAME, sc.strName);
 	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(sc.bNameAnd);
@@ -365,29 +376,7 @@ void CDlgFileSearch::CriteriaInit()
 	SetDlgItemText(IDC_EDIT_FILESIZE_MIN, sc.strSizeMin);
 	SetDlgItemText(IDC_EDIT_FILESIZE_MAX, sc.strSizeMax);
 	((CComboBox*)GetDlgItem(IDC_CB_TIMERANGE))->SetCurSel(sc.nDateTimeType);
-	((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->SetCheck(sc.bDateTimeFrom ? BST_CHECKED : BST_UNCHECKED);
-	((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->SetCheck(sc.bDateTimeUntil ? BST_CHECKED : BST_UNCHECKED);
-	GetDlgItem(IDC_FILE_DATE_FROM)->EnableWindow(sc.bDateTimeFrom);
-	GetDlgItem(IDC_FILE_TIME_FROM)->EnableWindow(sc.bDateTimeFrom);
-	GetDlgItem(IDC_FILE_DATE_UNTIL)->EnableWindow(sc.bDateTimeUntil);
-	GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(sc.bDateTimeUntil);
-
-	COleDateTime dtFrom, dtUntil;
-	if (dtFrom.ParseDateTime(sc.strDateTimeFrom) == FALSE)
-	{
-		m_dateFrom = COleDateTime::GetCurrentTime(); m_timeFrom.SetTime(0, 0, 0);
-	}
-	if (dtUntil.ParseDateTime(sc.strDateTimeUntil) == FALSE)
-	{
-		m_dateUntil = COleDateTime::GetCurrentTime(); m_timeUntil.SetTime(23, 59, 59);
-	}
-	
-	m_dateFrom.SetDate(dtFrom.GetYear(), dtFrom.GetMonth(), dtFrom.GetDay());
-	m_dateUntil.SetDate(dtUntil.GetYear(), dtUntil.GetMonth(), dtUntil.GetDay());
-	m_timeFrom.SetTime(dtFrom.GetHour(), dtFrom.GetMinute(), dtFrom.GetSecond());
-	m_timeUntil.SetTime(dtUntil.GetHour(), dtUntil.GetMinute(), dtUntil.GetSecond());
-	UpdateData(FALSE);
-
+	CriteriaInitDateTime(sc);
 	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->SetCheck(sc.bLocked ? BST_CHECKED : BST_UNCHECKED);
 	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->SetCheck(sc.bHidden ? BST_CHECKED : BST_UNCHECKED);
 	((CButton*)GetDlgItem(IDC_CHK_FILESTATE_READONLY))->SetCheck(sc.bReadOnly ? BST_CHECKED : BST_UNCHECKED);
@@ -397,4 +386,65 @@ void CDlgFileSearch::CriteriaInit()
 void CDlgFileSearch::ResultExport()
 {
 
+}
+
+void CDlgFileSearch::CriteriaInitDateTime(SearchCriteria& sc)
+{
+	COleDateTime dtFrom; //= COleDateTime::GetCurrentTime();
+	COleDateTime dtUntil; //= COleDateTime::GetCurrentTime();
+	if (dtFrom.ParseDateTime(sc.strDateTimeFrom) == FALSE)
+	{
+		dtFrom = COleDateTime::GetCurrentTime();
+		dtFrom.SetDateTime(dtFrom.GetYear(), dtFrom.GetMonth(), dtFrom.GetDay(), 0, 0, 0);
+	}
+	if (dtUntil.ParseDateTime(sc.strDateTimeUntil) == FALSE)
+	{
+		dtUntil = COleDateTime::GetCurrentTime();
+		dtUntil.SetDateTime(dtUntil.GetYear(), dtUntil.GetMonth(), dtUntil.GetDay(), 23, 59, 59);
+	}
+
+	m_dateFrom.SetDate(dtFrom.GetYear(), dtFrom.GetMonth(), dtFrom.GetDay());
+	m_dateUntil.SetDate(dtUntil.GetYear(), dtUntil.GetMonth(), dtUntil.GetDay());
+	m_timeFrom.SetTime(dtFrom.GetHour(), dtFrom.GetMinute(), dtFrom.GetSecond());
+	m_timeUntil.SetTime(dtUntil.GetHour(), dtUntil.GetMinute(), dtUntil.GetSecond());
+	UpdateData(FALSE);
+
+	((CButton*)GetDlgItem(IDC_CHK_DATETIME_FROM))->SetCheck(sc.bDateTimeFrom ? BST_CHECKED : BST_UNCHECKED);
+	((CButton*)GetDlgItem(IDC_CHK_DATETIME_UNTIL))->SetCheck(sc.bDateTimeUntil ? BST_CHECKED : BST_UNCHECKED);
+	if (sc.nDateTimeType == 1) // 사용자 지정 기간인 경우
+	{
+		GetDlgItem(IDC_CHK_DATETIME_FROM)->EnableWindow(TRUE);
+		GetDlgItem(IDC_CHK_DATETIME_UNTIL)->EnableWindow(TRUE);
+		GetDlgItem(IDC_FILE_DATE_FROM)->EnableWindow(sc.bDateTimeFrom);
+		GetDlgItem(IDC_FILE_TIME_FROM)->EnableWindow(sc.bDateTimeFrom);
+		GetDlgItem(IDC_FILE_DATE_UNTIL)->EnableWindow(sc.bDateTimeUntil);
+		GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(sc.bDateTimeUntil);
+	}
+	else
+	{
+		GetDlgItem(IDC_CHK_DATETIME_FROM)->EnableWindow(FALSE);
+		GetDlgItem(IDC_CHK_DATETIME_UNTIL)->EnableWindow(FALSE);
+		GetDlgItem(IDC_FILE_DATE_FROM)->EnableWindow(FALSE);
+		GetDlgItem(IDC_FILE_TIME_FROM)->EnableWindow(FALSE);
+		GetDlgItem(IDC_FILE_DATE_UNTIL)->EnableWindow(FALSE);
+		GetDlgItem(IDC_FILE_TIME_UNTIL)->EnableWindow(FALSE);
+	}
+}
+
+
+void CDlgFileSearch::OnCbnSelchangeCbTimerange()
+{
+	SearchCriteria& sc = m_listSearch.m_SC;
+	int nType = ((CComboBox*)GetDlgItem(IDC_CB_TIMERANGE))->GetCurSel();
+	sc.nDateTimeType = nType;
+	if (sc.ValidateCriteriaDateTime() == FALSE) return;
+	CriteriaInitDateTime(sc);
+}
+
+void CDlgFileSearch::OnContextMenu(CWnd* pWnd, CPoint point)
+{
+	CMenu menu;
+	menu.LoadMenu(IDR_MENU_SEARCH);
+	CMenu* pMenu = menu.GetSubMenu(0);
+	pMenu->TrackPopupMenu(TPM_LEFTALIGN, point.x, point.y, this);
 }

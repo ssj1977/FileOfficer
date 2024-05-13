@@ -18,6 +18,7 @@ IMPLEMENT_DYNAMIC(CSearchListCtrl, CFileListCtrl_Base)
 BEGIN_MESSAGE_MAP(CSearchListCtrl, CFileListCtrl_Base)
 	//ON_NOTIFY(HDN_ITEMCLICKA, 0, &CSearchListCtrl::OnHdnItemclick)
 	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CSearchListCtrl::OnHdnItemclick)
+	ON_NOTIFY_REFLECT(NM_DBLCLK, &CSearchListCtrl::OnNMDblclk)
 END_MESSAGE_MAP()
 
 CSearchListCtrl::CSearchListCtrl()
@@ -90,29 +91,21 @@ void CSearchListCtrl::FileSearch_Begin()
 	m_dtFrom.ParseDateTime(m_SC.strDateTimeFrom);
 	m_dtUntil.ParseDateTime(m_SC.strDateTimeUntil);
 	//크기 조건 설정
-	ULONGLONG sizeMin = Str2Size(m_SC.strSizeMin);
-	ULONGLONG sizeMax = Str2Size(m_SC.strSizeMax);
-	if (m_SC.strSizeMin.IsEmpty() == FALSE && m_SC.strSizeMax.IsEmpty() == FALSE && sizeMin > sizeMax)
+	m_bSizeMax = FALSE;
+	m_bSizeMin = FALSE;
+	if (m_SC.ValidateCriteriaSize() == TRUE)
 	{
-	}
-	else
-	{
-		if (strMin.IsEmpty() == FALSE)
+		if (m_SC.strSizeMin.IsEmpty() == FALSE)
 		{
-			if (strMin == L"0" && sizeMin == 0) m_listSearch.m_bSizeMin = TRUE;
-			if (sizeMin > 0) m_listSearch.m_bSizeMin = TRUE;
-			if (m_listSearch.m_bSizeMin) m_listSearch.m_sizeMin = sizeMin;
+			m_sizeMin = Str2Size(m_SC.strSizeMin);
+			m_bSizeMin = TRUE;
 		}
-		if (strMax.IsEmpty() == FALSE)
+		if (m_SC.strSizeMax.IsEmpty() == FALSE)
 		{
-			if (strMax == L"0" && sizeMax == 0) m_listSearch.m_bSizeMax = TRUE;
-			if (sizeMax > 0) m_listSearch.m_bSizeMax = TRUE;
-			if (m_listSearch.m_bSizeMax) m_listSearch.m_sizeMax = sizeMax;
+			m_sizeMax = Str2Size(m_SC.strSizeMax);
+			m_bSizeMax = TRUE;
 		}
-		sc.strSizeMin = strMin;
-		sc.strSizeMax = strMax;
 	}
-
 	//찾기 시작
 	CWinThread* pThread = AfxBeginThread(FileSearch_RunThread, this);
 	// if (m_iSortedColumn>=0 && m_iSortedColumn < GetHeaderCtrl().GetItemCount())Sort(m_iSortedColumn, m_bAscending);
@@ -127,11 +120,11 @@ UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
 	pList->m_bWorking = FALSE;
 	if (pList->m_bBreak == FALSE)
 	{
-		pList->m_strMsg.Format(_T("검색 완료 : %d개 찾음"), pList->GetItemCount()); //리소스 처리 필요
+		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_FINISHED), pList->GetItemCount()); //리소스 처리 필요
 	}
 	else
 	{
-		pList->m_strMsg.Format(_T("검색 중단 : %d개 찾음"), pList->GetItemCount()); //리소스 처리 필요
+		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_STOPPED), pList->GetItemCount()); //리소스 처리 필요
 	}
 	pList->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
 
@@ -197,11 +190,11 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 			{
 				BOOL bMatch = TRUE;
 				//조건 검사 : 파일 상태
-				if (m_bLocked || m_bHidden || m_bReadOnly || m_bEncrypted) bMatch = IsMatch_State(fd, fullpath);
+				if (m_SC.bLocked || m_SC.bHidden || m_SC.bReadOnly || m_SC.bEncrypted) bMatch = IsMatch_State(fd, fullpath);
 				//조건 검사 : 파일 크기
 				if (bMatch == TRUE && (m_bSizeMax || m_bSizeMin)) bMatch = IsMatch_Size(fd);
 				//조건 검사 : 파일 변경 시점
-				if (bMatch == TRUE && (m_bDateTimeFrom || m_bDateTimeUntil)) bMatch = IsMatch_Time(fd);
+				if (bMatch == TRUE && (m_SC.bDateTimeFrom || m_SC.bDateTimeUntil)) bMatch = IsMatch_Time(fd);
 				//조건 검사 : 파일명
 				if (bMatch == TRUE && m_aNameMatch.GetCount() > 0) bMatch = IsMatch_Name(fd);
 				//조건 검사 : 확장자
@@ -240,7 +233,7 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 BOOL CSearchListCtrl::IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath)
 {
 	BOOL bIsLocked = TRUE, bIsHidden = TRUE, bIsReadOnly = TRUE, bIsEncrypted = TRUE;
-	if (m_bLocked) // 잠긴 파일인지 검사
+	if (m_SC.bLocked) // 잠긴 파일인지 검사
 	{
 		HANDLE hFile = CreateFile(fullpath, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 		if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)
@@ -253,9 +246,9 @@ BOOL CSearchListCtrl::IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath)
 			CloseHandle(hFile);
 		}
 	}
-	if (m_bHidden) bIsHidden = (fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? TRUE : FALSE;
-	if (m_bReadOnly) bIsReadOnly = (fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) ? TRUE : FALSE;
-	if (m_bEncrypted) bIsEncrypted = (fd.dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED) ? TRUE : FALSE;
+	if (m_SC.bHidden) bIsHidden = (fd.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? TRUE : FALSE;
+	if (m_SC.bReadOnly) bIsReadOnly = (fd.dwFileAttributes & FILE_ATTRIBUTE_READONLY) ? TRUE : FALSE;
+	if (m_SC.bEncrypted) bIsEncrypted = (fd.dwFileAttributes & FILE_ATTRIBUTE_ENCRYPTED) ? TRUE : FALSE;
 	return bIsLocked && bIsHidden && bIsReadOnly && bIsEncrypted;
 }
 
@@ -271,12 +264,12 @@ BOOL CSearchListCtrl::IsMatch_Name(WIN32_FIND_DATA& fd)
 	{
 		if (strName.Find(m_aNameMatch[i]) == -1)
 		{	//포함되지 않음
-			if (m_bNameAnd == TRUE) return FALSE; // AND 조건인 경우 바로 실패
+			if (m_SC.bNameAnd == TRUE) return FALSE; // AND 조건인 경우 바로 실패
 			else bMatch = FALSE; // OR 이고 못찾았으면 다음 키워드로 재시도
 		}
 		else
 		{	//포함됨
-			if (m_bNameAnd == FALSE) return TRUE; // OR 조건인 경우 바로 성공
+			if (m_SC.bNameAnd == FALSE) return TRUE; // OR 조건인 경우 바로 성공
 			else bMatch = TRUE; // AND 이고 찾았으면 다음 키워드로 추가 확인
 		}
 	}
@@ -300,8 +293,8 @@ BOOL CSearchListCtrl::IsMatch_Ext(WIN32_FIND_DATA& fd)
 BOOL CSearchListCtrl::IsMatch_Time(WIN32_FIND_DATA& fd)
 {
 	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
-	if (m_bDateTimeFrom == TRUE && m_dtFrom > tTemp) return FALSE;
-	if (m_bDateTimeUntil == TRUE && m_dtUntil < tTemp) return FALSE;
+	if (m_SC.bDateTimeFrom == TRUE && m_dtFrom > tTemp) return FALSE;
+	if (m_SC.bDateTimeUntil == TRUE && m_dtUntil < tTemp) return FALSE;
 	return TRUE;
 }
 
@@ -346,17 +339,33 @@ void CSearchListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 
 BOOL CSearchListCtrl::PreTranslateMessage(MSG* pMsg)
 {
-	if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+	if (pMsg->message == WM_KEYDOWN)
 	{
-		if (pMsg->wParam == _T('C'))
+		if (pMsg->wParam == VK_RETURN)
 		{
-			ClipBoardExport(FALSE); //Copy
+			BOOL bMulti = TRUE;
+			if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) bMulti = FALSE;
+			OpenSelectedItem(bMulti);
+			return TRUE;
 		}
-		else if (pMsg->wParam == _T('X'))
+	}
+	else if (pMsg->message == WM_KEYUP)
+	{
+		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 		{
-			ClipBoardExport(TRUE); //Cut
+			if (pMsg->wParam == _T('C'))
+			{
+				ClipBoardExport(FALSE); //Copy
+			}
+			else if (pMsg->wParam == _T('X'))
+			{
+				ClipBoardExport(TRUE); //Cut
+			}
+			else if (pMsg->wParam == _T('A'))
+			{
+				SelectAllItems();
+			}
 		}
-
 	}
 
 	return CFileListCtrl_Base::PreTranslateMessage(pMsg);
@@ -368,6 +377,15 @@ CString CSearchListCtrl::GetItemFullPath(int nItem)
 	CString strPath;
 	strPath = PathBackSlash(GetItemText(nItem, COL_SEARCH_FOLDER)) + GetItemText(nItem, COL_SEARCH_NAME);
 	return strPath;
+}
+
+void CSearchListCtrl::SelectAllItems()
+{
+	int nCount = GetItemCount();
+	for (int i = 0; i < nCount; i++)
+	{
+		SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	}
 }
 
 
@@ -449,5 +467,63 @@ void CSearchListCtrl::ClipBoardExport(BOOL bMove)
 			}
 		}
 		CloseClipboard();
+	}
+}
+
+void CSearchListCtrl::OnNMDblclk(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	OpenSelectedItem(FALSE);
+	*pResult = 0;
+}
+
+void CSearchListCtrl::OpenSelectedItem(BOOL bMulti)
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	HRESULT hr = S_OK;
+	IShellFolder* pisf = NULL;
+	//루트(데스크탑)의 IShellFolder 인터페이스 얻어오기
+	if (FAILED(SHGetDesktopFolder(&pisf))) return;
+	while (nItem != -1)
+	{
+		LPITEMIDLIST pidl = GetPIDLfromPath(GetItemFullPath(nItem));
+		if (pidl != NULL)
+		{
+			SHELLEXECUTEINFO sei;
+			memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
+			sei.fMask = SEE_MASK_IDLIST;
+			sei.cbSize = sizeof(SHELLEXECUTEINFO);
+			sei.lpVerb = _T("open");
+			sei.lpFile = NULL;
+			sei.lpIDList = pidl;
+			sei.nShow = SW_SHOW;
+			if (ShellExecuteEx(&sei) == FALSE)
+			{
+				AfxMessageBox(L"Shell Execution Error"); //Resource
+			}
+			CoTaskMemFree(pidl);
+		}
+		if (bMulti == TRUE) nItem = GetNextItem(nItem, LVNI_SELECTED);
+		else nItem = -1;
+	}
+	pisf->Release();
+}
+
+void CSearchListCtrl::OpenSelectedParent(BOOL bUseTab)
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	HRESULT hr = S_OK;
+	CString strFolder = GetItemText(nItem, COL_SEARCH_FOLDER);
+	if (bUseTab == FALSE)
+	{
+		ShellExecute(NULL, _T("open"), _T("explorer"), strFolder, NULL, SW_SHOWNORMAL);
+	}
+	else
+	{
+		APP()->m_strShowPath = GetItemFullPath(nItem);
+		GetParent()->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_RESULT_VIEWTAB, 0);
 	}
 }

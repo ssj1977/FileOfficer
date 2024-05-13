@@ -38,7 +38,8 @@ public:
 	void InitToolBar();
 	void ResizeToolBar(int width, int height);
 	void CriteriaClear();
-	void CriteriaInit();
+	void CriteriaInit(SearchCriteria& sc);
+	void CriteriaInitDateTime(SearchCriteria& sc);
 	BOOL CriteriaReadFromUI();
 	void CriteriaExport();
 	void CriteriaImport();
@@ -52,4 +53,6 @@ public:
 	COleDateTime m_timeFrom;
 	COleDateTime m_timeUntil;
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
+	afx_msg void OnCbnSelchangeCbTimerange();
+	afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
 };
