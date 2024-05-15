@@ -7,7 +7,6 @@
 #include "afxdialogex.h"
 #include "EtcFunctions.h"
 #include "CFileListCtrl.h"
-#include "CMyShellListCtrl.h"
 #include "CDlgCFG_View.h"
 
 #define IDC_LIST_FILE 50000
@@ -71,27 +70,13 @@ void CDlgTabView::Clear()
 	{
 		if (m_aTabInfo[i].pWnd != NULL)
 		{
-			if (m_aTabInfo[i].nCtrlType == TABTYPE_CUSTOM_LIST)
+			CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
+			if (IsWindow(pList->GetSafeHwnd()))
 			{
-				CFileListCtrl* pList = (CFileListCtrl*)m_aTabInfo[i].pWnd;
-				if (IsWindow(pList->GetSafeHwnd()))
-				{
-					pList->ClearThread();
-					pList->DestroyWindow();
-				}
-				delete pList;
+				pList->ClearThread();
+				pList->DestroyWindow();
 			}
-			else
-			{
-				CMyShellListCtrl* pList = (CMyShellListCtrl*)m_aTabInfo[i].pWnd;
-				if (IsWindow(pList->GetSafeHwnd()))
-				{
-					pList->ClearThread();
-					pList->DestroyWindow();
-				}
-				delete pList;
-			}
-
+			delete pList;
 		}
 	}
 }
@@ -117,29 +102,14 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_NEWTAB_BY_LIST:
 		if (lParam && ::IsWindow(((CWnd*)lParam)->GetSafeHwnd()) )
 		{
-			if (APP()->m_nDefaultListType == TABTYPE_CUSTOM_LIST)
+			CFileListCtrl* pList = (CFileListCtrl*)lParam;
+			CString strPath;
+			int nItem = pList->GetNextItem(-1, LVNI_SELECTED);
+			while (nItem != -1)
 			{
-				CFileListCtrl* pList = (CFileListCtrl*)lParam;
-				CString strPath;
-				int nItem = pList->GetNextItem(-1, LVNI_SELECTED);
-				while (nItem != -1)
-				{
-					strPath = pList->GetItemFullPath(nItem);
-					if (PathIsDirectory(strPath)) AddFileListTab(strPath);
-					nItem = pList->GetNextItem(nItem, LVNI_SELECTED);
-				}
-			}
-			else
-			{
-				CMyShellListCtrl* pList = (CMyShellListCtrl*)lParam;
-				CString strPath;
-				int nItem = pList->GetNextItem(-1, LVNI_SELECTED);
-				while (nItem != -1)
-				{
-					strPath = pList->GetItemFullPath(nItem);
-					if (PathIsDirectory(strPath)) AddFileListTab(strPath);
-					nItem = pList->GetNextItem(nItem, LVNI_SELECTED);
-				}
+				strPath = pList->GetItemFullPath(nItem);
+				if (PathIsDirectory(strPath)) AddFileListTab(strPath);
+				nItem = pList->GetNextItem(nItem, LVNI_SELECTED);
 			}
 		}
 		break;
@@ -210,11 +180,8 @@ void CDlgTabView::OpenFolderByShortCut(int lParam)
 	if (lParam == 1 && strName.IsEmpty() == FALSE)
 	{
 		int nNameColumnIndex = 0; //COL_NAME 
-		CMFCListCtrl* pList = (CMFCListCtrl*)CurrentList();
-		if (CurrentListType() == TABTYPE_CUSTOM_LIST)
-		{
-			nNameColumnIndex = ((CFileListCtrl*)pList)->GetNameColumnIndex();
-		}
+		CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+		nNameColumnIndex = ((CFileListCtrl*)pList)->GetNameColumnIndex();
  		int nCount = pList->GetItemCount();
 		for (int i = 0; i < nCount; i++)
 		{
@@ -295,7 +262,6 @@ BOOL CDlgTabView::OnInitDialog()
 	if (m_aTabInfo.GetSize() == 0)
 	{
 		PathTabInfo tabInfo(L"", 0, TRUE);
-		tabInfo.nCtrlType = APP()->m_nDefaultListType;
 		m_aTabInfo.Add(tabInfo);
 	}
 	CString strTitle;
@@ -312,7 +278,6 @@ BOOL CDlgTabView::OnInitDialog()
 void CDlgTabView::AddFileListTab(CString strPath)
 {
 	PathTabInfo tabInfo(strPath, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
-	tabInfo.nCtrlType = APP()->m_nDefaultListType;
 	m_aTabInfo.Add(tabInfo);
 	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), CFileListCtrl::GetPathName(strPath), 1);
 	SetCurrentTab(nTab);
@@ -322,20 +287,10 @@ void CDlgTabView::CloseFileListTab(int nTab)
 {
 	if (m_aTabInfo.GetCount() == 1) return;
 	PathTabInfo& pti = m_aTabInfo[nTab];
-	if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
-	{
-		CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
-		pList->ClearThread();
-		pList->DestroyWindow();
-		delete pList;
-	}
-	else
-	{
-		CMyShellListCtrl* pList = (CMyShellListCtrl*)pti.pWnd;
-		pList->ClearThread();
-		pList->DestroyWindow();
-		delete pList;
-	}
+	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
+	pList->ClearThread();
+	pList->DestroyWindow();
+	delete pList;
 	m_aTabInfo.RemoveAt(nTab);
 	m_tabPath.DeleteItem(nTab);
 	nTab--;
@@ -380,70 +335,40 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	ti.iImage = m_nFocusedImage; //포커스 없을땐 Gray, 있을땐 Yellow
 	m_tabPath.SetItem(nTab, &ti);
 	PathTabInfo& pti = m_aTabInfo[nTab];
-	CMFCListCtrl* pList = (CMFCListCtrl*)pti.pWnd;
+	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	CRect rc = CRect(0, 0, 40, 30);
 	if (pList == NULL)
 	{
-		if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
+		pList = new CFileListCtrl;
+		pList->m_aColWidth.Copy(pti.aColWidth);
+		if (pList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
 		{
-			CFileListCtrl* pMyList = new CFileListCtrl;
-			pMyList->m_aColWidth.Copy(pti.aColWidth);
-			if (pMyList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
-			{
-				delete pMyList;
-				return;
-			}
-			pList = pMyList;
+			delete pList;
+			return;
 		}
-		else
-		{
-			CMyShellListCtrl* pMyList = new CMyShellListCtrl;
-			pMyList->m_aColWidth.Copy(pti.aColWidth);
-			if (pMyList->Create(WS_CHILD | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS, rc, this, IDC_LIST_FILE) == FALSE)
-			{
-				delete pMyList;
-				return;
-			}
-			pList = pMyList;
-		}
+		//부모 클래스에서 받은 공통 부분 초기화
 		pList->SetFont(&m_font);
 		pList->SetBkColor(GetMyClrBk());
 		pList->SetTextColor(GetMyClrText());
 		pList->SetSortColumn(pti.iSortColumn, pti.bSortAscend);
 		pList->SetExtendedStyle(LVS_EX_FULLROWSELECT); //WS_EX_WINDOWEDGE , WS_EX_CLIENTEDGE
 		pti.pWnd = (CWnd*)pList;
-		if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
-		{
-			CFileListCtrl* pMyList = (CFileListCtrl*)pList;
-			pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
-			pMyList->m_nIconType = GetIconType();
-			pMyList->CMD_OpenNewTabByList = IDM_OPEN_NEWTAB_BY_LIST;
-			pMyList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
-			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
-			pMyList->CMD_UpdateBar = IDM_UPDATE_BAR;
-			pMyList->m_nSortCol = pti.iSortColumn;
-			pMyList->m_bAsc = pti.bSortAscend;
-			pMyList->m_bUseFileType = APP()->m_bUseFileType;
-			pMyList->m_bUseFileIcon = APP()->m_bUseFileIcon;
-			pMyList->m_bCheckOpen = APP()->m_bCheckOpen;
-			pMyList->SetIconType(GetIconType());
-			pMyList->DisplayFolder_Start(pti.strPath);
-		}
-		else
-		{
-			CMyShellListCtrl* pMyList = (CMyShellListCtrl*)pList;
-			pMyList->CMD_OpenNewTabByList = IDM_OPEN_NEWTAB_BY_LIST;
-			pMyList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
-			pMyList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
-			pMyList->CMD_UpdateBar = IDM_UPDATE_BAR;
-			pMyList->m_nIconType = GetIconType();
-			pMyList->m_pColorRuleArray = &m_tvo.aColorRules;
-			pMyList->m_nSortColInit = pti.iSortColumn;
-			pMyList->m_bAscInit = pti.bSortAscend;
-			pMyList->LoadFolder(pti.strPath, TRUE);
-		}
+		//커스텀 멤버의 초기화
+		pList->m_pColorRuleArray = &m_tvo.aColorRules;
+		pList->m_nIconType = GetIconType();
+		pList->CMD_OpenNewTabByList = IDM_OPEN_NEWTAB_BY_LIST;
+		pList->CMD_UpdateFromList = IDM_UPDATE_FROMLIST;
+		pList->CMD_UpdateSortInfo = IDM_UPDATE_SORTINFO;
+		pList->CMD_UpdateBar = IDM_UPDATE_BAR;
+		pList->m_nSortCol = pti.iSortColumn;
+		pList->m_bAsc = pti.bSortAscend;
+		pList->m_bUseFileType = APP()->m_bUseFileType;
+		pList->m_bUseFileIcon = APP()->m_bUseFileIcon;
+		pList->m_bCheckOpen = APP()->m_bCheckOpen;
+		pList->SetIconType(GetIconType());
+		pList->DisplayFolder_Start(pti.strPath);
 	}
-	CMFCListCtrl* pListOld = (CMFCListCtrl*)CurrentList();
+	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
 	UpdateBkImg(pList);
 	pList->ShowWindow(SW_SHOW);
@@ -451,16 +376,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	m_tabPath.SetCurSel(nTab);
 	pList->SetFocus();
 	m_editPath.SetWindowText(pti.strPath);
-	if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
-	{
-		CFileListCtrl* pMyList = (CFileListCtrl*)pList;
-		pMyList->UpdateMsgBar();
-	}
-	else
-	{
-		CMyShellListCtrl* pMyList = (CMyShellListCtrl*)pList;
-		pMyList->UpdateMsgBar();
-	}
+	pList->UpdateMsgBar();
 	UpdateFromCurrentList();
 	UpdateToolBar();
 	ArrangeCtrl();
@@ -472,12 +388,6 @@ CWnd* CDlgTabView::CurrentList()
 	return NULL;
 }
 
-int CDlgTabView::CurrentListType()
-{
-	if (m_aTabInfo.GetSize() > m_nCurrentTab && m_nCurrentTab >= 0) return m_aTabInfo[m_nCurrentTab].nCtrlType;
-	return -1;
-}
-
 void CDlgTabView::UpdateFromCurrentList()
 {
 	CWnd* pWnd = CurrentList();
@@ -487,33 +397,20 @@ void CDlgTabView::UpdateFromCurrentList()
 		if (m_aTabInfo[i].pWnd == pWnd)
 		{
 			PathTabInfo& pti = m_aTabInfo[i];
-			if (pti.nCtrlType == TABTYPE_CUSTOM_LIST)
+			CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
+			pti.strPath = GetActualPath(pList->m_strFolder);
+			SetTabTitle(i, CFileListCtrl::GetPathName(pti.strPath));
+			if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
 			{
-				CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
-				pti.strPath = GetActualPath(pList->m_strFolder);
-				SetTabTitle(i, CFileListCtrl::GetPathName(pti.strPath));
-				if (pList->m_strFilterInclude.IsEmpty() == FALSE && pList->m_strFilterInclude != L"*")
-				{
-					CString strPath;
-					strPath = PathBackSlash(pList->m_strFolder) + pList->m_strFilterInclude;
-					m_editPath.SetWindowText(strPath);
-				}
-				else
-				{
-					m_editPath.SetWindowText(pti.strPath);
-				}
-				m_editPath.SetSel(-1); //커서를 끝으로
+				CString strPath;
+				strPath = PathBackSlash(pList->m_strFolder) + pList->m_strFilterInclude;
+				m_editPath.SetWindowText(strPath);
 			}
 			else
 			{
-				CMyShellListCtrl* pList = (CMyShellListCtrl*)pti.pWnd;
-				CString strFolder;
-				if (pList->GetCurrentFolder(strFolder) == FALSE) strFolder = _T("");
-				pti.strPath = GetActualPath(strFolder);
-				SetTabTitle(i, CFileListCtrl::GetPathName(pti.strPath));
 				m_editPath.SetWindowText(pti.strPath);
-				m_editPath.SetSel(-1); //커서를 끝으로
 			}
+			m_editPath.SetSel(-1); //커서를 끝으로
 			break;
 		}
 	}
@@ -605,25 +502,16 @@ void CDlgTabView::UpdateTabByPathEdit()
 	strName = CFileListCtrl::GetPathName(strPath);
 	SetTabTitle(m_nCurrentTab, strName);
 
-	if (CurrentListType() == TABTYPE_CUSTOM_LIST)
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	if (strFilter.IsEmpty() == FALSE)
 	{
-		CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-		if (strFilter.IsEmpty() == FALSE)
-		{
-			pList->DisplayFolder_Start(PathBackSlash(strPath) + strFilter);
-		}
-		else
-		{
-			pList->m_strFilterInclude.Empty();
-			pList->m_strFilterExclude.Empty();
-			pList->DisplayFolder_Start(strPath);
-		}
+		pList->DisplayFolder_Start(PathBackSlash(strPath) + strFilter);
 	}
 	else
 	{
-		CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
-		m_aTabInfo[m_nCurrentTab].strPath = strPath;
-		pList->LoadFolder(strPath);
+		pList->m_strFilterInclude.Empty();
+		pList->m_strFilterExclude.Empty();
+		pList->DisplayFolder_Start(strPath);
 	}
 }
 
@@ -824,17 +712,6 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 			if (pMsg->wParam == _T('O')) { OnCommand(IDM_TAB_ADD, 0); return TRUE; }
 		}
 	}
-	/*	if (pMsg->message == WM_LBUTTONDOWN)
-	{
-		CurrentList()->SetFocus();
-	}
-	else if (pMsg->message == WM_RBUTTONUP)
-	{
-		if (CurrentListType() == TABTYPE_CUSTOM_LIST) 
-			((CFileListCtrl*)CurrentList())->ShowContextMenu(NULL);
-		else
-			((CMyShellListCtrl*)CurrentList())->ShowContextMenu(NULL);
-	}*/
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
@@ -1075,19 +952,12 @@ void CDlgTabView::UpdateToolBar()
 	//m_toolText.ShowWindow((APP()->m_bToolBarText) ? SW_SHOW : SW_HIDE);
 	//m_toolIcon.ShowWindow((APP()->m_bToolBarText) ? SW_HIDE : SW_SHOW);
 	m_pTool = &m_toolIcon;
-	if (CurrentListType() == TABTYPE_CUSTOM_LIST)
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	if (pList)
 	{
-		CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
-		if (pList)
-		{
-			m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, (pList->IsFirstPath() == FALSE));
-			m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, (pList->IsLastPath() == FALSE));
-			m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, (pList->IsRootPath() == FALSE));
-		}
-	}
-	else
-	{
-		CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PREV, (pList->IsFirstPath() == FALSE));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_NEXT, (pList->IsLastPath() == FALSE));
+		m_pTool->GetToolBarCtrl().EnableButton(IDM_OPEN_PARENT, (pList->IsRootPath() == FALSE));
 	}
 }
 
@@ -1160,37 +1030,15 @@ void CDlgTabView::OnDropFiles(HDROP hDropInfo)
 {
 	CWnd* pList = CurrentList();
 	pList->SendMessage(WM_DROPFILES, (WPARAM)hDropInfo, 0);
-	/*if (CurrentListType() == TABTYPE_CUSTOM_LIST)
-	{
-		CurrentList()->SendMessage(WM_COMMAND, wParam, lParam);
-	}
-	else
-	{
-		CMyShellListCtrl* pList = (CMyShellListCtrl*)CurrentList();
-		pList->DisplayParentFolder();
-	}*/
-
 	CDialogEx::OnDropFiles(hDropInfo);
 }
 
 void CDlgTabView::UpdateMsgBarFromList()
 {
 	if (::IsWindow(GetSafeHwnd()) == FALSE) return;
-	CMFCListCtrl* pWnd = (CMFCListCtrl*)CurrentList();
-	if (pWnd == NULL || ::IsWindow(pWnd->GetSafeHwnd()) == FALSE) return;
-
-	CString strBarMsg;
-	if (CurrentListType() == TABTYPE_CUSTOM_LIST)
-	{
-		CFileListCtrl* pList = (CFileListCtrl*)pWnd;
-		strBarMsg = pList->GetBarString();
-	}
-	else
-	{
-		CMyShellListCtrl* pList = (CMyShellListCtrl*)pWnd;
-		strBarMsg = pList->GetBarString();
-	}
-	SetDlgItemText(IDC_ST_BAR, strBarMsg);
+	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
+	if (pList == NULL || ::IsWindow(pList->GetSafeHwnd()) == FALSE) return;
+	SetDlgItemText(IDC_ST_BAR, pList->GetBarString());
 }
 
 void CDlgTabView::PathArrayImport(CStringArray& aPath)

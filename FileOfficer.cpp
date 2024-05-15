@@ -45,7 +45,6 @@ CFileOfficerApp::CFileOfficerApp()
 	m_hIcon = NULL;
 	m_bUseFileIcon = TRUE;
 	m_bUseFileType = FALSE;
-	m_nDefaultListType = TABTYPE_CUSTOM_LIST;
 	m_nShortCutViewType1 = LVS_ICON;
 	m_nShortCutViewType2 = LVS_ICON;
 	m_nShortCutIconType1 = SHIL_EXTRALARGE;
@@ -62,9 +61,10 @@ CFileOfficerApp theApp;
 
 BOOL CFileOfficerApp::InitInstance()
 {
-	TCHAR szBuff[MY_MAX_PATH];
-	GetModuleFileName(m_hInstance, szBuff, MY_MAX_PATH);
-	CString strExePath = szBuff;
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	GetModuleFileName(m_hInstance, pBuf, MY_MAX_PATH);
+	CString strExePath = (LPCTSTR)pBuf;
+	delete[] pBuf;
 	m_strINIPath = Get_Folder(strExePath, TRUE) + Get_Name(strExePath, FALSE) + L".ini";
 	INILoad(m_strINIPath);
 	m_hIcon = LoadIcon(IDR_MAINFRAME);
@@ -77,7 +77,11 @@ BOOL CFileOfficerApp::InitInstance()
 	CWinApp::InitInstance();
 	CShellManager *pShellManager = new CShellManager;
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
-	CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
+	if (S_OK != CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))
+	{
+		AfxMessageBox(L"CoInitializeEx Error!");
+		return FALSE;
+	}
 	if (!AfxOleInit())
 	{
 		AfxMessageBox(L"AfxOleInit Error!");
@@ -209,7 +213,6 @@ void CFileOfficerApp::INISave(CString strFile)
 	strLine.Format(_T("LayoutSizePercent=%d\r\n"), m_nLayoutSizePercent); strData += strLine;
 	strLine.Format(_T("LayoutSizeFixed=%d\r\n"), m_nLayoutSizeFixed); strData += strLine;
 	strLine.Format(_T("LayoutSizeDynamic=%d\r\n"), m_nLayoutSizeDynamic); strData += strLine;
-	strLine.Format(_T("DefaultListType=%d\r\n"), m_nDefaultListType); strData += strLine;
 	strLine.Format(_T("ViewShortCut1=%d\r\n"), m_bViewShortCut1); strData += strLine;
 	strLine.Format(_T("ViewShortCut2=%d\r\n"), m_bViewShortCut2); strData += strLine;
 	strLine.Format(_T("ShortCutViewType1=%d\r\n"), m_nShortCutViewType1); strData += strLine;
@@ -231,7 +234,6 @@ void CFileOfficerApp::INISave(CString strFile)
 	for (int i = 0; i < m_aTab1.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab1_Path=%s\r\n"), (LPCTSTR)m_aTab1[i].strPath);	strData += strLine;
-		strLine.Format(_T("Tab1_CtrlType=%d\r\n"), m_aTab1[i].nCtrlType); strData += strLine;
 		strLine.Format(_T("Tab1_SortCol=%d\r\n"), m_aTab1[i].iSortColumn);	strData += strLine;
 		strLine.Format(_T("Tab1_SortAscend=%d\r\n"), m_aTab1[i].bSortAscend); strData += strLine;
 		strLine.Format(_T("Tab1_ColWidths=%s\r\n"), UIntArray2String(m_aTab1[i].aColWidth)); strData += strLine;
@@ -240,7 +242,6 @@ void CFileOfficerApp::INISave(CString strFile)
 	for (int i = 0; i < m_aTab2.GetSize(); i++)
 	{
 		strLine.Format(_T("Tab2_Path=%s\r\n"), (LPCTSTR)m_aTab2[i].strPath);	strData += strLine;
-		strLine.Format(_T("Tab2_CtrlType=%d\r\n"), m_aTab2[i].nCtrlType); strData += strLine;
 		strLine.Format(_T("Tab2_SortCol=%d\r\n"), m_aTab2[i].iSortColumn);	strData += strLine;
 		strLine.Format(_T("Tab2_SortAscend=%d\r\n"), m_aTab2[i].bSortAscend);	strData += strLine;
 		strLine.Format(_T("Tab2_ColWidths=%s\r\n"), UIntArray2String(m_aTab2[i].aColWidth)); strData += strLine;
@@ -288,7 +289,6 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("LayoutSizePercent")) == 0) m_nLayoutSizePercent = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeFixed")) == 0) m_nLayoutSizeFixed = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("LayoutSizeDynamic")) == 0) m_nLayoutSizeDynamic = _ttoi(str2);
-		else if (str1.CompareNoCase(_T("DefaultListType")) == 0) m_nDefaultListType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ViewShortCut1")) == 0) m_bViewShortCut1 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ViewShortCut2")) == 0) m_bViewShortCut2 = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ShortCutViewType1")) == 0) m_nShortCutViewType1 = _ttoi(str2);
@@ -300,12 +300,10 @@ void CFileOfficerApp::INILoad(CString strFile)
 		else if (str1.CompareNoCase(_T("ToolBarButtonSize")) == 0) m_nToolBarButtonSize = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("ToolBarVertical")) == 0) m_bToolBarVertical = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_Path")) == 0)	nTabCount1 = (int)m_aTab1.Add(PathTabInfo(PathBackSlash(str2, FALSE), 0, TRUE));
-		else if (str1.CompareNoCase(_T("Tab1_CtrlType")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].nCtrlType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortCol")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_SortAscend")) == 0 && nTabCount1 != -1) m_aTab1[nTabCount1].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab1_ColWidths")) == 0 && nTabCount1 != -1) String2UIntArray(str2, m_aTab1[nTabCount1].aColWidth);
 		else if (str1.CompareNoCase(_T("Tab2_Path")) == 0) nTabCount2 = (int)m_aTab2.Add(PathTabInfo(str2, 0, TRUE));
-		else if (str1.CompareNoCase(_T("Tab2_CtrlType")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].nCtrlType = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortCol")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].iSortColumn = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_SortAscend")) == 0 && nTabCount2 != -1) m_aTab2[nTabCount2].bSortAscend = _ttoi(str2);
 		else if (str1.CompareNoCase(_T("Tab2_ColWidths")) == 0 && nTabCount2 != -1) String2UIntArray(str2, m_aTab2[nTabCount2].aColWidth);

@@ -114,7 +114,7 @@ void CSearchListCtrl::FileSearch_Begin()
 UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
 {
 	CSearchListCtrl* pList = (CSearchListCtrl*)lParam;
-	pList->m_bWorking = TRUE;
+	pList->m_bWorking = TRUE; 
 	pList->m_bBreak = FALSE;
 	pList->FileSearch_Do(pList->m_SC.strStartPath);
 	pList->m_bWorking = FALSE;
@@ -126,7 +126,7 @@ UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
 	{
 		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_STOPPED), pList->GetItemCount()); //리소스 처리 필요
 	}
-	pList->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
+	pList->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 1); //lParam = 1 이면 종료
 
 	return 0;
 }
@@ -159,8 +159,8 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	CStringArray aSubFolders; // 재귀호출용 하위폴더 저장
 
 	//현재 보고 있는 폴더 위치를 표시해준다
-	m_strMsg.Format(_T("검색중 : %s"), strFolder); //리소스 처리 필요
-	GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0);
+	m_strMsg.Format(_T("검색중 : %s"), (LPCTSTR)strFolder); //리소스 처리 필요
+	GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 0); //lParam = 0 이면 일반
 
 	while (b && !(m_bBreak))
 	{
@@ -356,18 +356,20 @@ BOOL CSearchListCtrl::PreTranslateMessage(MSG* pMsg)
 			if (pMsg->wParam == _T('C'))
 			{
 				ClipBoardExport(FALSE); //Copy
+				return TRUE;
 			}
 			else if (pMsg->wParam == _T('X'))
 			{
 				ClipBoardExport(TRUE); //Cut
+				return TRUE;
 			}
 			else if (pMsg->wParam == _T('A'))
 			{
 				SelectAllItems();
+				return TRUE;
 			}
 		}
 	}
-
 	return CFileListCtrl_Base::PreTranslateMessage(pMsg);
 }
 

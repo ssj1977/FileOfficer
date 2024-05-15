@@ -204,9 +204,7 @@
     <ClInclude Include="CFileListContextMenu.h" />
     <ClInclude Include="CFileListCtrl.h" />
     <ClInclude Include="CFileListCtrl_Base.h" />
-    <ClInclude Include="CMyDropTarget.h" />
     <ClInclude Include="CMyEditBrowseCtrl.h" />
-    <ClInclude Include="CMyShellListCtrl.h" />
     <ClInclude Include="CSearchListCtrl.h" />
     <ClInclude Include="CShortCutList.h" />
     <ClInclude Include="CWndDragBar.h" />
@@ -229,9 +227,7 @@
     <ClCompile Include="CFileListContextMenu.cpp" />
     <ClCompile Include="CFileListCtrl.cpp" />
     <ClCompile Include="CFileListCtrl_Base.cpp" />
-    <ClCompile Include="CMyDropTarget.cpp" />
     <ClCompile Include="CMyEditBrowseCtrl.cpp" />
-    <ClCompile Include="CMyShellListCtrl.cpp" />
     <ClCompile Include="CSearchListCtrl.cpp" />
     <ClCompile Include="CShortCutList.cpp" />
     <ClCompile Include="CWndDragBar.cpp" />

@@ -501,7 +501,12 @@ void CFileOfficerDlg::ShowPath(CString strShow)
 		CString strName = Get_Name(strShow, TRUE);
 		for (int i = 0; i < pList->GetItemCount(); i++)
 		{
-			
+			if (strName.CompareNoCase(pList->GetItemText(i, 0)) == 0)
+			{
+				pList->SetItemState(i, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+				pList->EnsureVisible(i, FALSE);
+				break;// 다 찾았으므로 
+			}
 		}
 	}
 }

@@ -42,9 +42,6 @@
     <ClInclude Include="CDlgTabView.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="CMyDropTarget.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="EtcFunctions.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -67,9 +64,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="CWndDragPane.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="CMyShellListCtrl.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="CShortCutList.h">
@@ -104,9 +98,6 @@
     <ClCompile Include="CDlgTabView.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="CMyDropTarget.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="EtcFunctions.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -129,9 +120,6 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CWndDragPane.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="CMyShellListCtrl.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CShortCutList.cpp">

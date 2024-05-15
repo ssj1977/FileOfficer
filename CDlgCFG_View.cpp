@@ -304,12 +304,13 @@ void CDlgCFG_View::OnBnClickedBtnBkimgPath()
 	ofn.lpstrTitle = strTitle;
 	ofn.lpstrFilter = _T("Image Files(BMP,GIF,JPG,PNG)\0*.BMP;*.GIF;*.JPG;*.JPEG;*.PNG\0All Files(*.*)\0*.*\0\0");
 	ofn.nMaxFile = MY_MAX_PATH;
-	TCHAR pBuf[MY_MAX_PATH] = {};
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
 	ofn.lpstrFile = pBuf;
 	if (GetOpenFileName(&ofn) != FALSE)
 	{
 		SetDlgItemText(IDC_EDIT_BKIMG_PATH, ofn.lpstrFile);
 	}
+	delete[] pBuf;
 }
 
 
@@ -340,13 +341,14 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgExport()
 	ofn.lpstrFilter = _T("FileOfficer View Config(*.fvc)\0*.fvc\0All Files(*.*)\0*.*\0\0"); //모든 파일이 대상인 경우는 필터 불필요
 	ofn.nMaxFile = MY_MAX_PATH;
 	ofn.lpstrDefExt = _T("bnp");
-	TCHAR pBuf[MY_MAX_PATH] = {};
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
 	ofn.lpstrFile = pBuf;
 	if (GetSaveFileName(&ofn) != FALSE)
 	{
 		TVOExport();
 		WriteCStringToFile(ofn.lpstrFile, m_tvo.StringExport());
 	}
+	delete[] pBuf;
 }
 
 
@@ -362,7 +364,7 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
 	ofn.lpstrFilter = _T("FileOfficer View Config(*.fvc)\0*.fvc\0All Files(*.*)\0*.*\0\0");
 	ofn.nMaxFile = MY_MAX_PATH;
 	ofn.lpstrDefExt = _T("bnp");
-	TCHAR pBuf[MY_MAX_PATH] = {};
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
 	ofn.lpstrFile = pBuf;
 	if (GetOpenFileName(&ofn) != FALSE)
 	{
@@ -371,6 +373,7 @@ void CDlgCFG_View::OnBnClickedBtnViewCfgImport()
 		m_tvo.StringImport(strData);
 		TVOImport();
 	}
+	delete[] pBuf;
 }
 
 

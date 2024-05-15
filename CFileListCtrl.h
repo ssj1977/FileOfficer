@@ -1,6 +1,5 @@
 #pragma once
 #include "CFileListCtrl_Base.h"
-#include "CMyDropTarget.h"
 
 /*using namespace std;
 #include <set>
@@ -106,7 +105,6 @@ public:
 	int CMD_UpdateFromList;
 	int CMD_UpdateBar;
 	int CMD_OpenNewTabByList;
-	CMyDropTarget m_DropTarget;
 	void ProcessDropFiles(HDROP hDropInfo, BOOL bMove);
 	void DeleteSelected(BOOL bRecycle);
 	void RenameSelectedItem();
@@ -175,6 +173,9 @@ public:
 	virtual COLORREF OnGetCellBkColor(int nRow, int nColumn);
 	afx_msg void OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult);
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
+
+	afx_msg void OnDropFiles(HDROP hDropInfo);
+	//afx_msg DROPEFFECT OnDragOver(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point);
 };
 
 class MyProgress : public IFileOperationProgressSink

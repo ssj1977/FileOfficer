@@ -83,6 +83,9 @@
 #define IDS_SEARCH_MSG_FINISHED         100
 #define IDS_SEARCH_MSG_STOPPED          101
 #define IDD_FILEOFFICER_DIALOG          102
+#define IDS_SEARCH_RESULT_EXPORT        102
+#define IDS_SEARCH_CRITERIA_EXPORT      103
+#define IDS_SEARCH_CRITERIA_IMPORT      104
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135

@@ -2,7 +2,6 @@
 #include "CMyEditBrowseCtrl.h"
 #include "CWndDragBar.h"
 #include "CShortCutList.h"
-#include "CMyShellListCtrl.h"
 // CDlgTabView 대화 상자
 
 class CDlgTabView : public CDialogEx
@@ -14,7 +13,6 @@ public:
 	virtual ~CDlgTabView();
 	CMyEditBrowseCtrl m_editPath;
 	CWndDragBar m_wndDragTab;
-	CMyShellListCtrl m_listShell;
 	int m_nDragBarPos;
 	CTabCtrl m_tabPath;
 	CImageList m_tabImgList;
@@ -36,7 +34,6 @@ public:
 	void ResizeToolBar(int width, int height);
 	void SetCurrentTab(int nTab);
 	CWnd* CurrentList();
-	int CurrentListType();
 	void UpdateFromCurrentList();
 	void UpdateSortInfo(CWnd* pWnd);
 	void UpdateTabByPathEdit();

@@ -1101,14 +1101,6 @@ void CFileListCtrl::OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult)
 
 BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 {
-	/*if (pMsg->message == WM_LBUTTONDBLCLK)
-	{
-		if (GetNextItem(-1, LVNI_SELECTED) == -1)
-		{
-			OpenParentFolder();
-			return TRUE;
-		}
-	}*/
 	if (pMsg->message == WM_KEYDOWN)
 	{
 		if (pMsg->wParam == VK_F5)
@@ -1172,7 +1164,6 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
-	//TCHAR szFilePath[MY_MAX_PATH];
 	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH];
 	size_t bufsize = sizeof(TCHAR) * MY_MAX_PATH;
 	if (bufsize > 0) ZeroMemory(pszFilePath, bufsize);
@@ -1444,14 +1435,13 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 	LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
 	NM_LISTVIEW* pNMListView = pNMLV;
 	* pResult = 0;
-
 	HGLOBAL hgDrop = GetOleDataForClipboard(LVIS_CUT);
 	if (hgDrop != NULL)
 	{
-		COleDataSource datasrc;
+		COleDataSource* pDatasrc = new COleDataSource();
 		FORMATETC etc = { CF_HDROP, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
-		datasrc.CacheGlobalData(CF_HDROP, hgDrop, &etc);
-		DROPEFFECT dwEffect = datasrc.DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK);
+		pDatasrc->CacheGlobalData(CF_HDROP, hgDrop, &etc);
+		DROPEFFECT dwEffect = pDatasrc->DoDragDrop(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK);
 		//if ((dwEffect & DROPEFFECT_LINK) == DROPEFFECT_LINK || (dwEffect & DROPEFFECT_COPY) == DROPEFFECT_COPY) ;
 		//else if ((dwEffect & DROPEFFECT_MOVE) == DROPEFFECT_MOVE)
 		SetItemState(-1, 0, LVIS_CUT);
@@ -1459,7 +1449,26 @@ void CFileListCtrl::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 		{
 			GlobalFree(hgDrop);
 		}
+		//여러개의 창을 오가는 경우 COleDataSource 참조가 늘어나면서 릴리즈가 안되는 문제가 있음
+		//그래서 new를 통해 힙에 만들고 릴리즈 하는 방식을 사용
+		if (pDatasrc->m_dwRef <= 1)	delete pDatasrc;
+		else						pDatasrc->ExternalRelease();
 	}
+}
+
+//DROPEFFECT CFileListCtrl::OnDragOver(COleDataObject* pDataObject, DWORD dwKeyState, CPoint point)
+//{
+//	TRACE(L"My OnDrag Over !!!!!!!!!!!!!!!!!!!\r\n");
+//	if ((dwKeyState & MK_CONTROL) == MK_CONTROL) return DROPEFFECT_COPY;
+//	return DROPEFFECT_MOVE;
+//}
+
+void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
+{
+	BOOL bMove = TRUE;
+	if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0) bMove = FALSE;
+	ProcessDropFiles(hDropInfo, bMove);
+	DragFinish(hDropInfo);
 }
 
 
@@ -1524,10 +1533,6 @@ BOOL CFileListCtrl::Create(DWORD dwStyle, const RECT& rect, CWnd* pParentWnd, UI
 {
 	BOOL b = CMFCListCtrl::Create(dwStyle, rect, pParentWnd, nID);
 	//m_hLoadFinished = CreateEvent(NULL, TRUE, FALSE, NULL);
-	if (b)
-	{
-		BOOL b = m_DropTarget.Register(this);
-	}
 	return b;
 }
 

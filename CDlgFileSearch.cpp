@@ -103,6 +103,13 @@ BOOL CDlgFileSearch::PreTranslateMessage(MSG* pMsg)
 			return TRUE;
 		}
 	}
+	else if (pMsg->message == WM_KEYUP)
+	{
+		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
+		{
+			ResultExport();
+		}
+	}
 	/*if (GetFocus() == this)
 	{
 		if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
@@ -209,6 +216,7 @@ void CDlgFileSearch::SearchStart()
 {
 	if (CriteriaReadFromUI() == FALSE) return;
 	m_listSearch.FileSearch_Begin();
+	UpdateToolBar(TRUE);
 }
 
 
@@ -246,6 +254,8 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 			if (AfxMessageBox(IDSTR(IDS_SEARCH_CONFIRM_CLEAR), MB_YESNO) == IDNO) return TRUE;
 		}
 		m_listSearch.DeleteAllItems();		
+		SetDlgItemText(IDC_EDIT_SEARCH_MSG, _T(""));
+		UpdateToolBar(FALSE);
 		return TRUE;
 	case IDM_SEARCH_RESULT_EXPORT:		ResultExport();	return TRUE;
 	case IDM_PLAY_ITEM:		m_listSearch.OpenSelectedItem(TRUE);	return TRUE;
@@ -258,7 +268,10 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_SEARCH_RESULT_OPENFOLDER: m_listSearch.OpenSelectedParent(FALSE); return TRUE;
 	case IDM_SEARCH_RESULT_VIEWTAB: m_listSearch.OpenSelectedParent(TRUE); return TRUE;
 
-	case IDM_SEARCH_MSG: SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);	return TRUE;
+	case IDM_SEARCH_MSG: 
+		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);	
+		if (lParam == 1) UpdateToolBar(FALSE); //마지막 메시지일때
+		return TRUE;
 
 	}
 
@@ -282,6 +295,7 @@ void CDlgFileSearch::InitToolBar()
 		}
 	}
 	ResizeToolBar(APP()->m_nToolBarButtonSize, APP()->m_nToolBarButtonSize);
+	UpdateToolBar(FALSE);
 }
 
 void ResizeBitmap(CBitmap& bmp_src, CBitmap& bmp_dst, int dstW, int dstH);
@@ -360,10 +374,48 @@ void CDlgFileSearch::CriteriaClear()
 void CDlgFileSearch::CriteriaExport()
 {
 	if (CriteriaReadFromUI() == FALSE) return;
+	OPENFILENAME ofn = {};
+	CString strTitle;
+	strTitle.LoadString(IDS_SEARCH_CRITERIA_EXPORT);
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = this->GetSafeHwnd();
+	ofn.Flags = OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_ENABLESIZING;
+	ofn.lpstrTitle = strTitle;
+	ofn.lpstrFilter = _T("FileOfficer Search Criteria(*.fsc)\0*.fsc\0\0");
+	ofn.lpstrDefExt = _T("fsc");
+	ofn.nMaxFile = MY_MAX_PATH;
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	ofn.lpstrFile = pBuf;
+	if (GetSaveFileName(&ofn) != FALSE)
+	{
+		SearchCriteria sc = m_listSearch.m_SC;
+		CString strData = sc.ExportString();
+		WriteCStringToFile(ofn.lpstrFile, strData, FALSE, FALSE);
+	}
+	delete[] pBuf;
+
 }
 
 void CDlgFileSearch::CriteriaImport()
 {
+	CString strImportData, strName;
+	OPENFILENAME ofn = {};
+	CString strTitle;
+	if (strTitle.LoadString(IDS_SEARCH_CRITERIA_IMPORT) == FALSE) strTitle.Empty();
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = this->GetSafeHwnd();
+	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_ENABLESIZING;
+	ofn.lpstrTitle = strTitle;
+	ofn.lpstrFilter = _T("Text Files(*.txt)\0*.txt\0All Files(*.*)\0*.*\0\0");
+	ofn.lpstrDefExt = _T("txt");
+	ofn.nMaxFile = MY_MAX_PATH;
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	ofn.lpstrFile = pBuf;
+	if (GetOpenFileName(&ofn) != FALSE)
+	{
+		ReadFileToCString(ofn.lpstrFile, strImportData);
+	}
+	delete[] pBuf;
 	
 }
 
@@ -385,7 +437,49 @@ void CDlgFileSearch::CriteriaInit(SearchCriteria& sc)
 
 void CDlgFileSearch::ResultExport()
 {
-
+	if (m_listSearch.GetItemCount() == 0) return;
+	OPENFILENAME ofn = {};
+	CString strTitle;
+	strTitle.LoadString(IDS_SEARCH_RESULT_EXPORT);
+	ofn.lStructSize = sizeof(OPENFILENAME);
+	ofn.hwndOwner = this->GetSafeHwnd();
+	ofn.Flags = OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_ENABLESIZING;
+	ofn.lpstrTitle = strTitle;
+	ofn.lpstrFilter = _T("CSV Files(*.csv)\0*.csv\0Text Files(*.txt)\0*.txt\0\0");
+	ofn.lpstrDefExt = _T("csv");
+	ofn.nMaxFile = MY_MAX_PATH;
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	ofn.lpstrFile = pBuf;
+	if (GetSaveFileName(&ofn) != FALSE)
+	{
+		CString strExt = Get_Ext(ofn.lpstrFile, FALSE, FALSE);
+		CString strData, strLine, strToken;
+		int nRowCount = m_listSearch.GetItemCount();
+		int nColCount = m_listSearch.GetHeaderCtrl().GetItemCount();
+		BOOL bCSV = FALSE;
+		if (strExt.CompareNoCase(_T("csv")) == 0) bCSV = TRUE;
+		for (int i = 0; i < nRowCount; i++)
+		{ 
+			if (bCSV == TRUE)
+			{
+				strLine.Empty();
+				for (int j = 0; j < nColCount; j++)
+				{
+					strToken = m_listSearch.GetItemText(i, j);
+					strToken.Replace(_T("\""), _T("\"\""));
+					if (strLine.IsEmpty() == FALSE) strLine += _T(",");
+					strLine += _T("\"") + strToken + _T("\"");
+				}
+			}
+			else
+			{
+				strLine = m_listSearch.GetItemFullPath(i);
+			}
+			strData += strLine + _T("\r\n");
+		}
+		WriteCStringToFile(ofn.lpstrFile, strData, bCSV, bCSV);
+	}
+	delete[] pBuf;
 }
 
 void CDlgFileSearch::CriteriaInitDateTime(SearchCriteria& sc)
@@ -446,5 +540,34 @@ void CDlgFileSearch::OnContextMenu(CWnd* pWnd, CPoint point)
 	CMenu menu;
 	menu.LoadMenu(IDR_MENU_SEARCH);
 	CMenu* pMenu = menu.GetSubMenu(0);
+	if (m_listSearch.m_bWorking) pMenu->EnableMenuItem(IDM_SEARCH_BEGIN, MF_BYCOMMAND | MF_GRAYED);
+	if (m_listSearch.GetItemCount() == 0 || m_listSearch.m_bWorking == TRUE)
+	{
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_CLEAR, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_EXPORT, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_SELECTALL, MF_BYCOMMAND | MF_GRAYED);
+	}
+	int nSelected = m_listSearch.GetSelectedCount();
+	if (nSelected == 0)
+	{
+		pMenu->EnableMenuItem(IDM_PLAY_ITEM, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_COPY, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_CUT, MF_BYCOMMAND | MF_GRAYED);
+	}
+	if (nSelected != 1)
+	{
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_VIEWTAB, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_OPENFOLDER, MF_BYCOMMAND | MF_GRAYED);
+	}
 	pMenu->TrackPopupMenu(TPM_LEFTALIGN, point.x, point.y, this);
+}
+
+void CDlgFileSearch::UpdateToolBar(BOOL bWorking)
+{
+	m_toolSearch.GetToolBarCtrl().HideButton(IDM_SEARCH_BEGIN, bWorking);
+	m_toolSearch.GetToolBarCtrl().HideButton(IDM_SEARCH_STOP, !bWorking);
+	BOOL bEnable = !bWorking;
+	if (bEnable == TRUE && m_listSearch.GetItemCount() == 0) bEnable = FALSE;
+	m_toolSearch.GetToolBarCtrl().EnableButton(IDM_SEARCH_RESULT_CLEAR,  bEnable);
+	m_toolSearch.GetToolBarCtrl().EnableButton(IDM_SEARCH_RESULT_EXPORT, bEnable);
 }

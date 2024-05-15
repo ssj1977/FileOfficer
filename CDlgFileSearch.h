@@ -37,6 +37,7 @@ public:
 	CToolBar m_toolSearch;
 	void InitToolBar();
 	void ResizeToolBar(int width, int height);
+	void UpdateToolBar(BOOL bWorking);
 	void CriteriaClear();
 	void CriteriaInit(SearchCriteria& sc);
 	void CriteriaInitDateTime(SearchCriteria& sc);
