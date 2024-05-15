@@ -261,8 +261,8 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_PLAY_ITEM:		m_listSearch.OpenSelectedItem(TRUE);	return TRUE;
 	case IDM_SEARCH_RESULT_COPY: m_listSearch.ClipBoardExport(FALSE); 	return TRUE;
 	case IDM_SEARCH_RESULT_CUT: m_listSearch.ClipBoardExport(TRUE);		return TRUE;
-	case IDM_SEARCH_CRITERIA_EXPORT:	CriteriaImport();	return TRUE;
-	case IDM_SEARCH_CRITERIA_IMPORT:	CriteriaExport();	return TRUE;
+	case IDM_SEARCH_CRITERIA_EXPORT:	CriteriaExport();	return TRUE;
+	case IDM_SEARCH_CRITERIA_IMPORT:	CriteriaImport();	return TRUE;
 	case IDM_SEARCH_CRITERIA_CLEAR:		CriteriaClear();	return TRUE;
 	case IDM_SEARCH_RESULT_SELECTALL:	m_listSearch.SelectAllItems();	return TRUE;
 	case IDM_SEARCH_RESULT_OPENFOLDER: m_listSearch.OpenSelectedParent(FALSE); return TRUE;
@@ -376,7 +376,7 @@ void CDlgFileSearch::CriteriaExport()
 	if (CriteriaReadFromUI() == FALSE) return;
 	OPENFILENAME ofn = {};
 	CString strTitle;
-	strTitle.LoadString(IDS_SEARCH_CRITERIA_EXPORT);
+	if (strTitle.LoadString(IDS_SEARCH_CRITERIA_EXPORT) == FALSE) strTitle.Empty();
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = this->GetSafeHwnd();
 	ofn.Flags = OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_ENABLESIZING;
@@ -384,16 +384,14 @@ void CDlgFileSearch::CriteriaExport()
 	ofn.lpstrFilter = _T("FileOfficer Search Criteria(*.fsc)\0*.fsc\0\0");
 	ofn.lpstrDefExt = _T("fsc");
 	ofn.nMaxFile = MY_MAX_PATH;
-	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH]; pBuf[0] = _T('\0');
 	ofn.lpstrFile = pBuf;
 	if (GetSaveFileName(&ofn) != FALSE)
 	{
-		SearchCriteria sc = m_listSearch.m_SC;
-		CString strData = sc.ExportString();
+		CString strData = m_listSearch.m_SC.StringExport();
 		WriteCStringToFile(ofn.lpstrFile, strData, FALSE, FALSE);
 	}
 	delete[] pBuf;
-
 }
 
 void CDlgFileSearch::CriteriaImport()
@@ -406,17 +404,18 @@ void CDlgFileSearch::CriteriaImport()
 	ofn.hwndOwner = this->GetSafeHwnd();
 	ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST | OFN_ENABLESIZING;
 	ofn.lpstrTitle = strTitle;
-	ofn.lpstrFilter = _T("Text Files(*.txt)\0*.txt\0All Files(*.*)\0*.*\0\0");
-	ofn.lpstrDefExt = _T("txt");
+	ofn.lpstrFilter = _T("FileOfficer Search Criteria(*.fsc)\0*.fsc\0\0");
+	ofn.lpstrDefExt = _T("fsc");
 	ofn.nMaxFile = MY_MAX_PATH;
-	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH]; pBuf[0] = _T('\0');
 	ofn.lpstrFile = pBuf;
 	if (GetOpenFileName(&ofn) != FALSE)
 	{
 		ReadFileToCString(ofn.lpstrFile, strImportData);
+		m_listSearch.m_SC.StringImport(strImportData);
+		CriteriaInit(m_listSearch.m_SC);
 	}
 	delete[] pBuf;
-	
 }
 
 void CDlgFileSearch::CriteriaInit(SearchCriteria& sc)
@@ -440,7 +439,7 @@ void CDlgFileSearch::ResultExport()
 	if (m_listSearch.GetItemCount() == 0) return;
 	OPENFILENAME ofn = {};
 	CString strTitle;
-	strTitle.LoadString(IDS_SEARCH_RESULT_EXPORT);
+	BOOL b = strTitle.LoadString(IDS_SEARCH_RESULT_EXPORT);
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = this->GetSafeHwnd();
 	ofn.Flags = OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_ENABLESIZING;
@@ -448,7 +447,7 @@ void CDlgFileSearch::ResultExport()
 	ofn.lpstrFilter = _T("CSV Files(*.csv)\0*.csv\0Text Files(*.txt)\0*.txt\0\0");
 	ofn.lpstrDefExt = _T("csv");
 	ofn.nMaxFile = MY_MAX_PATH;
-	TCHAR* pBuf = new TCHAR[MY_MAX_PATH];
+	TCHAR* pBuf = new TCHAR[MY_MAX_PATH]; pBuf[0] = _T('\0');
 	ofn.lpstrFile = pBuf;
 	if (GetSaveFileName(&ofn) != FALSE)
 	{

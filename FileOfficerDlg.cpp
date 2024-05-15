@@ -28,7 +28,7 @@ CFileOfficerDlg::CFileOfficerDlg(CWnd* pParent /*=nullptr*/)
 	m_pWndFocus = NULL;
 	m_bShow2 = TRUE;
 	m_nDefault_FontSize = -1;
-	m_nDragMainPos = 400;
+	m_nDragMainPos = 350;
 }
 
 void CFileOfficerDlg::DoDataExchange(CDataExchange* pDX)
@@ -75,27 +75,30 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	st_dlgSearch.Create(IDD_FILE_SEARCH, this);
 	st_dlgSearch.ShowWindow(SW_HIDE);
 
-	int nDefaultSize = 0;
-	if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
+	if (APP()->m_rcMain.IsRectEmpty() == FALSE)
 	{
-		nDefaultSize= APP()->m_rcMain.Width();
-	}
-	else //if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
-	{
-		nDefaultSize = APP()->m_rcMain.Height();
-	}
-
-	if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
-	{
-		nDefaultSize = (int)(nDefaultSize * (APP()->m_nLayoutSizePercent / 100.0));
-	}
-	else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED)
-	{
-		if (APP()->m_nLayoutSizeFixed > 0) nDefaultSize = APP()->m_nLayoutSizeFixed;
-	}
-	else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_DYNAMIC)
-	{
-		nDefaultSize = APP()->m_nLayoutSizeDynamic;
+		int nDefaultSize = 0;
+		if (APP()->m_nLayoutType == LIST_LAYOUT_HORIZONTAL)
+		{
+			nDefaultSize = APP()->m_rcMain.Width();
+		}
+		else //if (APP()->m_nLayoutType == LIST_LAYOUT_VERTICAL)
+		{
+			nDefaultSize = APP()->m_rcMain.Height();
+		}
+		if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_PERCENT)
+		{
+			nDefaultSize = (int)(nDefaultSize * (APP()->m_nLayoutSizePercent / 100.0));
+		}
+		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_FIXED)
+		{
+			if (APP()->m_nLayoutSizeFixed > 0) nDefaultSize = APP()->m_nLayoutSizeFixed;
+		}
+		else if (APP()->m_nLayoutSizeType == LIST_LAYOUT_SIZE_DYNAMIC)
+		{
+			nDefaultSize = APP()->m_nLayoutSizeDynamic;
+		}
+		m_nDragMainPos = nDefaultSize;
 	}
 
 	//CFileListCtrl_Base::m_hSysImgList_SMALL = NULL;
@@ -130,7 +133,6 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_tv2.Create(IDD_TAB_VIEW, this);
 	m_tv1.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
 	m_tv2.ModifyStyleEx(0, WS_EX_CLIENTEDGE);
-	m_nDragMainPos = nDefaultSize;
 	ArrangeTabLayout();
 	if (APP()->m_rcMain.IsRectEmpty() == FALSE) MoveWindow(APP()->m_rcMain, TRUE);
 	if (APP()->m_rcSearch.IsRectEmpty() == FALSE) st_dlgSearch.MoveWindow(APP()->m_rcSearch, TRUE);

@@ -402,3 +402,31 @@ CString GetFileSizeString(ULONGLONG nSize, int nUnit)
 	}
 	return strReturn;
 }
+
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData)
+{
+	// Retrieve the monitor info
+	MONITORINFO monitorInfo;
+	monitorInfo.cbSize = sizeof(MONITORINFO);
+	if (GetMonitorInfo(hMonitor, &monitorInfo))
+	{
+		// Get the CRect from the LPARAM
+		CRect* pRect = reinterpret_cast<CRect*>(dwData);
+
+		// Check if the provided rect is within the current monitor's work area
+		CRect monitorWorkArea(monitorInfo.rcWork);
+		if (monitorWorkArea.PtInRect(pRect->TopLeft()) && monitorWorkArea.PtInRect(pRect->BottomRight()))
+		{
+			// If rect is within this monitor's work area, return FALSE to stop enumeration
+			return FALSE;
+		}
+	}
+	// Continue enumeration
+	return TRUE;
+}
+
+BOOL IsRectWithinDesktop(const CRect& rect)
+{
+	// Use EnumDisplayMonitors to check all monitors
+	return !EnumDisplayMonitors(NULL, NULL, MonitorEnumProc, reinterpret_cast<LPARAM>(&rect));
+}

@@ -130,7 +130,7 @@ int CShortCutList::GetFileImageIndex(CString strPath, DWORD dwAttribute)
 void CShortCutList::OnDropFiles(HDROP hDropInfo)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
-	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH];
+	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH]; pszFilePath[0] = _T('\0');
 	size_t bufsize = sizeof(TCHAR) * MY_MAX_PATH;
 	if (bufsize > 0) ZeroMemory(pszFilePath, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);

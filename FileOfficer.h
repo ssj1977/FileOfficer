@@ -164,7 +164,8 @@ struct SearchCriteria
 	BOOL ValidateCriteriaSize();
 	BOOL ValidateCriteriaDateTime();
 	void Empty();
-	CString ExportString();
+	CString StringExport();
+	void StringImport(CString strData);
 	void operator= (const SearchCriteria& sc) { CopySearchCriteria(sc); };
 	void CopySearchCriteria(const SearchCriteria& sc);
 

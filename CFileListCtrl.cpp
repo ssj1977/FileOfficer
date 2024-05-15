@@ -1164,7 +1164,7 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 {
 	if (m_nType != LIST_TYPE_FOLDER) return;
-	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH];
+	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH]; pszFilePath[0] = _T('\0');
 	size_t bufsize = sizeof(TCHAR) * MY_MAX_PATH;
 	if (bufsize > 0) ZeroMemory(pszFilePath, bufsize);
 	WORD cFiles = DragQueryFile(hDropInfo, (UINT)-1, NULL, 0);

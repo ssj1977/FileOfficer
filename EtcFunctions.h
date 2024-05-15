@@ -16,4 +16,6 @@ CString ConvertNFD(CString strSrc);
 ULONGLONG Str2Size(CString str);
 CString GetFileSizeString(ULONGLONG nSize, int nUnit);
 int GetStringArray(CString strSource, TCHAR cSplit, CStringArray& aStr, BOOL bMakeLower = TRUE);
+BOOL IsRectWithinDesktop(const CRect& rect);
+BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);
 #endif
