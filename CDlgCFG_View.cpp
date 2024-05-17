@@ -27,6 +27,7 @@ CDlgCFG_View::CDlgCFG_View(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_CFG_VIEW, pParent)
 {
 	m_bUpdateFont = FALSE;
+	m_bUseColorRule = TRUE;
 }
 
 CDlgCFG_View::~CDlgCFG_View()
@@ -73,11 +74,22 @@ BOOL CDlgCFG_View::OnInitDialog()
 	pCB->SetItemData(nIndex, SHIL_EXTRALARGE);
 	nIndex = pCB->AddString(IDSTR(IDS_ICON_JUMBO));
 	pCB->SetItemData(nIndex, SHIL_JUMBO);
+
 	//추가 컬러 설정 목록 초기화
 	m_listColorRule.InsertColumn(0, IDSTR(IDS_COL_CLR_RULETYPE), LVCFMT_LEFT, 190);
 	m_listColorRule.InsertColumn(1, IDSTR(IDS_COL_CLR_RULETEXT), LVCFMT_RIGHT, 90);
 	m_listColorRule.InsertColumn(2, IDSTR(IDS_COL_CLR_RULEBK), LVCFMT_RIGHT, 90);
 	m_listColorRule.InsertColumn(3, IDSTR(IDS_COL_CLR_RULEOPTION), LVCFMT_LEFT, 130);
+	if (m_bUseColorRule == FALSE)
+	{
+		m_listColorRule.EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_COLOR_RULE_ADD)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_COLOR_RULE_EDIT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_COLOR_RULE_DEL)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_COLOR_RULE_UP)->EnableWindow(FALSE);
+		GetDlgItem(IDC_BTN_COLOR_RULE_DOWN)->EnableWindow(FALSE);
+		GetDlgItem(IDC_ST_COLOR_RULE_TITLE)->EnableWindow(FALSE);
+	}
 	TVOImport();
 	return TRUE;  // return TRUE unless you set the focus to a control
 				  // 예외: OCX 속성 페이지는 FALSE를 반환해야 합니다.

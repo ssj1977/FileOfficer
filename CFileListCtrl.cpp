@@ -645,10 +645,10 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 	m_strFolder = strFolder;
 	m_bUpdatePathHistory = bUpdatePathHistory;
 	UpdateMsgBar(IDS_NOW_LOADING);
-	COLORREF crBk = GetBkColor(); //나중에 복구하기 위해 저장
-	COLORREF crText = GetTextColor(); //나중에 복구하기 위해 저장
-	SetBkColor(GetDimColor(crBk));
-	SetTextColor(GetDimColor(crText));
+	COLORREF clrBk = GetBkColor(); //나중에 복구하기 위해 저장
+	COLORREF clrText = GetTextColor(); //나중에 복구하기 위해 저장
+	SetBkColor(GetDimColor(clrBk));
+	SetTextColor(GetDimColor(clrText));
 	//m_pThreadLoad = AfxBeginThread(DisplayFolder_Thread, this);
 #ifdef _DEBUG
 	clock_t s = clock();
@@ -662,8 +662,8 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 	TRACE(L"%s / Display Time : %d\n", m_strFolder, e - s);
 #endif
 	UpdateMsgBar();
-	SetBkColor(crBk);
-	SetTextColor(crText);
+	SetBkColor(clrBk);
+	SetTextColor(clrText);
 	RedrawWindow();
 	WatchFolder_Begin();	//if (IsWatchable()) PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 }
@@ -2051,7 +2051,9 @@ CString CFileListCtrl::GetBarString()
 		if (nSelected == 1 && IsDir(nItem) == FALSE)
 		{
 			// 선택이 한개인 경우 최종 갱신 시점, 크기 표시
-			strInfo.Format(_T(" / %s / %s"), GetItemText(nItem, COL_DATE), GetItemText(nItem, COL_SIZE));
+			strInfo.Format(_T(" / %s / %s"), 
+				(LPCTSTR)GetItemText(nItem, COL_DATE), 
+				(LPCTSTR)GetItemText(nItem, COL_SIZE));
 		}
 		else if (nSelected > 1)
 		{
@@ -2062,11 +2064,11 @@ CString CFileListCtrl::GetBarString()
 				total_size += Str2Size(GetItemText(nItem, COL_SIZE));
 				nItem = GetNextItem(nItem, LVNI_SELECTED);
 			}
-			if (total_size > 0) strInfo.Format(_T(" / %s"), GetFileSizeString(total_size, 0));
+			if (total_size > 0) strInfo.Format(_T(" / %s"), (LPCTSTR)GetFileSizeString(total_size, 0));
 		}
 		strReturn.Format(_T("%d%s / %d%s%s"), GetItemCount(),
 			(LPCTSTR)IDSTR(IDS_ITEM_COUNT), nSelected,
-			(LPCTSTR)IDSTR(IDS_SELECTED_COUNT), strInfo);
+			(LPCTSTR)IDSTR(IDS_SELECTED_COUNT), (LPCTSTR)strInfo);
 	}
 	else
 	{

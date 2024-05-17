@@ -24,6 +24,7 @@ public:
 	TabViewOption m_tvo;
 	LOGFONT m_lf;
 	BOOL m_bUpdateFont;
+	BOOL m_bUseColorRule;
 
 	void UpdateControl();
 	int DisplayColorRule(int nItem, ColorRule& cr, BOOL bAdd);

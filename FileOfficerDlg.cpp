@@ -72,6 +72,7 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	m_wndDragMain.CreateDragBar(TRUE, this, 35000);
 	m_wndDragMain.m_pBarPos = &(m_nDragMainPos);
 	//Create Search Dialog (Modaless)
+	if (APP()->m_aTabViewOption.GetSize() >= 3)	st_dlgSearch.m_tvoSearch = APP()->m_aTabViewOption.GetAt(2);
 	st_dlgSearch.Create(IDD_FILE_SEARCH, this);
 	st_dlgSearch.ShowWindow(SW_HIDE);
 
@@ -113,8 +114,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 		list.DestroyWindow();
 	}
 
-	//ini가 비어있거나 잘못된 경우 대비, 빈 두개의 탭 정보 생성
-	if (APP()->m_aTabViewOption.GetSize() < 2) APP()->m_aTabViewOption.SetSize(2);
+	//ini가 비어있거나 잘못된 경우 대비, 빈 세개의 탭 정보 생성 (창1 + 창2 + 검색창)
+	if (APP()->m_aTabViewOption.GetSize() < 3) APP()->m_aTabViewOption.SetSize(3);
 	m_tv1.m_tvo = APP()->m_aTabViewOption.GetAt(0);
 	m_tv2.m_tvo = APP()->m_aTabViewOption.GetAt(1);
 	m_tv1.m_aTabInfo.Copy(APP()->m_aTab1);
@@ -416,6 +417,7 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_aTab2.Copy(m_tv2.m_aTabInfo);
 	APP()->m_aTabViewOption.SetAt(0, m_tv1.m_tvo);
 	APP()->m_aTabViewOption.SetAt(1, m_tv2.m_tvo);
+	APP()->m_aTabViewOption.SetAt(2, st_dlgSearch.m_tvoSearch);
 	APP()->m_bViewShortCut1 = m_tv1.m_bViewShortCut;
 	APP()->m_bViewShortCut2 = m_tv2.m_bViewShortCut;
 	APP()->m_nShortCutIconType1 = m_tv1.m_listShortCut.m_nIconType;

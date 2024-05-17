@@ -3,6 +3,8 @@
 class CMyEditBrowseCtrl : public CMFCEditBrowseCtrl
 {
 public:
+    CMyEditBrowseCtrl();
+    ~CMyEditBrowseCtrl();
     COLORREF m_clrBk;
     COLORREF m_clrText;
     CBrush m_brush;

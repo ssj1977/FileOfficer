@@ -127,18 +127,19 @@ void CDlgColorRule::UpdateRuleType()
 {
 	int nType = m_cbRuleType.GetCurSel();
 	CString strGuide;
+	BOOL b = FALSE;
 	switch (nType)
 	{
 	case COLOR_RULE_EXT:
-		strGuide.LoadString(IDS_CLR_RULE_EXT_GUIDE);
+		b = strGuide.LoadString(IDS_CLR_RULE_EXT_GUIDE);
 		break;
 	case COLOR_RULE_FOLDER:
 		break;
 	case COLOR_RULE_NAME:
-		strGuide.LoadString(IDS_CLR_RULE_NAME_GUIDE);
+		b = strGuide.LoadString(IDS_CLR_RULE_NAME_GUIDE);
 		break;
 	case COLOR_RULE_DATE:
-		strGuide.LoadString(IDS_CLR_RULE_DATE_GUIDE);
+		b = strGuide.LoadString(IDS_CLR_RULE_DATE_GUIDE);
 		break;
 	case COLOR_RULE_COLNAME:
 		break;

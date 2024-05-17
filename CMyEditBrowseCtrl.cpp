@@ -7,6 +7,19 @@ BEGIN_MESSAGE_MAP(CMyEditBrowseCtrl, CMFCEditBrowseCtrl)
 END_MESSAGE_MAP()
 
 
+CMyEditBrowseCtrl::CMyEditBrowseCtrl() : CMFCEditBrowseCtrl()
+{
+    m_clrBk = RGB(0,0,0);
+    m_clrText = RGB(255, 255, 255);
+    m_brush.CreateSolidBrush(m_clrBk);
+    CMD_UpdateList = 0;
+}
+
+CMyEditBrowseCtrl::~CMyEditBrowseCtrl()
+{
+    m_brush.DeleteObject();
+}
+
 void CMyEditBrowseCtrl::SetBkColor(COLORREF clr)
 {
     m_clrBk = clr;

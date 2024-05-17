@@ -46,6 +46,15 @@ public:
 	void CriteriaImport();
 	void ResultExport();
 
+	TabViewOption m_tvoSearch;
+	CFont m_font;
+	int m_lfHeight;
+//	CBrush m_brush_ItemBk;
+	void InitFont();
+	void UpdateChildFont();
+	void ConfigViewOption();
+	void SetCtrlColor(COLORREF clrBk, COLORREF clrText, BOOL bSetBk, BOOL bSetText);
+
 	int m_nIconType;
 	afx_msg void OnBnClickedChkDatetimeFrom();
 	afx_msg void OnBnClickedChkDatetimeUntil();
@@ -56,4 +65,5 @@ public:
 	virtual BOOL OnCommand(WPARAM wParam, LPARAM lParam);
 	afx_msg void OnCbnSelchangeCbTimerange();
 	afx_msg void OnContextMenu(CWnd* /*pWnd*/, CPoint /*point*/);
+//	afx_msg HBRUSH OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 };

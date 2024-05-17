@@ -128,6 +128,7 @@ int CFileOfficerApp::ExitInstance()
 	//if (CMFCVisualManager::GetInstance() != NULL) delete CMFCVisualManager::GetInstance();
 	INISave(m_strINIPath);
 	CoUninitialize();
+	m_fontDefault.DeleteObject();
 	return CWinApp::ExitInstance();
 }
 

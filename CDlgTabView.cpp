@@ -34,12 +34,14 @@ CDlgTabView::CDlgTabView(CWnd* pParent /*=nullptr*/)
 	m_nFocusedImage = 1;
 	m_lfHeight = 12;
 	m_nDragBarPos = 200;
+	m_bViewShortCut = TRUE;
 	//m_btnsize_text = 0;
 	//m_btnsize_icon = 0;
 }
 
 CDlgTabView::~CDlgTabView()
 {
+	m_font.DeleteObject();
 }
 
 
@@ -722,27 +724,27 @@ void CDlgTabView::OnTcnSelchangeTabPath(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 }
 
-void CDlgTabView::SetCtrlColor(COLORREF crBk, COLORREF crText, BOOL bSetBk, BOOL bSetText)
+void CDlgTabView::SetCtrlColor(COLORREF clrBk, COLORREF clrText, BOOL bSetBk, BOOL bSetText)
 {
 	if (bSetBk == FALSE && bSetText == FALSE) return;
 	if (bSetBk)
 	{
-		m_editPath.SetBkColor(crBk);
-		m_listShortCut.SetBkColor(crBk);
+		m_editPath.SetBkColor(clrBk);
+		m_listShortCut.SetBkColor(clrBk);
 		m_listShortCut.SetTextBkColor(TRANSPARENT);
 	}
 	if (bSetText)
 	{
-		m_editPath.SetTextColor(crText);
-		m_listShortCut.SetTextColor(crText);
+		m_editPath.SetTextColor(clrText);
+		m_listShortCut.SetTextColor(clrText);
 	}
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
 		if (m_aTabInfo[i].pWnd != NULL && ::IsWindow(m_aTabInfo[i].pWnd->GetSafeHwnd()) != FALSE)
 		{
 			CMFCListCtrl* pList = (CMFCListCtrl*)m_aTabInfo[i].pWnd;
-			if (bSetBk)	pList->SetBkColor(crBk);
-			if (bSetText) pList->SetTextColor(crText);
+			if (bSetBk)	pList->SetBkColor(clrBk);
+			if (bSetText) pList->SetTextColor(clrText);
 		}
 	}
 }
@@ -788,6 +790,7 @@ void CDlgTabView::ConfigViewOption()
 	TabViewOption& tvo = m_tvo;
 	CDlgCFG_View dlg;
 	dlg.m_tvo = tvo;
+	dlg.m_bUseColorRule = TRUE;
 	m_font.GetLogFont(&dlg.m_lf);
 	BOOL bUpdateClrBk = FALSE, bUpdateClrText = FALSE, bFontUpdated = FALSE;
 	if (dlg.DoModal() == IDOK)
