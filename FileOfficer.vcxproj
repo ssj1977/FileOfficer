@@ -208,7 +208,6 @@
     <ClInclude Include="CSearchListCtrl.h" />
     <ClInclude Include="CShortCutList.h" />
     <ClInclude Include="CWndDragBar.h" />
-    <ClInclude Include="CWndDragPane.h" />
     <ClInclude Include="EtcFunctions.h" />
     <ClInclude Include="FileOfficer.h" />
     <ClInclude Include="FileOfficerDlg.h" />
@@ -231,7 +230,6 @@
     <ClCompile Include="CSearchListCtrl.cpp" />
     <ClCompile Include="CShortCutList.cpp" />
     <ClCompile Include="CWndDragBar.cpp" />
-    <ClCompile Include="CWndDragPane.cpp" />
     <ClCompile Include="EtcFunctions.cpp" />
     <ClCompile Include="FileOfficer.cpp" />
     <ClCompile Include="FileOfficerDlg.cpp" />

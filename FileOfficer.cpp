@@ -79,6 +79,7 @@ BOOL CFileOfficerApp::InitInstance()
 	CWinApp::InitInstance();
 	CShellManager *pShellManager = new CShellManager;
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
+
 	if (S_OK != CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))
 	{
 		AfxMessageBox(L"CoInitializeEx Error!");

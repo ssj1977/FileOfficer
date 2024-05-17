@@ -34,8 +34,9 @@ public:
 	void SelectAllItems();
 	void OpenSelectedItem(BOOL bMulti = TRUE);
 	void OpenSelectedParent(BOOL bUseTab);
+	void RemoveSelected();
+	void DeleteSelected(BOOL bRecycle = TRUE);
 	virtual void Sort(int iColumn, BOOL bAscending = TRUE, BOOL bAdd = FALSE);
-
 	SearchCriteria m_SC;
 	//SearchCriteria 에서 추출 및 변환되는 정보
 	CStringArray m_aNameMatch; // 이름 조건 토큰

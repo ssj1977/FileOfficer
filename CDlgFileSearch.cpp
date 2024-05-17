@@ -120,20 +120,13 @@ BOOL CDlgFileSearch::PreTranslateMessage(MSG* pMsg)
 	{
 		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 		{
-			ResultExport();
-		}
-	}
-	/*if (GetFocus() == this)
-	{
-		if (pMsg->message == WM_KEYUP && (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
-		{
-			if (pMsg->wParam == _T('A'))
+			if (pMsg->wParam == _T('S'))
 			{
-				m_listSearch.SelectAllItems();
+				ResultExport();
 				return TRUE;
 			}
 		}
-	}*/
+	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
@@ -283,6 +276,8 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_SEARCH_RESULT_SELECTALL:	m_listSearch.SelectAllItems();	return TRUE;
 	case IDM_SEARCH_RESULT_OPENFOLDER: m_listSearch.OpenSelectedParent(FALSE); return TRUE;
 	case IDM_SEARCH_RESULT_VIEWTAB: m_listSearch.OpenSelectedParent(TRUE); return TRUE;
+	case IDM_SEARCH_RESULT_REMOVE: m_listSearch.RemoveSelected();  return TRUE;
+	case IDM_SEARCH_RESULT_DELETE: m_listSearch.DeleteSelected();  return TRUE;
 	case IDM_SEARCH_SETTING: ConfigViewOption(); return TRUE;
 	case IDM_SEARCH_MSG: 
 		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);	
@@ -568,6 +563,8 @@ void CDlgFileSearch::OnContextMenu(CWnd* pWnd, CPoint point)
 		pMenu->EnableMenuItem(IDM_PLAY_ITEM, MF_BYCOMMAND | MF_GRAYED);
 		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_COPY, MF_BYCOMMAND | MF_GRAYED);
 		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_CUT, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_REMOVE, MF_BYCOMMAND | MF_GRAYED);
+		pMenu->EnableMenuItem(IDM_SEARCH_RESULT_DELETE, MF_BYCOMMAND | MF_GRAYED);
 	}
 	if (nSelected != 1)
 	{
@@ -758,6 +755,7 @@ void CDlgFileSearch::SetCtrlColor(COLORREF clrBk, COLORREF clrText, BOOL bSetBk,
 	}
 }
 
+
 /*HBRUSH CDlgFileSearch::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	if (nCtlColor == CTLCOLOR_EDIT)
@@ -769,3 +767,4 @@ void CDlgFileSearch::SetCtrlColor(COLORREF clrBk, COLORREF clrText, BOOL bSetBk,
 	}
 	return CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
 }*/
+

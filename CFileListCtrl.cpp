@@ -610,7 +610,9 @@ UINT CFileListCtrl::WatchFolder_Thread(void* lParam)
 {
 	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
 	CFileListCtrl* pList = (CFileListCtrl*)lParam;
+	TRACE(_T("Watch Folder Start : %s\r\n"), pList->m_strFolder);
 	pList->WatchFolder_Work();
+	TRACE(_T("Watch Folder End : %s\r\n"), pList->m_strFolder);
 	CoUninitialize();
 	return 0;
 }

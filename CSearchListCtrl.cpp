@@ -14,11 +14,14 @@
 #define COL_SEARCH_MEMO 5
 //#endif
 
+#define ID_SHELL_MENU_BASE 10000
+
 IMPLEMENT_DYNAMIC(CSearchListCtrl, CFileListCtrl_Base)
 BEGIN_MESSAGE_MAP(CSearchListCtrl, CFileListCtrl_Base)
 	//ON_NOTIFY(HDN_ITEMCLICKA, 0, &CSearchListCtrl::OnHdnItemclick)
 	ON_NOTIFY(HDN_ITEMCLICKW, 0, &CSearchListCtrl::OnHdnItemclick)
 	ON_NOTIFY_REFLECT(NM_DBLCLK, &CSearchListCtrl::OnNMDblclk)
+	//ON_COMMAND_RANGE(ID_SHELL_MENU_BASE, ID_SHELL_MENU_BASE + 0x7FFF, &CYourView::OnShellMenuCommand)
 END_MESSAGE_MAP()
 
 CSearchListCtrl::CSearchListCtrl()
@@ -120,11 +123,11 @@ UINT CSearchListCtrl::FileSearch_RunThread(void* lParam)
 	pList->m_bWorking = FALSE;
 	if (pList->m_bBreak == FALSE)
 	{
-		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_FINISHED), pList->GetItemCount()); //리소스 처리 필요
+		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_FINISHED), pList->GetItemCount());
 	}
 	else
 	{
-		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_STOPPED), pList->GetItemCount()); //리소스 처리 필요
+		pList->m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_STOPPED), pList->GetItemCount());
 	}
 	pList->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 1); //lParam = 1 이면 종료
 
@@ -369,6 +372,11 @@ BOOL CSearchListCtrl::PreTranslateMessage(MSG* pMsg)
 				return TRUE;
 			}
 		}
+		if (pMsg->wParam == VK_DELETE)
+		{
+			if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) DeleteSelected();
+			else RemoveSelected();
+		}
 	}
 	return CFileListCtrl_Base::PreTranslateMessage(pMsg);
 }
@@ -529,3 +537,83 @@ void CSearchListCtrl::OpenSelectedParent(BOOL bUseTab)
 		GetParent()->GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_RESULT_VIEWTAB, 0);
 	}
 }
+
+void CSearchListCtrl::RemoveSelected()
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	int nFirstSelected = nItem;
+	//선택항목을 모두 찾은 후에 뒤에서부터 한번에 지운다
+	CUIntArray aIndex;
+	while (nItem != -1)
+	{
+		aIndex.Add(nItem);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+	}
+	int nCount = (int)aIndex.GetCount();
+	for (int i = (nCount - 1); i >= 0; i--)	DeleteItem(aIndex[i]);
+	//모든 항목이 다 지워진 경우 스크롤이 위로 튀지 않도록 해당 위치를 다시 선택해준다.
+	nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1)
+	{
+		if (nFirstSelected >= GetItemCount()) nFirstSelected = GetItemCount() - 1;
+		SetItemState(nFirstSelected, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	}
+	//갯수 표시 업데이트
+	m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_REMOVE), nCount, GetItemCount());
+	GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 1); //lParam = 1 이면 종료
+}
+
+void CSearchListCtrl::DeleteSelected(BOOL bRecycle)
+{
+	int nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1) return;
+	int nFirstSelected = nItem;
+	CStringArray aPath;
+	CUIntArray aIndex;
+	while (nItem != -1)
+	{
+		aPath.Add(GetItemFullPath(nItem));
+		aIndex.Add(nItem);
+		nItem = GetNextItem(nItem, LVNI_SELECTED);
+	}
+	IShellItemArray* shi_array = NULL;
+	if (CreateShellItemArrayFromPaths(aPath, shi_array) == S_OK)
+	{
+		IFileOperation* pifo = NULL;
+		if (CoCreateInstance(CLSID_FileOperation, NULL, CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
+		{
+			DWORD flag = 0;
+			if (bRecycle) flag = flag | FOFX_RECYCLEONDELETE | FOFX_ADDUNDORECORD | FOF_ALLOWUNDO;
+			if (pifo->SetOperationFlags(flag) == S_OK &&
+				pifo->SetOwnerWindow(this->GetSafeHwnd()) == S_OK)
+			{
+				pifo->DeleteItems(shi_array);
+				pifo->PerformOperations();
+			}
+			if (pifo) pifo->Release();
+		}
+		if (shi_array) shi_array->Release();
+	}
+	//UI에서 삭제하기
+	//this->SetRedraw(FALSE);
+	int nCount = (int)aIndex.GetCount();
+	for (int i = (nCount - 1); i >= 0; i--)
+	{
+		if (PathFileExists(aPath[i]) == FALSE)	DeleteItem(aIndex[i]);
+	}
+	//this->SetRedraw(TRUE);
+	//모든 항목이 다 지워진 경우 스크롤이 위로 튀지 않도록 해당 위치를 다시 선택해준다.
+	nItem = GetNextItem(-1, LVNI_SELECTED);
+	if (nItem == -1)
+	{
+		if (nFirstSelected >= GetItemCount()) nFirstSelected = GetItemCount() - 1;
+		SetItemState(nFirstSelected, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	}
+	//갯수 표시 업데이트
+	m_strMsg.Format(IDSTR(IDS_SEARCH_MSG_DELETE), nCount, GetItemCount());
+	GetParent()->PostMessage(WM_COMMAND, IDM_SEARCH_MSG, 1); //lParam = 1 이면 종료
+	//this->SetRedraw(TRUE);
+}
+
+

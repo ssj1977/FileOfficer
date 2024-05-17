@@ -63,9 +63,6 @@
     <ClInclude Include="CWndDragBar.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="CWndDragPane.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="CShortCutList.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -117,9 +114,6 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CWndDragBar.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="CWndDragPane.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CShortCutList.cpp">

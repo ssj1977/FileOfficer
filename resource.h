@@ -86,6 +86,8 @@
 #define IDS_SEARCH_RESULT_EXPORT        102
 #define IDS_SEARCH_CRITERIA_EXPORT      103
 #define IDS_SEARCH_CRITERIA_IMPORT      104
+#define IDS_SEARCH_MSG_REMOVE           105
+#define IDS_SEARCH_MSG_DELETE           106
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135
@@ -269,13 +271,16 @@
 #define IDM_SEARCH_RESULT_SELECTALL     32861
 #define ID_POPUP_32862                  32862
 #define IDM_P                           32863
+#define IDM_SEARCH_RESULT_DELETE        32864
+#define ID_POPUP_32865                  32865
+#define IDM_SEARCH_RESULT_REMOVE        32866
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
-#define _APS_NEXT_COMMAND_VALUE         32864
+#define _APS_NEXT_COMMAND_VALUE         32867
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

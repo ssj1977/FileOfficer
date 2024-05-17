@@ -22,7 +22,6 @@ CShortCutList::CShortCutList()
 
 CShortCutList::~CShortCutList()
 {
-
 }
 
 COLORREF CShortCutList::OnGetCellTextColor(int nRow, int nColumn)
