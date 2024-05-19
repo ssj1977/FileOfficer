@@ -145,6 +145,7 @@ typedef CArray<CListItem> ListItemArray;
 struct SearchCriteria
 {
 	CString strStartPath;
+	int nTargetType; // 0=파일만, 1=폴더만, 2=둘다
 	CString strName;
 	BOOL bNameAnd;
 	CString strExt;

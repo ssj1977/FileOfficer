@@ -167,14 +167,16 @@ void CDlgFileSearch::ArrangeCtrl()
 	cy += nToolH + sh;
 
 	//Conditions
-	int w_edit = rcDlg.Width() - w_static - (sw * 3); //남는 공간 계산
+	//int w_edit = rcDlg.Width() - w_static - (sw * 3); //남는 공간 계산
+	int w_edit = rcDlg.Width() - w_static - (sw * 3) - w_combo - 2; //남는 공간 계산
 
 	tx = cx;
 	tx += MoveHorizontal(GetDlgItem(IDC_ST_FILEPATH), tx, cy, w_static, h_line, 1.0F) + sw;
-	tx += MoveHorizontal(GetDlgItem(IDC_EDIT_FILEPATH), tx, cy, w_edit, h_line, 1.0F) + sw;
+	tx += MoveHorizontal(GetDlgItem(IDC_EDIT_FILEPATH), tx, cy, w_edit, h_line, 1.0F) + 2;
+	tx += MoveHorizontal(GetDlgItem(IDC_CB_SEARCH_TARGET), tx, cy, w_combo, h_line, 1.0F) + sw;
 	cy += h_line + sh;
 
-	w_edit = w_edit - w_combo - 2; //남는 공간 계산
+	//w_edit = w_edit - w_combo - 2; //남는 공간 계산
 	tx = cx;
 	tx += MoveHorizontal(GetDlgItem(IDC_ST_FILENAME), tx, cy, w_static, h_line, 1.0F) + sw;
 	tx += MoveHorizontal(GetDlgItem(IDC_EDIT_FILENAME), tx, cy, w_edit, h_line, 1.0F) + 2; 
@@ -334,6 +336,8 @@ BOOL CDlgFileSearch::CriteriaReadFromUI()
 	SearchCriteria& sc = m_listSearch.m_SC;
 	//검색 경로
 	m_editFilePath.GetWindowText(sc.strStartPath);
+	//검색 대상 종류
+	sc.nTargetType = ((CComboBox*)GetDlgItem(IDC_CB_SEARCH_TARGET))->GetCurSel();
 	// 파일 상태 조건
 	sc.bLocked = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_LOCKED))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
 	sc.bHidden = (((CButton*)GetDlgItem(IDC_CHK_FILESTATE_HIDDEN))->GetCheck() == BST_CHECKED) ? TRUE : FALSE;
@@ -432,6 +436,7 @@ void CDlgFileSearch::CriteriaImport()
 void CDlgFileSearch::CriteriaInit(SearchCriteria& sc)
 {
 	m_editFilePath.SetWindowTextW(sc.strStartPath);
+	((CComboBox*)GetDlgItem(IDC_CB_SEARCH_TARGET))->SetCurSel(sc.nTargetType);
 	SetDlgItemText(IDC_EDIT_FILENAME, sc.strName);
 	((CComboBox*)GetDlgItem(IDC_CB_NAME))->SetCurSel(sc.bNameAnd);
 	SetDlgItemText(IDC_EDIT_FILEEXT, sc.strExt);

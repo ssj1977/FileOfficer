@@ -155,7 +155,7 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 	int nItem = -1;
 	size_t nLen = 0;
 	COleDateTime tTemp;
-	BOOL b = TRUE, bIsDir = FALSE;
+	BOOL b = TRUE, bIsDir = FALSE, bDoSearch = FALSE;
 	CString fullpath;
 	BOOL bIsDot = FALSE;
 	ULARGE_INTEGER filesize;
@@ -188,31 +188,46 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 			{
 				aSubFolders.Add(fullpath);
 			}
-			//일반 파일인 경우 
-			else
+			// 0 : 파일만 / 1 : 폴더만 / 2 : 모두 검색
+			bDoSearch = FALSE;
+			if (m_SC.nTargetType == 0 && bIsDir == FALSE) bDoSearch = TRUE;
+			else if (m_SC.nTargetType == 1 && bIsDir == TRUE) bDoSearch = TRUE;
+			else if (m_SC.nTargetType == 2) bDoSearch = TRUE;
+			if (bDoSearch)
 			{
 				BOOL bMatch = TRUE;
 				//조건 검사 : 파일 상태
 				if (m_SC.bLocked || m_SC.bHidden || m_SC.bReadOnly || m_SC.bEncrypted) bMatch = IsMatch_State(fd, fullpath);
-				//조건 검사 : 파일 크기
-				if (bMatch == TRUE && (m_bSizeMax || m_bSizeMin)) bMatch = IsMatch_Size(fd);
+				//조건 검사 : 파일 크기 (폴더에는 적용되지 않음)
+				if (bMatch == TRUE && bIsDir == FALSE && (m_bSizeMax || m_bSizeMin)) bMatch = IsMatch_Size(fd);
 				//조건 검사 : 파일 변경 시점
 				if (bMatch == TRUE && (m_SC.bDateTimeFrom || m_SC.bDateTimeUntil)) bMatch = IsMatch_Time(fd);
 				//조건 검사 : 파일명
 				if (bMatch == TRUE && m_aNameMatch.GetCount() > 0) bMatch = IsMatch_Name(fd);
-				//조건 검사 : 확장자
+				//조건 검사 : 확장자 (폴더에는 적용되지 않음)
 				if (bMatch == TRUE && bIsDir == FALSE && m_aExtMatch.GetCount() > 0) bMatch = IsMatch_Ext(fd);
 				// 조건이 맞는 파일만 표시
 				if (bMatch == TRUE)
 				{
 					tTemp = COleDateTime(fd.ftLastWriteTime);
 					strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
-					filesize.HighPart = fd.nFileSizeHigh;
-					filesize.LowPart = fd.nFileSizeLow;
-					strSize = GetFileSizeString(filesize.QuadPart, 0);
+					if (bIsDir == FALSE)
+					{
+						filesize.HighPart = fd.nFileSizeHigh;
+						filesize.LowPart = fd.nFileSizeLow;
+						strSize = GetFileSizeString(filesize.QuadPart, 0);
+					}
+					else strSize.Empty();
 					nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes));
 					SetItemData(nItem, dwItemData);
-					SetItemText(nItem, COL_SEARCH_FOLDER, strFolder);
+					if (bIsDir == FALSE)
+					{
+						SetItemText(nItem, COL_SEARCH_FOLDER, strFolder);
+					}
+					else
+					{
+						SetItemText(nItem, COL_SEARCH_FOLDER, Get_Folder(strFolder));
+					}
 					SetItemText(nItem, COL_SEARCH_DATE, strDate);
 					SetItemText(nItem, COL_SEARCH_SIZE, strSize);
 					SetItemText(nItem, COL_SEARCH_TYPE, GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType));
@@ -236,7 +251,8 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 BOOL CSearchListCtrl::IsMatch_State(WIN32_FIND_DATA& fd, CString& fullpath)
 {
 	BOOL bIsLocked = TRUE, bIsHidden = TRUE, bIsReadOnly = TRUE, bIsEncrypted = TRUE;
-	if (m_SC.bLocked) // 잠긴 파일인지 검사
+	BOOL bIsDir = (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE;
+	if (bIsDir == FALSE && m_SC.bLocked == TRUE) // 잠긴 파일인지 검사
 	{
 		HANDLE hFile = CreateFile(fullpath, GENERIC_READ, 0, NULL, OPEN_EXISTING, 0, NULL);
 		if (hFile == NULL || hFile == INVALID_HANDLE_VALUE)

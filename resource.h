@@ -197,6 +197,8 @@
 #define IDC_EDIT1                       1077
 #define IDC_CB_TIMERANGE                1077
 #define IDC_EDIT_SEARCH_MSG             1078
+#define IDC_CB_NAME2                    1079
+#define IDC_CB_SEARCH_TARGET            1079
 #define IDM_PLAY_ITEM                   32772
 #define IDM_OPEN_PARENT                 32773
 #define IDM_ADD_LIST                    32774

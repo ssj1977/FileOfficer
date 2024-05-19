@@ -576,12 +576,14 @@ void SearchCriteria::Empty()
 	strDateTimeFrom.Empty();
 	strDateTimeUntil.Empty();
 	nDateTimeType = 0;
+	nTargetType = 0;
 }
 
 CString SearchCriteria::StringExport()
 {
 	CString strData, strLine;
 	strLine.Format(_T("SearchCriteria_Path=%s\r\n"), (LPCTSTR)strStartPath);	strData += strLine;
+	strLine.Format(_T("SearchCriteria_TargetType=%d\r\n"), nTargetType);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Name=%s\r\n"), (LPCTSTR)strName);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_NameAnd=%d\r\n"), bNameAnd);	strData += strLine;
 	strLine.Format(_T("SearchCriteria_Ext=%s\r\n"), (LPCTSTR)strExt);	strData += strLine;
@@ -611,6 +613,7 @@ void SearchCriteria::StringImport(CString strData)
 		if (str1.IsEmpty() == FALSE)
 		{
 			if (str1.CompareNoCase(_T("SearchCriteria_Path")) == 0)	strStartPath = str2;
+			else if (str1.CompareNoCase(_T("SearchCriteria_TargetType")) == 0)	nTargetType = _ttoi(str2);
 			else if (str1.CompareNoCase(_T("SearchCriteria_Name")) == 0)	strName = str2;
 			else if (str1.CompareNoCase(_T("SearchCriteria_NameAnd")) == 0)	bNameAnd = _ttoi(str2);
 			else if (str1.CompareNoCase(_T("SearchCriteria_Ext")) == 0)		strExt = str2;
@@ -654,6 +657,7 @@ void SearchCriteria::CopySearchCriteria(const SearchCriteria& sc)
 	this->bNameAnd = sc.bNameAnd;
 	this->bReadOnly = sc.bReadOnly;
 	this->nDateTimeType = sc.nDateTimeType;
+	this->nTargetType = sc.nTargetType;
 	this->strDateTimeFrom = sc.strDateTimeFrom;
 	this->strDateTimeUntil = sc.strDateTimeUntil;
 	this->strExt = sc.strExt;
