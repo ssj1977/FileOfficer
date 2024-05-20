@@ -220,14 +220,7 @@ void CSearchListCtrl::FileSearch_Do(CString strFolder)
 					else strSize.Empty();
 					nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes));
 					SetItemData(nItem, dwItemData);
-					if (bIsDir == FALSE)
-					{
-						SetItemText(nItem, COL_SEARCH_FOLDER, strFolder);
-					}
-					else
-					{
-						SetItemText(nItem, COL_SEARCH_FOLDER, Get_Folder(strFolder));
-					}
+					SetItemText(nItem, COL_SEARCH_FOLDER, strFolder);
 					SetItemText(nItem, COL_SEARCH_DATE, strDate);
 					SetItemText(nItem, COL_SEARCH_SIZE, strSize);
 					SetItemText(nItem, COL_SEARCH_TYPE, GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType));
