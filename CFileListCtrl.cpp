@@ -82,6 +82,7 @@ IFACEMETHODIMP MyProgress::PostRenameItem(DWORD dwFlags, IShellItem* psiItem,
 				m_pList->UpdateItemByPath(pszOldName, pszNewName, TRUE);
 			}
 			CoTaskMemFree(pszOldName);
+
 		}
 	}
 	return S_OK;
@@ -91,7 +92,7 @@ IFACEMETHODIMP MyProgress::QueryInterface(REFIID riid, void** ppv)
 {
 	static const QITAB qit[] =
 	{
-		QITABENT(CFileListCtrl, IFileOperationProgressSink),
+		QITABENT(MyProgress, IFileOperationProgressSink),
 		{0},
 	};
 	return QISearch(this, qit, riid, ppv);
