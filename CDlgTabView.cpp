@@ -99,6 +99,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_NEXT:
 	case IDM_PLAY_ITEM:
 	case IDM_OPEN_PARENT:
+	case IDM_RENAME_FILE:
 		CurrentList()->SendMessage(WM_COMMAND, wParam, lParam);
 		break;
 	case IDM_OPEN_NEWTAB_BY_LIST:

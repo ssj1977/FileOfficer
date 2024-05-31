@@ -276,13 +276,15 @@
 #define IDM_SEARCH_RESULT_DELETE        32864
 #define ID_POPUP_32865                  32865
 #define IDM_SEARCH_RESULT_REMOVE        32866
+#define ID_POPUP_32867                  32867
+#define IDM_RENAME_FILE                 32868
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
-#define _APS_NEXT_COMMAND_VALUE         32867
+#define _APS_NEXT_COMMAND_VALUE         32869
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

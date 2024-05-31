@@ -141,7 +141,17 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		strMenuString.ReleaseBuffer();
 	}
 	if (m_paPath->GetSize() > 0)
-	{
+	{ 
+		strMenuString.LoadStringW(IDS_RENAME);
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
+		mi.fType = MFT_STRING;
+		mi.fState = MFS_ENABLED;
+		mi.wID = IDM_RENAME_FILE;
+		mi.dwTypeData = strMenuString.GetBuffer();
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+		strMenuString.ReleaseBuffer();
+
 		strMenuString.LoadStringW(IDS_CONVERT_NFD);
 		mi.cbSize = sizeof(MENUITEMINFO);
 		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
