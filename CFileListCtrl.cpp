@@ -1138,8 +1138,8 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 		}
 		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 		{
-			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE); return TRUE; }
-			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE); return TRUE; }
+			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE, TRUE); return TRUE; }
+			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE, TRUE); return TRUE; }
 			if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
 			if (pMsg->wParam == _T('A')) 
 			{ 
@@ -1474,6 +1474,18 @@ void CFileListCtrl::OnDropFiles(HDROP hDropInfo)
 	DragFinish(hDropInfo);
 }
 
+void CFileListCtrl::CreateNewFolder()
+{
+	CString strNewFolder = _T("New Folder");
+	CString strPath = PathBackSlash(m_strFolder, TRUE) + strNewFolder;
+	int nCount = 2;
+	while (CreateDirectory(strPath, NULL) == FALSE)
+	{
+		strNewFolder.Format(_T("New Folder(%d)"), nCount);
+		strPath = PathBackSlash(m_strFolder, TRUE) + strNewFolder;
+		nCount++;
+	}
+}
 
 void CFileListCtrl::DeleteInvalidPath(CString strPath)
 {
@@ -1584,10 +1596,17 @@ HGLOBAL CFileListCtrl::GetOleDataForClipboard(int nState)
 }
 
 
-void CFileListCtrl::ClipBoardExport(BOOL bMove)
+void CFileListCtrl::ClipBoardExport(BOOL bMove, BOOL bUseShell)
 {
 	HGLOBAL hgDrop = GetOleDataForClipboard(bMove ? LVIS_CUT : 0);
 	if (hgDrop == NULL) return;
+	if (bUseShell == TRUE)
+	{
+		if (bMove == FALSE) RunShellMenuCommand(26);
+		else				RunShellMenuCommand(25);
+		return;
+	}
+
 	if (OpenClipboard())
 	{
 		EmptyClipboard();
@@ -2036,7 +2055,7 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_PLAY_ITEM:		OpenSelectedItem(); break;
 	case IDM_OPEN_PARENT:	OpenParentFolder(); break;
 	case IDM_DISPLAY_PATH:	DisplayPathItems(); break;
-	case IDM_RENAME_FILE: RenameSelectedItem(); break;
+	case IDM_NEW_FOLDER: CreateNewFolder(); break;
 	//case IDM_START_DIRWATCH: WatchFolder_Begin(); break;
 	default:	
 		return CMFCListCtrl::OnCommand(wParam, lParam); break;
@@ -2133,6 +2152,25 @@ void CFileListCtrl::ShowContextMenu(CPoint* pPoint)
 	UINT idCommand = context_menu.ShowContextMenu(this, pt);
 	if (idCommand) GetParent()->PostMessage(WM_COMMAND, idCommand, 0);
 	m_bMenuOn = FALSE;
+}
+
+// 윈도우 쉘의 기능을 바로 사용하는 방법으로 
+// 콘텍스트 메뉴의 특정 항목을 바로 실행시킨다.
+// 예를 들어 Ctrl+C 로 파일을 복사할때 클립보드에 pIDL도 복사
+void CFileListCtrl::RunShellMenuCommand(UINT idCommand)
+{
+	if (GetSelectedCount() <= 0) return;
+	CStringArray aSelectedPath;
+	int nIndex = GetNextItem(-1, LVNI_SELECTED);
+	while (nIndex != -1)
+	{
+		aSelectedPath.Add(GetItemFullPath(nIndex));
+		nIndex = GetNextItem(nIndex, LVNI_SELECTED);
+	}
+	CFileListContextMenu context_menu;
+	context_menu.SetParent(this);
+	context_menu.SetPathArray(m_strFolder, aSelectedPath);
+	context_menu.RunShellMenuCommand(this, idCommand);
 }
 
 void CFileListCtrl::UpdateMemo()

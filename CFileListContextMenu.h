@@ -10,6 +10,7 @@ public:
 	CMenu* GetMenu();
 	BOOL GetContextMenu(void** ppContextMenu);
 	UINT ShowContextMenu(CWnd* pWnd, CPoint pt);
+	void RunShellMenuCommand(CWnd* pWnd, UINT idCommand);
 	static LRESULT CALLBACK HookWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	void InvokeCommand(LPCONTEXTMENU pContextMenu, UINT idCommand);
 	UINT GetPIDLSize(LPCITEMIDLIST pidl);

@@ -94,6 +94,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_FILE_PASTE: //툴바에서 오는 경우
 	case IDM_PASTE_FILE:  //메뉴에서 오는 경우
 	case IDM_CONVERT_NFD:
+	case IDM_NEW_FOLDER:
 	case IDM_CHECK_LOCKED:
 	case IDM_OPEN_PREV:
 	case IDM_OPEN_NEXT:

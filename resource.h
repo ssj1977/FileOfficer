@@ -88,6 +88,7 @@
 #define IDS_SEARCH_CRITERIA_IMPORT      104
 #define IDS_SEARCH_MSG_REMOVE           105
 #define IDS_SEARCH_MSG_DELETE           106
+#define IDS_NEW_FOLDER                  110
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135
@@ -277,7 +278,7 @@
 #define ID_POPUP_32865                  32865
 #define IDM_SEARCH_RESULT_REMOVE        32866
 #define ID_POPUP_32867                  32867
-#define IDM_RENAME_FILE                 32868
+#define IDM_NEW_FOLDER                  32868
 
 // Next default values for new objects
 // 

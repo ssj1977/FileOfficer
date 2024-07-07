@@ -127,6 +127,16 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		mi.fMask = MIIM_FTYPE;
 		mi.fType = MFT_SEPARATOR;
 		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+		// 새 폴더 메뉴를 항상 하나 넣어준다
+		strMenuString.LoadStringW(IDS_NEW_FOLDER);
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
+		mi.fType = MFT_STRING;
+		mi.fState = MFS_ENABLED;
+		mi.wID = IDM_NEW_FOLDER;
+		mi.dwTypeData = strMenuString.GetBuffer();
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+		strMenuString.ReleaseBuffer();
 	}
 	if (m_paPath->GetSize() == 0 && IsClipboardFormatAvailable(CF_HDROP) != FALSE)
 	{
@@ -216,6 +226,46 @@ void CFileListContextMenu::InvokeCommand(LPCONTEXTMENU pContextMenu, UINT idComm
 	cmi.nShow = SW_SHOWNORMAL;
 	pContextMenu->InvokeCommand((LPCMINVOKECOMMANDINFO)&cmi);
 }
+
+// 윈도우 쉘의 기능을 바로 사용하는 방법으로 
+// 콘텍스트 메뉴의 특정 항목을 바로 실행시킨다.
+// 예를 들어 Ctrl+C 로 파일을 복사할때 클립보드에 pIDL도 복사
+void CFileListContextMenu::RunShellMenuCommand(CWnd* pWnd, UINT idCommand)
+{
+	LPCONTEXTMENU pContextMenu;	// common pointer to IContextMenu and higher version interface
+	if (!m_pMenu)
+	{
+		m_pMenu = new CMenu;
+		m_pMenu->CreatePopupMenu();
+	}
+	//시스템 메뉴
+	if (!GetContextMenu((void**)&pContextMenu)) return;
+	// lets fill the our popupmenu  
+	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXTENDEDVERBS); //CMF_NORMAL | CMF_EXPLORE);
+	// subclass window to handle menurelated messages in CShellContextMenu 
+	pContextMenu->QueryInterface(IID_IContextMenu2, (void**)&g_pIContext2); //test
+	pContextMenu->QueryInterface(IID_IContextMenu3, (void**)&g_pIContext3); //test
+	//test//
+	if (g_pIContext2)
+	{
+		g_pIContext2->Release();
+		g_pIContext2 = NULL;
+	}
+	if (g_pIContext3)
+	{
+		g_pIContext3->Release();
+		g_pIContext3 = NULL;
+	}
+	if (idCommand >= MIN_ID && idCommand <= MAX_ID)	// see if returned idCommand belongs to shell menu entries
+	{
+		InvokeCommand(pContextMenu, idCommand - MIN_ID);	// execute related command
+		idCommand = 0;
+	}
+	pContextMenu->Release();
+	g_pIContext2 = NULL;
+	g_pIContext3 = NULL;
+}
+
 
 
 LRESULT CALLBACK CFileListContextMenu::HookWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

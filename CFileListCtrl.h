@@ -72,9 +72,10 @@ public:
 	CString GetCurrentFolder();
 	CString GetCurrentItemPath();
 	CString GetBarString();
+	void CreateNewFolder();
 	void DeleteInvalidPath(CString strPath);
 	void PasteFiles(CStringArray& aOldPath, BOOL bMove);
-	void ClipBoardExport(BOOL bMove); //Move = Cut 
+	void ClipBoardExport(BOOL bMove, BOOL bUseShell = FALSE); //Move = Cut 
 	void ClipBoardImport();
 	HGLOBAL GetOleDataForClipboard(int nState);
 	CString m_strFolder;
@@ -153,6 +154,7 @@ public:
 	//컨텍스트 메뉴 처리용
 	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
 	void ShowContextMenu(CPoint* pPoint); //pPoint가 NULL인 경우 현재 마우스 위치로 처리
+	void RunShellMenuCommand(UINT idCommand);
 	BOOL m_bMenuOn; //컨텍스트 메뉴가 표시되어 있는지를 체크하는 플래그
 
 protected:

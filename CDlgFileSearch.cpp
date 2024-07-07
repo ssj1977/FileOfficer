@@ -285,7 +285,6 @@ BOOL CDlgFileSearch::OnCommand(WPARAM wParam, LPARAM lParam)
 		SetDlgItemText(IDC_EDIT_SEARCH_MSG, m_listSearch.m_strMsg);	
 		if (lParam == 1) UpdateToolBar(FALSE); //마지막 메시지일때
 		return TRUE;
-
 	}
 
 	return CDialogEx::OnCommand(wParam, lParam);
