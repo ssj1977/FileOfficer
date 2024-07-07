@@ -2056,6 +2056,7 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_OPEN_PARENT:	OpenParentFolder(); break;
 	case IDM_DISPLAY_PATH:	DisplayPathItems(); break;
 	case IDM_NEW_FOLDER: CreateNewFolder(); break;
+	case IDM_RENAME_FILE: RenameSelectedItem();  break;
 	//case IDM_START_DIRWATCH: WatchFolder_Begin(); break;
 	default:	
 		return CMFCListCtrl::OnCommand(wParam, lParam); break;

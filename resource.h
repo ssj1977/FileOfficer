@@ -89,6 +89,7 @@
 #define IDS_SEARCH_MSG_REMOVE           105
 #define IDS_SEARCH_MSG_DELETE           106
 #define IDS_NEW_FOLDER                  110
+#define IDS_RENAME_FILE                 111
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135
@@ -279,13 +280,14 @@
 #define IDM_SEARCH_RESULT_REMOVE        32866
 #define ID_POPUP_32867                  32867
 #define IDM_NEW_FOLDER                  32868
+#define IDM_RENAME_FILE                 32869
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
-#define _APS_NEXT_COMMAND_VALUE         32869
+#define _APS_NEXT_COMMAND_VALUE         32870
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
