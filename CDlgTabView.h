@@ -21,6 +21,7 @@ public:
 	int m_nCurrentTab;
 	int m_lfHeight;
 	int m_nFocusedImage;
+	CStringArray* m_pShortCutPathArray;
 	//DWORD m_btnsize_text;
 	//DWORD m_btnsize_icon;
 	CToolBar* m_pTool;
@@ -59,8 +60,9 @@ public:
 	void FindNext();
 	void UpdateMsgBarFromList();
 	void OpenFolderByShortCut(int lParam);
-	void PathArrayImport(CStringArray& aPath);
-	void PathArrayExport(CStringArray& aPath);
+	void ShortCutImport(CStringArray& aPath);
+	void ShortCutExport(CStringArray& aPath);
+	void ShortCutRefresh();
 	void MoveCurrentTab(BOOL bRight);
 
 #ifdef AFX_DESIGN_TIME

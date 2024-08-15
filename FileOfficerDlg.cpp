@@ -138,8 +138,8 @@ BOOL CFileOfficerDlg::OnInitDialog()
 	if (APP()->m_rcMain.IsRectEmpty() == FALSE) MoveWindow(APP()->m_rcMain, TRUE);
 	if (APP()->m_rcSearch.IsRectEmpty() == FALSE) st_dlgSearch.MoveWindow(APP()->m_rcSearch, TRUE);
 	ArrangeCtrl();
-	m_tv1.PathArrayImport(APP()->m_aShortCutPath1);
-	m_tv2.PathArrayImport(APP()->m_aShortCutPath2);
+	m_tv1.ShortCutImport(APP()->m_aShortCutPath1);
+	m_tv2.ShortCutImport(APP()->m_aShortCutPath2);
 
 	AddClipboardFormatListener(GetSafeHwnd());
 	DragAcceptFiles(TRUE);
@@ -425,10 +425,10 @@ void CFileOfficerDlg::OnCancel()
 	APP()->m_nShortCutViewType1 = m_tv1.m_listShortCut.m_nViewType;
 	APP()->m_nShortCutViewType2 = m_tv2.m_listShortCut.m_nViewType;
 	APP()->m_nDragBarPos1 = m_tv1.m_nDragBarPos;
-	APP()->m_nDragBarPos2 = m_tv1.m_nDragBarPos;
+	APP()->m_nDragBarPos2 = m_tv2.m_nDragBarPos;
 	APP()->m_nLayoutSizeDynamic = m_nDragMainPos;
-	m_tv1.PathArrayExport(APP()->m_aShortCutPath1);
-	m_tv2.PathArrayExport(APP()->m_aShortCutPath2);
+	m_tv1.ShortCutExport(APP()->m_aShortCutPath1);
+	m_tv2.ShortCutExport(APP()->m_aShortCutPath2);
 	m_tv1.Clear();
 	m_tv2.Clear();
 	if (::IsWindow(st_dlgSearch.GetSafeHwnd())) st_dlgSearch.DestroyWindow();
@@ -503,6 +503,7 @@ void CFileOfficerDlg::ShowPath(CString strShow)
 	if (bFound == TRUE) // 찾아낸 탭에서 해당 항목 선택해서 보여주기
 	{
 		CString strName = Get_Name(strShow, TRUE);
+		pList->ClearSelected();
 		for (int i = 0; i < pList->GetItemCount(); i++)
 		{
 			if (strName.CompareNoCase(pList->GetItemText(i, 0)) == 0)

@@ -145,25 +145,24 @@ void CShortCutList::InsertPath(int nItem, CString strPath)
 {
 	if (nItem == -1) nItem = GetItemCount();
 	DWORD dw = GetFileAttributes(strPath);
-	if (dw != INVALID_FILE_ATTRIBUTES)
+	//if (dw == INVALID_FILE_ATTRIBUTES) return; //못찾으면 바로 지우는 방식
+	int nCount = GetItemCount();
+	CString strTemp;
+	BOOL bExist = FALSE;
+	for (int i = 0; i < nCount; i++)
 	{
-		int nCount = GetItemCount();
-		CString strTemp;
-		BOOL bExist = FALSE;
-		for (int i = 0; i < nCount; i++)
+		if (strPath.CompareNoCase(GetItemFullPath(i)) == 0)
+		//if (strName.CompareNoCase(GetItemText(i, 0)) == 0)
 		{
-			if (strPath.CompareNoCase(GetItemFullPath(i)) == 0)
-			{
-				bExist = TRUE;
-				break;
-			}
+			bExist = TRUE;
+			break;
 		}
-		if (bExist == FALSE)
-		{
-			nItem = InsertItem(nItem, Get_Name(strPath), GetFileImageIndex(strPath, dw));
-			SetItemText(nItem, 1, strPath);
-			SetItemData(nItem, dw);
-		}
+	}
+	if (bExist == FALSE)
+	{
+		nItem = InsertItem(nItem, Get_Name(strPath), GetFileImageIndex(strPath, dw));
+		SetItemText(nItem, 1, strPath);
+		SetItemData(nItem, dw);
 	}
 }
 
@@ -413,11 +412,12 @@ void CShortCutList::ClipBoardExport(BOOL bMove)
 
 void CShortCutList::Refresh()
 {
-	int nLast = GetItemCount() - 1 ;
+	GetParent()->SendMessage(WM_COMMAND, IDM_SHORTCUT_REFRESH, 0);
+	/*int nLast = GetItemCount() - 1;
 	for (int i = nLast; i >= 0; i--)
 	{
 		if (IsItemExist(i) == FALSE) DeleteItem(i);
-	}
+	}*/
 }
 
 

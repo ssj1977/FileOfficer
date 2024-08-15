@@ -101,6 +101,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_PLAY_ITEM:
 	case IDM_OPEN_PARENT:
 	case IDM_RENAME_FILE:
+	case IDM_OPENFOLDER:
 		CurrentList()->SendMessage(WM_COMMAND, wParam, lParam);
 		break;
 	case IDM_OPEN_NEWTAB_BY_LIST:
@@ -137,6 +138,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_CFG_LAYOUT: GetParent()->SendMessage(WM_COMMAND, wParam, lParam); break;
 	case IDM_TAB_LEFT: MoveCurrentTab(FALSE); break;
 	case IDM_TAB_RIGHT: MoveCurrentTab(TRUE); break;
+	case IDM_SHORTCUT_REFRESH: ShortCutRefresh(); break;
 	case IDM_ARRANGECTRL:	ArrangeCtrl();	return TRUE;  // 아래 처리 없이 바로 리턴
 	default:
 		return CDialogEx::OnCommand(wParam, lParam);
@@ -699,11 +701,6 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 			ToggleFindMode();
 			return TRUE;
 		}
-		if (pMsg->wParam == _T('F')) // Ctrl + F 로 바꿀지 생각해 볼것
-		{
-			GetParent()->PostMessageW(WM_COMMAND, IDM_TOGGLE_SEARCHDLG, 0);
-			return TRUE;
-		}
 		if (pMsg->wParam == VK_ESCAPE)
 		{
 			return TRUE;
@@ -714,6 +711,11 @@ BOOL CDlgTabView::PreTranslateMessage(MSG* pMsg)
 			if (pMsg->wParam == VK_RIGHT) { OnCommand(IDM_TAB_RIGHT, 0); return TRUE; }
 			if (pMsg->wParam == VK_F4) { OnCommand(IDM_TAB_CLOSE, 0); return TRUE; }
 			if (pMsg->wParam == _T('O')) { OnCommand(IDM_TAB_ADD, 0); return TRUE; }
+			if (pMsg->wParam == _T('F'))
+			{
+				GetParent()->PostMessageW(WM_COMMAND, IDM_TOGGLE_SEARCHDLG, 0);
+				return TRUE;
+			}
 		}
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
@@ -1046,20 +1048,32 @@ void CDlgTabView::UpdateMsgBarFromList()
 	SetDlgItemText(IDC_ST_BAR, pList->GetBarString());
 }
 
-void CDlgTabView::PathArrayImport(CStringArray& aPath)
+void CDlgTabView::ShortCutImport(CStringArray& aPath)
 {
+	m_pShortCutPathArray = &aPath;
+	m_listShortCut.DeleteAllItems();
 	for (int i = 0; i < aPath.GetSize(); i++)
 	{
 		m_listShortCut.InsertPath(-1, aPath.GetAt(i));
 	}
 }
 
-void CDlgTabView::PathArrayExport(CStringArray& aPath)
+void CDlgTabView::ShortCutExport(CStringArray& aPath)
 {
 	aPath.RemoveAll();
 	for (int i = 0; i < m_listShortCut.GetItemCount(); i++)
 	{
 		aPath.Add(m_listShortCut.GetItemText(i, 1));
+	}
+}
+
+void CDlgTabView::ShortCutRefresh()
+{
+	CStringArray& aPath = *m_pShortCutPathArray;
+	m_listShortCut.DeleteAllItems();
+	for (int i = 0; i < aPath.GetSize(); i++)
+	{
+		m_listShortCut.InsertPath(-1, aPath.GetAt(i));
 	}
 }
 

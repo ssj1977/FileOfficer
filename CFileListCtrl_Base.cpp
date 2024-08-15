@@ -293,7 +293,7 @@ CString CFileListCtrl_Base::GetPathName(CString strPath)
 			strReturn = sfi.szDisplayName;
 		CoTaskMemFree(pidl);
 	}
-	if (strReturn.IsEmpty()) strReturn = strPath;
+	if (strReturn.IsEmpty()) strReturn = Get_Name(strPath) + IDSTR(IDS_NOT_FOUND);
 	return strReturn;
 }
 

@@ -127,13 +127,23 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		mi.fMask = MIIM_FTYPE;
 		mi.fType = MFT_SEPARATOR;
 		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
-		// 새 폴더 메뉴를 항상 하나 넣어준다
+		// 새 폴더 메뉴와 탐색기에서 열기 메뉴를 항상 하나 넣어준다
 		strMenuString.LoadStringW(IDS_NEW_FOLDER);
 		mi.cbSize = sizeof(MENUITEMINFO);
 		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
 		mi.fType = MFT_STRING;
 		mi.fState = MFS_ENABLED;
 		mi.wID = IDM_NEW_FOLDER;
+		mi.dwTypeData = strMenuString.GetBuffer();
+		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
+		strMenuString.ReleaseBuffer();
+
+		strMenuString.LoadStringW(IDS_OPENFOLDER);
+		mi.cbSize = sizeof(MENUITEMINFO);
+		mi.fMask = MIIM_ID | MIIM_FTYPE | MIIM_STRING | MIIM_STATE;
+		mi.fType = MFT_STRING;
+		mi.fState = MFS_ENABLED;
+		mi.wID = IDM_OPENFOLDER;
 		mi.dwTypeData = strMenuString.GetBuffer();
 		m_pMenu->InsertMenuItem(m_pMenu->GetMenuItemCount(), &mi, TRUE);
 		strMenuString.ReleaseBuffer();

@@ -115,14 +115,16 @@ BOOL CDlgFileSearch::PreTranslateMessage(MSG* pMsg)
 			OnCommand(IDM_SEARCH_BEGIN, 0);
 			return TRUE;
 		}
-	}
-	else if (pMsg->message == WM_KEYUP)
-	{
 		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 		{
 			if (pMsg->wParam == _T('S'))
 			{
 				ResultExport();
+				return TRUE;
+			}
+			if (pMsg->wParam == _T('F'))
+			{
+				GetParent()->PostMessageW(WM_COMMAND, IDM_TOGGLE_SEARCHDLG, 0);
 				return TRUE;
 			}
 		}

@@ -1131,15 +1131,17 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 			RenameSelectedItem();
 			return TRUE;
 		}
+		BOOL bShift = FALSE;
+		if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) bShift = TRUE;
 		if (pMsg->wParam == VK_DELETE)
 		{
-			if ((GetKeyState(VK_SHIFT) & 0xFF00) != 0) DeleteSelected(FALSE);
+			if (bShift) DeleteSelected(FALSE);
 			else DeleteSelected(TRUE);
 		}
 		if ((GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 		{
-			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE, TRUE); return TRUE; }
-			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE, TRUE); return TRUE; }
+			if (pMsg->wParam == _T('C')) { ClipBoardExport(FALSE, bShift); return TRUE; }
+			if (pMsg->wParam == _T('X')) { ClipBoardExport(TRUE, bShift); return TRUE; }
 			if (pMsg->wParam == _T('V')) { ClipBoardImport(); return TRUE; }
 			if (pMsg->wParam == _T('A')) 
 			{ 
@@ -2057,6 +2059,7 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_DISPLAY_PATH:	DisplayPathItems(); break;
 	case IDM_NEW_FOLDER: CreateNewFolder(); break;
 	case IDM_RENAME_FILE: RenameSelectedItem();  break;
+	case IDM_OPENFOLDER: ShellExecute(NULL, _T("open"), _T("explorer"), m_strFolder, NULL, SW_SHOWNORMAL); break;
 	//case IDM_START_DIRWATCH: WatchFolder_Begin(); break;
 	default:	
 		return CMFCListCtrl::OnCommand(wParam, lParam); break;
