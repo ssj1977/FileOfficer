@@ -12,15 +12,21 @@ struct PathItem
 	CString str2; //COL_SIZE, COL_FREESPACE
 	CString str3; //COL_TYPE, COL_TOTALSPACE
 	CString str4; //COL_MEMO
-	DWORD dwData; 
+	DWORD dwData;
 	int nIconIndex;
+	LPITEMIDLIST pidl; //Absolute PIDL
 
 	PathItem()
 	{
 		dwData = 0;
 		nIconIndex = 0;
+		pidl = NULL;
 	};
-	PathItem(DWORD _dwData, int _nIconIndex, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"", CString _str4=L"")
+	~PathItem()
+	{
+		if (pidl) CoTaskMemFree(pidl);
+	};
+	PathItem(DWORD _dwData, int _nIconIndex, LPITEMIDLIST _pidl, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"", CString _str4=L"")
 	{
 		this->dwData = _dwData;
 		this->nIconIndex = _nIconIndex;
@@ -29,6 +35,8 @@ struct PathItem
 		this->str2 = _str2;
 		this->str3 = _str3;
 		this->str4 = _str4;
+		this->pidl = NULL;
+		if (_pidl) this->pidl = ILClone(_pidl); //메모리 내용을 복사하고 포인터 새로 할당
 	};
 	PathItem(const PathItem& pti)
 	{
@@ -39,6 +47,8 @@ struct PathItem
 		this->str2 = pti.str2;
 		this->str3 = pti.str3;
 		this->str4 = pti.str4;
+		this->pidl = NULL;
+		if (pti.pidl) this->pidl = ILClone(pti.pidl); //메모리 내용을 복사하고 포인터 새로 할당
 	}
 	PathItem& operator= (const PathItem& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
 	{
@@ -49,6 +59,8 @@ struct PathItem
 		this->str2 = pti.str2;
 		this->str3 = pti.str3;
 		this->str4 = pti.str4;
+		this->pidl = NULL;
+		if (pti.pidl) this->pidl = ILClone(pti.pidl); //메모리 내용을 복사하고 포인터 새로 할당
 		return *this;
 	};
 };
@@ -127,7 +139,7 @@ public:
 	BOOL m_bLoading; //로딩 중인지 확인용
 	void LoadFolder(CString strFolder, BOOL bUpdatePathHistory);
 	void DisplayPathItems();
-	PathItemArray m_aPathItem;
+	PathItemArray m_aPathItem; //처음 추가할때는 배열의 형태로 추가, 각 아이템에 대한 포인터를 리스트컨트롤의 Data에 포함시켜서 연동
 
 	// 변경사항 모니터링용 쓰레드 처리
 	BOOL IsWatchable();

@@ -320,7 +320,8 @@ void CFileListContextMenu::FreePIDLArray(LPITEMIDLIST* aPIDL)
 	//int iSize = _msize(aPIDL) / sizeof(LPITEMIDLIST);
 	for (int i = 0; i < m_paPath->GetSize(); i++)
 	{
-		free(aPIDL[i]);
+		//free(aPIDL[i]);
+		CoTaskMemFree(aPIDL[i]);
 	}
 	CoTaskMemFree(aPIDL);
 }
@@ -350,15 +351,18 @@ LPITEMIDLIST CFileListContextMenu::CopyPIDL(LPCITEMIDLIST pidl, int cb)
 void CFileListContextMenu::SetPathArray(CString strFolder, CStringArray& aPath)
 {
 	CString strTemp;
+	//m_psfFolder에 쉘 메뉴를 실행할 폴더에 대한 IShellFolder* 가 보관된다
 	if (m_psfFolder) m_psfFolder->Release(); //(m_psfFolder && bDelete)
 	m_psfFolder = NULL;
 	HRESULT hr = S_OK;
 	LPITEMIDLIST pidl = NULL;
+	//데스크탑에 대한 IShellFolder* 를 구하고 이를 이용해서 폴더의 절대 식별자(pidl)를 구한다.
 	IShellFolder* psfDesktop = NULL;
 	if (FAILED(SHGetDesktopFolder(&psfDesktop))) return; // Default IShellFolder to Call ParseDisplayName
 	hr = psfDesktop->ParseDisplayName(NULL, 0, strFolder.GetBuffer(0), NULL, &pidl, NULL); // pidl = Absolute PIDL of the first path
 	strFolder.ReleaseBuffer();
 	if (FAILED(hr)) { psfDesktop->Release(); return; }
+	//현재 폴더
 	hr = SHBindToObject(NULL, pidl, NULL, IID_IShellFolder, (void**)&m_psfFolder);
 	CoTaskMemFree(pidl);
 	m_paPath = &aPath;
@@ -391,7 +395,8 @@ void CFileListContextMenu::SetPathArray(CString strFolder, CStringArray& aPath)
 				SHBindToParent(pidl, IID_IShellFolder, (void**)&psfFolder, (LPCITEMIDLIST*)&pidl_temp);
 				if (pidl_temp)
 				{
-					m_aPIDL[i] = CopyPIDL(pidl_temp);
+					//m_aPIDL[i] = CopyPIDL(pidl_temp);
+					m_aPIDL[i] = ILClone(pidl_temp);
 				}
 				psfFolder->Release();
 			}

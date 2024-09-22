@@ -10,8 +10,14 @@
 #include "CDlgInput.h"
 #include "EtcFunctions.h"
 #include "resource.h"
+#include <PortableDeviceApi.h>
+#include <PortableDevice.h>
+#include <PortableDeviceTypes.h>
+#include <setupapi.h> // For SetupDiGetClassImageIndex
 
 #pragma comment(lib, "Netapi32.lib")
+#pragma comment(lib, "PortableDeviceGUIDs.lib")
+#pragma comment(lib, "setupapi.lib")
 
 //For directory change listner
 #define IDM_START_DIRWATCH 55010
@@ -125,6 +131,7 @@ IFACEMETHODIMP_(ULONG) MyProgress::Release()
 #define LIST_TYPE_DRIVE 0
 #define LIST_TYPE_FOLDER 1
 #define LIST_TYPE_UNCSERVER 2
+#define LIST_TYPE_PORTABLE 3
 
 
 //쓰레드의 상태를 관리하기 위한 static 변수
@@ -299,6 +306,13 @@ void CFileListCtrl::InitColumns(int nType)
 		int string_id[] = { IDS_COL_NAME_UNC, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY, IDS_COL_EMPTY };
 		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_LEFT , LVCFMT_LEFT, LVCFMT_LEFT, LVCFMT_LEFT };
 		int sort_type[] = { COL_COMP_STR , COL_COMP_STR , COL_COMP_STR, COL_COMP_STR, COL_COMP_STR };
+		SetColTexts(string_id, col_fmt, sort_type, NUM_OF_COLUMNS);
+	}
+	else if (nType == LIST_TYPE_PORTABLE)
+	{
+		int string_id[] = { IDS_COL_NAME_FOLDER, IDS_COL_DATE_FOLDER, IDS_COL_SIZE_FOLDER, IDS_COL_TYPE_FOLDER, IDS_COL_MEMO };
+		int col_fmt[] = { LVCFMT_LEFT , LVCFMT_RIGHT , LVCFMT_RIGHT, LVCFMT_LEFT, LVCFMT_LEFT };
+		int sort_type[] = { COL_COMP_PATH, COL_COMP_STR , COL_COMP_SIZE, COL_COMP_STR, COL_COMP_STR };
 		SetColTexts(string_id, col_fmt, sort_type, NUM_OF_COLUMNS);
 	}
 }
@@ -691,6 +705,16 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 	return 0;
 }*/
 
+int GetSystemImageListIndex(LPITEMIDLIST pidl)
+{
+	SHFILEINFO shfi = { 0 };
+	if (SHGetFileInfo((LPCWSTR)pidl, 0, &shfi, sizeof(shfi), SHGFI_PIDL | SHGFI_SYSICONINDEX))
+	{
+		return shfi.iIcon;
+	}
+	return -1;  // Failed to get icon index
+}
+
 //로딩과 표시를 구분할 필요가 있음, 로딩은 쓰레드로, 표시는 일반 작업으로
 void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 {
@@ -704,7 +728,62 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 		m_nType = LIST_TYPE_DRIVE;
 		//strFolder가 빈 값 = 루트이므로 모든 드라이브와 특수 폴더(다운로드 등) 표시
 		m_strFolder = strFolder;
-		//드라이브 
+		LPITEMIDLIST pidlParent = NULL;
+		//HRESULT hr = SHGetSpecialFolderLocation(NULL, CSIDL_DESKTOP, &pidlDesktop);
+		HRESULT hr = SHGetSpecialFolderLocation(NULL, CSIDL_DRIVES, &pidlParent);
+		IShellFolder* pDesktopFolder = NULL;
+		hr = SHBindToObject(NULL, pidlParent, NULL, IID_IShellFolder, (void**)&pDesktopFolder);
+		IEnumIDList* pEnumIDList = NULL;
+		hr = pDesktopFolder->EnumObjects(NULL, SHCONTF_NONFOLDERS | SHCONTF_FOLDERS, &pEnumIDList);
+		// Iterate through the items on the desktop
+		LPITEMIDLIST pidlItem = NULL;
+		ULONG fetched = 0;
+		wchar_t szName[MAX_PATH] = { 0 };
+		WCHAR szPath[MY_MAX_PATH] = { 0 };
+		ULARGE_INTEGER space_free, space_total;
+		while (pEnumIDList->Next(1, &pidlItem, &fetched) == S_OK)
+		{
+			STRRET strRet;
+			hr = pDesktopFolder->GetDisplayNameOf(pidlItem, SHGDN_NORMAL, &strRet);
+			if (SUCCEEDED(hr))
+			{
+				StrRetToBuf(&strRet, pidlItem, szName, MAX_PATH);
+				PathItem pi;
+				pi.dwData = 0;//nType;
+				LPITEMIDLIST pidlAbsolute = ILCombine(pidlParent, pidlItem);
+				pi.nIconIndex = GetSystemImageListIndex(pidlAbsolute);
+				pi.str0 = szName; //GetPathName(strDrive);
+				pi.pidl = pidlAbsolute;
+				BOOL bPathAvailable = SHGetPathFromIDList(pidlAbsolute, szPath);
+				if (bPathAvailable)
+				{
+					//PIDL이 PATH로 변환 가능한 경우 = 일반적인 폴더
+					pi.str1 = szPath;
+					if (pi.str1.GetLength() < 4) //드라이브인 경우 경로가 3글자 "c:\"
+					{
+						if (GetDiskFreeSpaceEx(szPath, NULL, &space_total, &space_free))
+						{
+							pi.str2 = GetDriveSizeString(space_free);
+							pi.str3 = GetDriveSizeString(space_total);
+						}
+					}
+				}
+				else
+				{
+					//PIDL이 PATH로 변환 불가능한 경우 = 스마트폰 등 외부 스토리지
+					pi.str1.Format(_T("(PDIL)%#x"), (DWORD_PTR)pidlAbsolute);
+				}
+				//pi.str1 = strDrive;
+				m_aPathItem.Add(pi);
+			}
+
+			CoTaskMemFree(pidlItem);  // Release the PIDL for the item
+		}
+		pEnumIDList->Release();
+		pDesktopFolder->Release();
+		CoTaskMemFree(pidlParent);
+
+/*		//드라이브 
 		DWORD drives = GetLogicalDrives();
 		DWORD flag = 1;
 		int nItem = 0, nImage = 0;
@@ -751,6 +830,57 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 			m_aPathItem.Add(PathItem(dwAttribute, nImageIndex, GetPathName(path), path));
 			CoTaskMemFree(path);
 		}
+		//스마트 디바이스 표시
+		HRESULT hr = S_OK;
+		//CComPtr<IPortableDeviceManager> pPortableDeviceManager;
+		IPortableDeviceManager* pPortableDeviceManager;
+		hr = CoCreateInstance(CLSID_PortableDeviceManager, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pPortableDeviceManager));
+		if (SUCCEEDED(hr))
+		{
+			// 연결된 장치 수 가져오기
+			DWORD dwNumDevices = 0;
+			hr = pPortableDeviceManager->GetDevices(NULL, &dwNumDevices);
+			if (SUCCEEDED(hr) && dwNumDevices > 0)
+			{
+				// 연결된 장치의 ID를 저장할 배열 생성
+				PWSTR* pPnPDeviceIDs = new PWSTR[dwNumDevices];
+				if (pPnPDeviceIDs != NULL)
+				{
+					// 연결된 장치의 ID를 가져오기
+					hr = pPortableDeviceManager->GetDevices(pPnPDeviceIDs, &dwNumDevices);
+					if (SUCCEEDED(hr))
+					{
+						// Iterate through the device IDs and retrieve their names
+						for (DWORD i = 0; i < dwNumDevices; i++) 
+						{
+							WCHAR deviceName[256] = { 0 };
+							DWORD nameLength = ARRAYSIZE(deviceName);
+							hr = pPortableDeviceManager->GetDeviceFriendlyName(pPnPDeviceIDs[i], deviceName, &nameLength);
+							if (SUCCEEDED(hr)) 
+							{
+								DWORD classGUIDSize = sizeof(GUID);
+								GUID deviceClassGUID;
+								pPortableDeviceManager->GetDeviceProperty(pPnPDeviceIDs[i], WPD_DEVICE_INTERFACE_GUID, (BYTE*)&deviceClassGUID, &classGUIDSize);
+								PathItem pi;
+								pi.dwData = nType;
+								pi.nIconIndex = GetFileImageIndex(pPnPDeviceIDs[i], INVALID_FILE_ATTRIBUTES);
+								strDrive = (TCHAR)(c + i);
+								strDrive += _T(":");
+								nType = GetDriveType(strDrive);
+								nImage = GetDriveImageIndex(nType);
+								pi.str0 = deviceName;
+								pi.str1 = pPnPDeviceIDs[i];
+								m_aPathItem.Add(pi);
+							}
+						}
+					}
+					// Clean up
+					for (DWORD i = 0; i < dwNumDevices; i++) CoTaskMemFree(pPnPDeviceIDs[i]);
+					delete[] pPnPDeviceIDs;
+				}
+			}
+			pPortableDeviceManager->Release();
+		}*/
 	}
 	else if (PathIsUNCServerW(strFolder))
 	{
@@ -761,6 +891,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 		NET_API_STATUS res;
 		DWORD er = 0, tr = 0, resume = 0, i;
 		LPTSTR lpszServer = strFolder.GetBuffer();
+		CString strTemp, strFullPath;
 		int nItem = 0;
 		do
 		{
@@ -770,10 +901,11 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 				pTemp = pBuffer;
 				for (i = 1; i <= er; i++)
 				{
-					CString strTemp = pTemp->shi0_netname;
+					strTemp = pTemp->shi0_netname;
 					if (strTemp != "IPC$")
 					{
-						m_aPathItem.Add(PathItem(0, GetDriveImageIndex(DRIVE_REMOTE), strTemp));
+						strFullPath = PathBackSlash(strFolder) + strTemp;
+						m_aPathItem.Add(PathItem(0, GetDriveImageIndex(DRIVE_REMOTE), GetPIDLfromPath(strFullPath), strTemp, strFullPath));
 					}
 					pTemp++;
 				}
@@ -851,7 +983,8 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 					int nIconIndex = GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes);
 					strType = GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType);
 					strMemo = GetPathMemo(fullpath, dwItemData, m_bCheckOpen);
-					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, fd.cFileName, strDate, strSize, strType, strMemo));
+					//m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, NULL, fd.cFileName, strDate, strSize, strType, strMemo));
+					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, NULL, fd.cFileName, strDate, strSize, strType, strMemo));
 				}
 				b = FindNextFileW(hFind, &fd);
 			}
@@ -887,7 +1020,7 @@ void CFileListCtrl::DisplayPathItems()
 			}
 		}
 	}
-	//경로 에디트 박스 갱신
+	//경로 에디트 박스 갱신 //UpdateFromCurrentList()
 	if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 	//필터 초기화
 	InitColumns(m_nType);
@@ -1211,7 +1344,8 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 		if (CoCreateInstance(CLSID_FileOperation, NULL,	CLSCTX_ALL, IID_PPV_ARGS(&pifo)) == S_OK)
 		{
 			IShellItem* pisi = NULL;
-			if (SHCreateShellItem(NULL, NULL, GetPIDLfromPath(strNewFolder), &pisi) == S_OK)
+			LPITEMIDLIST pidl = GetPIDLfromPath(strNewFolder);
+			if (SHCreateShellItem(NULL, NULL, pidl, &pisi) == S_OK)
 			{
 				DWORD flag = FOFX_ADDUNDORECORD | FOF_ALLOWUNDO;
 				if (bIsSamePath == TRUE) flag = flag | FOF_RENAMEONCOLLISION;
@@ -1235,6 +1369,7 @@ void CFileListCtrl::PasteFiles(CStringArray& aSrcPath, BOOL bMove)
 				}
 				if (pisi) pisi->Release();
 			}
+			if (pidl) CoTaskMemFree(pidl);
 			if (pifo) pifo->Release();
 		}
 		if (shi_array) shi_array->Release();

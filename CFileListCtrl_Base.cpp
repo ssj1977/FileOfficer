@@ -118,7 +118,7 @@ int CFileListCtrl_Base::GetFileImageIndex(CString strPath, DWORD dwAttribute)
 	memset(&sfi, 0x00, sizeof(sfi));
 	//오버레이 처리는 네트워크 드라이브 속도 저하의 원인이 되어 하지 않기로
 	//대신 Read Only 처리는 별도로 수행해서 보여주는 식으로 구현
-	DWORD flag = SHGFI_ICON | SHGFI_LARGEICON; //| SHGFI_OVERLAYINDEX;
+	DWORD flag = SHGFI_ICON | SHGFI_LARGEICON | SHGFI_SYSICONINDEX; //| SHGFI_OVERLAYINDEX;
 	//속성값이 
 	if (dwAttribute != INVALID_FILE_ATTRIBUTES) flag = flag | SHGFI_USEFILEATTRIBUTES;
 
@@ -215,24 +215,31 @@ CString CFileListCtrl_Base::GetPathTypeFromMap(CString strPath, BOOL bIsDirector
 
 LPITEMIDLIST CFileListCtrl_Base::GetPIDLfromPath(CString strPath)
 {
-	//경로 길이가 MAX_PATH 보다 짧다면 간단히 끝난다
-	if (strPath.GetLength() < MAX_PATH) return ILCreateFromPath(strPath);
-
 	LPITEMIDLIST pidl_result = NULL;
-	/*	IShellFolder* pisf = NULL;		//테스트 결과 ILCreateFromPath와 속도차는 거의 없었음
-		if ((SHGetDesktopFolder(&pisf)) != S_OK) return NULL;
-		if (strPath.GetLength() < MAX_PATH)
+	//경로 길이가 MAX_PATH 보다 짧다면 간단히 끝난다
+	//if (strPath.GetLength() < MAX_PATH) return ILCreateFromPath(strPath);
+	if (strPath.GetLength() < MAX_PATH)
+	{
+		pidl_result = ILCreateFromPath(strPath);
+		return pidl_result;
+	}
+
+	/*
+	IShellFolder* pisf = NULL;		//테스트 결과 ILCreateFromPath와 속도차는 거의 없었음
+	if ((SHGetDesktopFolder(&pisf)) != S_OK) return NULL;
+	//if (strPath.GetLength() < MAX_PATH)
+	if (strPath.GetLength() < 4)
+	{
+		if (pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl_result, NULL) == S_OK)
 		{
-			if (pisf->ParseDisplayName(NULL, 0, strPath.GetBuffer(0), NULL, &pidl_result, NULL) == S_OK)
-			{
-				strPath.ReleaseBuffer();
-				pisf->Release();
-				return pidl_result;
-			}
-		}*/
-		//경로 길이가 MAX_PATH 이상인 경우
-		//상위(폴더)경로 PIDL과 상대경로 PIDL로 쪼개서 만든 후 다시 합친다.
-		//이때 상위 폴더 경로에 대해서는 재귀적 호출로 만든다
+			strPath.ReleaseBuffer();
+			pisf->Release();
+			return pidl_result;
+		}
+	}*/
+	//경로 길이가 MAX_PATH 이상인 경우
+	//상위(폴더)경로 PIDL과 상대경로 PIDL로 쪼개서 만든 후 다시 합친다.
+	//이때 상위 폴더 경로에 대해서는 재귀적 호출로 만든다
 	CString strParent = Get_Folder(strPath);
 	CString strChild = Get_Name(strPath);
 	if (strChild.GetLength() < MAX_PATH)
@@ -248,8 +255,9 @@ LPITEMIDLIST CFileListCtrl_Base::GetPIDLfromPath(CString strPath)
 				{
 					if (pisf->ParseDisplayName(NULL, 0, strChild.GetBuffer(0), NULL, &pidl_child, NULL) == S_OK)
 					{
+						//pidl_result = ILCombine(pidl_parent, pidl_parent);
 						UINT cb1 = ILGetSize(pidl_parent) - sizeof(pidl_parent->mkid.cb);
-						UINT cb2 = ILGetSize(pidl_child);
+						UINT cb2 = ILGetSize(pidl_parent);
 						pidl_result = (LPITEMIDLIST)CoTaskMemAlloc(cb1 + cb2);
 						if (pidl_result != NULL)
 						{

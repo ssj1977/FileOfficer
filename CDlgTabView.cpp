@@ -273,7 +273,7 @@ BOOL CDlgTabView::OnInitDialog()
 	CString strTitle;
 	for (int i = 0; i < m_aTabInfo.GetSize(); i++)
 	{
-		m_tabPath.InsertItem(i, CFileListCtrl::GetPathName(m_aTabInfo[i].strPath), 1);
+		m_tabPath.InsertItem(i, CFileListCtrl::GetPathName(m_aTabInfo[i].strPath), 1); 
 	}
 	if (m_aTabInfo.GetSize() <= m_nCurrentTab) m_nCurrentTab = 0;
 	DragAcceptFiles(TRUE);
@@ -343,6 +343,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	CRect rc = CRect(0, 0, 40, 30);
+	BOOL bUpdateUI = TRUE; // DisplayFolder_Start 가 호출되는 경우 중복처리 방지용
 	if (pList == NULL)
 	{
 		pList = new CFileListCtrl;
@@ -373,6 +374,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->m_bCheckOpen = APP()->m_bCheckOpen;
 		pList->SetIconType(GetIconType());
 		pList->DisplayFolder_Start(pti.strPath);
+		bUpdateUI = FALSE;
 	}
 	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
 	if (pListOld != NULL && ::IsWindow(pListOld->GetSafeHwnd())) pListOld->ShowWindow(SW_HIDE);
@@ -381,9 +383,12 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	m_nCurrentTab = nTab;
 	m_tabPath.SetCurSel(nTab);
 	pList->SetFocus();
-	m_editPath.SetWindowText(pti.strPath);
-	pList->UpdateMsgBar();
-	UpdateFromCurrentList();
+	//m_editPath.SetWindowText(pti.strPath);
+	if (bUpdateUI)
+	{
+		pList->UpdateMsgBar();
+		UpdateFromCurrentList();
+	}
 	UpdateToolBar();
 	ArrangeCtrl();
 }
@@ -505,8 +510,8 @@ void CDlgTabView::UpdateTabByPathEdit()
 		strFilter.Empty();
 	}
 	strPath = GetActualPath(strPath);
-	strName = CFileListCtrl::GetPathName(strPath);
-	SetTabTitle(m_nCurrentTab, strName);
+	//strName = CFileListCtrl::GetPathName(strPath); DispalyPath()에서 처리된다.
+	//SetTabTitle(m_nCurrentTab, strName);
 
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	if (strFilter.IsEmpty() == FALSE)
