@@ -91,6 +91,7 @@
 #define IDS_NEW_FOLDER                  110
 #define IDS_NOT_FOUND                   111
 #define IDS_OPENFOLDER                  112
+#define IDS_PORTABLE_DEVICE             113
 #define IDR_MAINFRAME                   128
 #define IDR_TB_TAB                      133
 #define IDD_TAB_VIEW                    135
@@ -285,13 +286,15 @@
 #define ID_POPUP_32870                  32870
 #define IDM_OPEN_EXPLORER               32871
 #define IDM_OPENFOLDER                  32872
+#define ID_POPUP_32873                  32873
+#define IDM_TOGGLE_QUICKSEARCH          32874
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        166
-#define _APS_NEXT_COMMAND_VALUE         32873
+#define _APS_NEXT_COMMAND_VALUE         32875
 #define _APS_NEXT_CONTROL_VALUE         1079
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

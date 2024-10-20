@@ -19,20 +19,28 @@ struct PathTabInfo
 {
 	CWnd* pWnd;
 	CString strPath;
+	LPITEMIDLIST pidl;
 	int iSortColumn;
 	BOOL bSortAscend;
 	CUIntArray aColWidth;
 	PathTabInfo()
 	{
+		pidl = NULL;
 		pWnd = NULL;
 		iSortColumn = 0;
 		bSortAscend = TRUE;
 	};
-	PathTabInfo(CString strPath, int iSortColumn, BOOL bSortAscend)
+	~PathTabInfo()
 	{
-		this->strPath = strPath;
-		this->iSortColumn = iSortColumn;
-		this->bSortAscend = bSortAscend;
+		if (pidl) CoTaskMemFree(pidl);
+	}
+	PathTabInfo(CString _strPath, LPITEMIDLIST _pidl, int _iSortColumn, BOOL _bSortAscend)
+	{
+		this->strPath = _strPath;
+		this->pidl = NULL;
+		if (pidl) this->pidl = ILClone(_pidl);
+		this->iSortColumn = _iSortColumn;
+		this->bSortAscend = _bSortAscend;
 		pWnd = NULL;
 	};
 	void UpdateColWidth()
@@ -49,6 +57,8 @@ struct PathTabInfo
 	PathTabInfo(const PathTabInfo& pti)
 	{
 		this->strPath = pti.strPath;
+		this->pidl = NULL;
+		if (pti.pidl) this->pidl = ILClone(pti.pidl);
 		this->iSortColumn = pti.iSortColumn;
 		this->bSortAscend = pti.bSortAscend;
 		this->pWnd = pti.pWnd;
@@ -58,6 +68,7 @@ struct PathTabInfo
 	PathTabInfo& operator= (const PathTabInfo& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
 	{
 		this->strPath = pti.strPath;
+		if (pti.pidl) this->pidl = ILClone(pti.pidl);
 		this->iSortColumn = pti.iSortColumn;
 		this->bSortAscend = pti.bSortAscend;
 		this->pWnd = pti.pWnd;

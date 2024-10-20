@@ -20,7 +20,6 @@ public:
     void InsertPath(int nItem, CString strPath);
     int m_nViewType;
     void SetViewType(int nType);
-    inline BOOL IsDir(int nItem) { return (GetItemData(nItem) & FILE_ATTRIBUTE_DIRECTORY) ? TRUE : FALSE; };
     inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
     inline CString GetItemFullPath(int nItem) { return GetItemText(nItem, 1); };
     int GetFileImageIndex(CString strPath, DWORD dwAttribute);

@@ -489,12 +489,12 @@ void CFileOfficerDlg::ShowPath(CString strShow)
 	{
 		if (APP()->m_nLayoutType == LIST_LAYOUT_SINGLE2)
 		{
-			m_tv2.AddFileListTab(strFolder);
+			m_tv2.AddFileListTabByPath(strFolder);
 			pList = (CFileListCtrl*)m_tv2.CurrentList();
 		}
 		else
 		{
-			m_tv1.AddFileListTab(strFolder);
+			m_tv1.AddFileListTabByPath(strFolder);
 			pList = (CFileListCtrl*)m_tv1.CurrentList();
 		}
 		bFound = TRUE;

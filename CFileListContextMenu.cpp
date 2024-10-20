@@ -22,7 +22,7 @@ UINT GetPIDLSize(LPCITEMIDLIST pidl)
 	return nSize;
 }
 
-LPITEMIDLIST CopyPIDL(LPCITEMIDLIST pidl, int cb)
+/*LPITEMIDLIST CopyPIDL(LPCITEMIDLIST pidl, int cb)
 {
 	if (cb == -1)
 		cb = GetPIDLSize(pidl); // Calculate size of list.
@@ -31,7 +31,7 @@ LPITEMIDLIST CopyPIDL(LPCITEMIDLIST pidl, int cb)
 	if (pidlRet)
 		CopyMemory(pidlRet, pidl, cb);
 	return (pidlRet);
-}
+}*/
 
 CFileListContextMenu::CFileListContextMenu()
 {
@@ -339,13 +339,13 @@ UINT CFileListContextMenu::GetPIDLSize(LPCITEMIDLIST pidl)
 	return nSize;
 }
 
-LPITEMIDLIST CFileListContextMenu::CopyPIDL(LPCITEMIDLIST pidl, int cb)
+/*LPITEMIDLIST CFileListContextMenu::CopyPIDL(LPCITEMIDLIST pidl, int cb)
 {
 	if (cb == -1) cb = GetPIDLSize(pidl); // Calculate size of list.
 	LPITEMIDLIST pidlRet = (LPITEMIDLIST)calloc(cb + sizeof(USHORT), sizeof(BYTE));
 	if (pidlRet) CopyMemory(pidlRet, pidl, cb);
 	return pidlRet;
-}
+}*/
 
 
 void CFileListContextMenu::SetPathArray(CString strFolder, CStringArray& aPath)
@@ -364,7 +364,6 @@ void CFileListContextMenu::SetPathArray(CString strFolder, CStringArray& aPath)
 	if (FAILED(hr)) { psfDesktop->Release(); return; }
 	//현재 폴더
 	hr = SHBindToObject(NULL, pidl, NULL, IID_IShellFolder, (void**)&m_psfFolder);
-	CoTaskMemFree(pidl);
 	m_paPath = &aPath;
 	if (aPath.GetSize() == 0)
 	{

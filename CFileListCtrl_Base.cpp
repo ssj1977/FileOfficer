@@ -465,21 +465,21 @@ int CFileListCtrl_Base::OnCompareItems(LPARAM lParam1, LPARAM lParam2, int iColu
 {
 	if (m_aColSortType.GetCount() <= iColumn) return 0;
 	/*	int nRet = 0;
-	if (m_nType == LIST_TYPE_FOLDER)
+	if (m_nListType == LIST_TYPE_FOLDER)
 	{
 		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_PATH);
 		else if (iColumn == COL_DATE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 		else if (iColumn == COL_SIZE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
 		else if (iColumn == COL_TYPE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 	}
-	else if (m_nType == LIST_TYPE_DRIVE)
+	else if (m_nListType == LIST_TYPE_DRIVE)
 	{
 		if (iColumn == COL_DRIVENAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_DRIVE);
 		else if (iColumn == COL_DRIVEPATH) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 		else if (iColumn == COL_FREESPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
 		else if (iColumn == COL_TOTALSPACE) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_SIZE);
 	}
-	else if (m_nType == LIST_TYPE_UNCSERVER)
+	else if (m_nListType == LIST_TYPE_UNCSERVER
 	{
 		if (iColumn == COL_NAME) nRet = CompareItemByType(lParam1, lParam2, iColumn, COL_COMP_STR);
 	}

@@ -133,6 +133,16 @@ IFACEMETHODIMP_(ULONG) MyProgress::Release()
 #define LIST_TYPE_UNCSERVER 2
 #define LIST_TYPE_PORTABLE 3
 
+static DWORD ConvertShellAtrToFileAtr(ULONG ulShellAttributes)
+{
+	DWORD dwFileAttributes = 0;
+	if (ulShellAttributes & SFGAO_READONLY)		dwFileAttributes |= FILE_ATTRIBUTE_READONLY;
+	if (ulShellAttributes & SFGAO_HIDDEN)		dwFileAttributes |= FILE_ATTRIBUTE_HIDDEN;
+	if (ulShellAttributes & SFGAO_FOLDER)		dwFileAttributes |= FILE_ATTRIBUTE_DIRECTORY;
+	if (ulShellAttributes & SFGAO_COMPRESSED)	dwFileAttributes |= FILE_ATTRIBUTE_COMPRESSED;
+	if (ulShellAttributes & SFGAO_ENCRYPTED)	dwFileAttributes |= FILE_ATTRIBUTE_ENCRYPTED;
+	return dwFileAttributes;
+}
 
 //쓰레드의 상태를 관리하기 위한 static 변수
 typedef std::map<CFileListCtrl*, BOOL> ThreadStatusMap;
@@ -211,7 +221,7 @@ END_MESSAGE_MAP()
 CFileListCtrl::CFileListCtrl()
 {
 	m_strFolder = L"";
-	m_nType = LIST_TYPE_DRIVE;
+	m_nListType = LIST_TYPE_DRIVE;
 	CMD_UpdateSortInfo = 0;
 	CMD_UpdateFromList = 0;
 	CMD_UpdateBar = 0;
@@ -221,7 +231,7 @@ CFileListCtrl::CFileListCtrl()
 	//m_pThreadLoad = NULL;
 	m_pThreadWatch = NULL;
 	m_posPathHistory = NULL;
-	m_bUpdatePathHistory = TRUE;
+	m_bUpdateHistory = TRUE;
 	m_pColorRuleArray = NULL;
 	m_bLoading = FALSE;
 	m_pWatchBuffer = malloc(WATCH_BUFFER_SIZE);
@@ -234,9 +244,7 @@ CFileListCtrl::CFileListCtrl()
 CFileListCtrl::~CFileListCtrl()
 {
 	CFileListCtrl::DeleteWatchingStatus(this);
-	//CFileListCtrl::DeleteLoadingStatus(this);
 	free(m_pWatchBuffer);
-	//CloseHandle(m_hLoadFinished);
 }
 
 //static int CMD_DirWatch = IDM_START_DIRWATCH;
@@ -255,7 +263,7 @@ CString CFileListCtrl::GetCurrentItemPath()
 
 int CFileListCtrl::GetNameColumnIndex()
 {
-	return (m_nType == LIST_TYPE_DRIVE) ? COL_DRIVEPATH : COL_NAME;
+	return (m_nListType == LIST_TYPE_DRIVE) ? COL_DRIVEPATH : COL_NAME;
 }
 
 void CFileListCtrl::InitColumns(int nType)
@@ -319,13 +327,13 @@ void CFileListCtrl::InitColumns(int nType)
 
 CString CFileListCtrl::GetItemFullPath(int nItem)
 {
-	if (m_nType == LIST_TYPE_FOLDER || m_nType == LIST_TYPE_UNCSERVER)
+	if (m_nListType == LIST_TYPE_FOLDER || m_nListType == LIST_TYPE_UNCSERVER)
 	{
 		CString strPath;
 		strPath = PathBackSlash(m_strFolder) + GetItemText(nItem, COL_NAME);
 		return strPath;
 	}
-	else if (m_nType == LIST_TYPE_DRIVE)
+	else if (m_nListType == LIST_TYPE_DRIVE)
 	{
 		return GetItemText(nItem, COL_DRIVEPATH);
 	}
@@ -344,7 +352,7 @@ void CFileListCtrl::OpenSelectedItem()
 	if (FAILED(SHGetDesktopFolder(&pisf))) return;
 	while (nItem != -1)
 	{
-		if (m_nType == LIST_TYPE_FOLDER && IsDir(nItem) == FALSE) //일반 파일
+		if (m_nListType == LIST_TYPE_FOLDER && IsDir(nItem) == FALSE) //일반 파일 열기
 		{
 			LPITEMIDLIST pidl = GetPIDLfromPath(GetItemFullPath(nItem));
 			if (pidl != NULL)
@@ -364,7 +372,7 @@ void CFileListCtrl::OpenSelectedItem()
 				CoTaskMemFree(pidl);
 			}
 		}
-		else //Folder or Drive
+		else //폴더 열기
 		{
 			if (bMulti == TRUE || (GetKeyState(VK_CONTROL) & 0xFF00) != 0)
 			{   //Open in a new tab
@@ -372,7 +380,41 @@ void CFileListCtrl::OpenSelectedItem()
 			}
 			else
 			{
-				DisplayFolder_Start(GetItemFullPath(nItem));
+				if (m_nListType != LIST_TYPE_DRIVE)
+				{
+					DisplayFolderByPath(GetItemFullPath(nItem));
+				}
+				else  //LIST_TYPE_DRIVE
+				{
+					CString strName = GetItemText(nItem, COL_DRIVENAME);
+					CString strPath = GetItemText(nItem, COL_DRIVEPATH);
+					if (strPath.CompareNoCase(IDSTR(IDS_PORTABLE_DEVICE)) == 0)
+					{
+						for (int i = 0; i < m_aPathItem.GetSize(); i++)
+						{
+							if (strName.CompareNoCase(m_aPathItem[i].str0) == 0)
+							{
+								SHELLEXECUTEINFO sei;
+								memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
+								sei.fMask = SEE_MASK_IDLIST;
+								sei.cbSize = sizeof(SHELLEXECUTEINFO);
+								sei.lpVerb = _T("explore");
+								sei.lpFile = NULL;
+								sei.lpIDList = m_aPathItem[i].pidl;
+								sei.nShow = SW_SHOW;
+								if (ShellExecuteEx(&sei) == FALSE)
+								{
+									AfxMessageBox(L"Shell Execution Error"); //Resource
+								}
+								break;
+							}
+						}
+					}
+					else
+					{
+						DisplayFolderByPath(GetItemFullPath(nItem));
+					}
+				}
 			}
 		}
 		if (bMulti == TRUE) nItem = GetNextItem(nItem, LVNI_SELECTED);
@@ -400,9 +442,8 @@ void CFileListCtrl::OpenParentFolder()
 	}
 	else
 	{
-		m_strFilterExclude.Empty();
 		m_strFilterInclude.Empty();
-		DisplayFolder_Start(GetParentFolder(m_strFolder));
+		DisplayFolderByPath(GetParentFolder(m_strFolder));
 	}
 }
 
@@ -649,29 +690,27 @@ COLORREF GetDimColor(COLORREF clr)
 
 void CFileListCtrl::RefreshList()
 {
-	DisplayFolder_Start(m_strFolder, FALSE);
+	DisplayFolderByPath(m_strFolder, FALSE);
 }
 
-void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory)
+void CFileListCtrl::DisplayFolderByPath(CString strFolder, BOOL bUpdateHistory)
 {
 	if (::IsWindow(m_hWnd) == FALSE) return;
-	//ClearThread();
 	WatchFolder_End();
 	if (m_bLoading == TRUE || IsWatching(this) == TRUE) return;
 	m_strPrevFolder = m_strFolder;
 	m_strFolder = strFolder;
-	m_bUpdatePathHistory = bUpdatePathHistory;
+	m_bUpdateHistory = bUpdateHistory;
 	UpdateMsgBar(IDS_NOW_LOADING);
 	COLORREF clrBk = GetBkColor(); //나중에 복구하기 위해 저장
 	COLORREF clrText = GetTextColor(); //나중에 복구하기 위해 저장
 	SetBkColor(GetDimColor(clrBk));
 	SetTextColor(GetDimColor(clrText));
-	//m_pThreadLoad = AfxBeginThread(DisplayFolder_Thread, this);
 #ifdef _DEBUG
 	clock_t s = clock();
 #endif
 	m_bLoading = TRUE;
-	LoadFolder(m_strFolder, m_bUpdatePathHistory);
+	LoadFolder(m_strFolder, m_bUpdateHistory);
 	DisplayPathItems();
 	m_bLoading = FALSE;
 #ifdef _DEBUG
@@ -685,26 +724,6 @@ void CFileListCtrl::DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHisto
 	WatchFolder_Begin();	//if (IsWatchable()) PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
 }
 
-/*UINT CFileListCtrl::DisplayFolder_Thread(void* lParam)
-{
-	if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY))) return 0;
-	//APP()->UpdateThreadLocale();
-	CFileListCtrl* pList = (CFileListCtrl*)lParam;
-	SetLoadingStatus(pList, TRUE); //외부에서 쓰레드 작동 여부 검사용
-	ResetEvent(pList->m_hLoadFinished);
-	pList->LoadFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
-	pList->DisplayPathItems();
-	SetEvent(pList->m_hLoadFinished);
-	//pList->PostMessageW(WM_COMMAND, IDM_DISPLAY_PATH, 0);
-	CoUninitialize();
-	//pList->DisplayFolder(pList->m_strFolder, pList->m_bUpdatePathHistory);
-	//SetEvent(pList->m_hLoadFinished);
-	//SetLoadingStatus(pList, FALSE);
-	//if (pList->IsWatchable()) pList->PostMessageW(WM_COMMAND, CMD_DirWatch, 0);
-	//CoUninitialize();
-	return 0;
-}*/
-
 int GetSystemImageListIndex(LPITEMIDLIST pidl)
 {
 	SHFILEINFO shfi = { 0 };
@@ -715,17 +734,17 @@ int GetSystemImageListIndex(LPITEMIDLIST pidl)
 	return -1;  // Failed to get icon index
 }
 
-//로딩과 표시를 구분할 필요가 있음, 로딩은 쓰레드로, 표시는 일반 작업으로
-void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
+
+//로딩과 표시를 구분할 필요가 있음
+void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdateHistory)
 {
-	if (bUpdatePathHistory) AddPathHistory(strFolder);
+	if (bUpdateHistory) AddPathHistory(strFolder);
 	m_aPathItem.RemoveAll();
 	//필터 초기화
 	m_strFilterInclude = L"";
-	m_strFilterExclude = L"";
 	if (strFolder.IsEmpty())
 	{
-		m_nType = LIST_TYPE_DRIVE;
+		m_nListType = LIST_TYPE_DRIVE;
 		//strFolder가 빈 값 = 루트이므로 모든 드라이브와 특수 폴더(다운로드 등) 표시
 		m_strFolder = strFolder;
 		LPITEMIDLIST pidlParent = NULL;
@@ -739,7 +758,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 		LPITEMIDLIST pidlItem = NULL;
 		ULONG fetched = 0;
 		wchar_t szName[MAX_PATH] = { 0 };
-		WCHAR szPath[MY_MAX_PATH] = { 0 };
+		WCHAR* szPath = new WCHAR[MY_MAX_PATH]; szPath[0] = _T('\0');
 		ULARGE_INTEGER space_free, space_total;
 		while (pEnumIDList->Next(1, &pidlItem, &fetched) == S_OK)
 		{
@@ -749,11 +768,13 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 			{
 				StrRetToBuf(&strRet, pidlItem, szName, MAX_PATH);
 				PathItem pi;
-				pi.dwData = 0;//nType;
 				LPITEMIDLIST pidlAbsolute = ILCombine(pidlParent, pidlItem);
 				pi.nIconIndex = GetSystemImageListIndex(pidlAbsolute);
 				pi.str0 = szName; //GetPathName(strDrive);
-				pi.pidl = pidlAbsolute;
+				ULONG ulAttr = SFGAO_FILESYSTEM | SFGAO_FOLDER | SFGAO_HIDDEN | SFGAO_READONLY | SFGAO_COMPRESSED | SFGAO_ENCRYPTED;
+				hr = pDesktopFolder->GetAttributesOf(1, (LPCITEMIDLIST*)&pidlItem, &ulAttr);
+				if (SUCCEEDED(hr)) pi.dwData = ConvertShellAtrToFileAtr(ulAttr); // 속성 가져오기
+				else pi.dwData = 0;
 				BOOL bPathAvailable = SHGetPathFromIDList(pidlAbsolute, szPath);
 				if (bPathAvailable)
 				{
@@ -767,125 +788,28 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 							pi.str3 = GetDriveSizeString(space_total);
 						}
 					}
+					pi.pidl = nullptr;
 				}
 				else
 				{
 					//PIDL이 PATH로 변환 불가능한 경우 = 스마트폰 등 외부 스토리지
-					pi.str1.Format(_T("(PDIL)%#x"), (DWORD_PTR)pidlAbsolute);
+					pi.str1 = IDSTR(IDS_PORTABLE_DEVICE);
+					pi.pidl = ILClone(pidlAbsolute);
 				}
-				//pi.str1 = strDrive;
 				m_aPathItem.Add(pi);
+				CoTaskMemFree(pidlAbsolute);
 			}
-
 			CoTaskMemFree(pidlItem);  // Release the PIDL for the item
 		}
 		pEnumIDList->Release();
 		pDesktopFolder->Release();
 		CoTaskMemFree(pidlParent);
-
-/*		//드라이브 
-		DWORD drives = GetLogicalDrives();
-		DWORD flag = 1;
-		int nItem = 0, nImage = 0;
-		UINT nType = 0;
-		TCHAR c = _T('A');
-		CString strDrive;
-		ULARGE_INTEGER space_free, space_total;
-		for (int i = 0; i < 32; i++)
-		{
-			if (drives & flag)
-			{
-				strDrive = (TCHAR)(c + i);
-				strDrive += _T(":");
-				nType = GetDriveType(strDrive);
-				nImage = GetDriveImageIndex(nType);
-				//nItem = InsertItem(GetItemCount(), strDrive, nImage);
-				//SetItemText(nItem, COL_ALIAS, GetPathName(strDrive));
-				// LIST_TYPE_DRIVE 인 경우에는 첫번째 컬럼에 이름 / 두번째 컬럼에 경로
-				PathItem pi;
-				pi.dwData = nType;
-				pi.nIconIndex = nImage;
-				pi.str0 = GetPathName(strDrive);
-				pi.str1 = strDrive;
-				if (GetDiskFreeSpaceEx(strDrive, NULL, &space_total, &space_free))
-				{
-					pi.str2 = GetDriveSizeString(space_free);
-					pi.str3 = GetDriveSizeString(space_total);
-				}
-				m_aPathItem.Add(pi);
-			}
-			flag = flag * 2;
-		}
-		//특수폴더 표시
-		KNOWNFOLDERID folder_ids[] = {
-			FOLDERID_Desktop, FOLDERID_Downloads, FOLDERID_Documents,
-			FOLDERID_Pictures, FOLDERID_Music, FOLDERID_Videos };
-		int nCount = sizeof(folder_ids) / sizeof(KNOWNFOLDERID);
-		for (int i = 0; i < nCount; i++)
-		{
-			TCHAR* path = NULL;
-			SHGetKnownFolderPath(folder_ids[i], 0, NULL, &path); //바탕화면 경로 가져오기.
-			DWORD dwAttribute = GetFileAttributes(path);
-			int nImageIndex = GetFileImageIndex(path, INVALID_FILE_ATTRIBUTES); //특수폴더이므로 아이콘을 직접 가져온다
-			m_aPathItem.Add(PathItem(dwAttribute, nImageIndex, GetPathName(path), path));
-			CoTaskMemFree(path);
-		}
-		//스마트 디바이스 표시
-		HRESULT hr = S_OK;
-		//CComPtr<IPortableDeviceManager> pPortableDeviceManager;
-		IPortableDeviceManager* pPortableDeviceManager;
-		hr = CoCreateInstance(CLSID_PortableDeviceManager, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pPortableDeviceManager));
-		if (SUCCEEDED(hr))
-		{
-			// 연결된 장치 수 가져오기
-			DWORD dwNumDevices = 0;
-			hr = pPortableDeviceManager->GetDevices(NULL, &dwNumDevices);
-			if (SUCCEEDED(hr) && dwNumDevices > 0)
-			{
-				// 연결된 장치의 ID를 저장할 배열 생성
-				PWSTR* pPnPDeviceIDs = new PWSTR[dwNumDevices];
-				if (pPnPDeviceIDs != NULL)
-				{
-					// 연결된 장치의 ID를 가져오기
-					hr = pPortableDeviceManager->GetDevices(pPnPDeviceIDs, &dwNumDevices);
-					if (SUCCEEDED(hr))
-					{
-						// Iterate through the device IDs and retrieve their names
-						for (DWORD i = 0; i < dwNumDevices; i++) 
-						{
-							WCHAR deviceName[256] = { 0 };
-							DWORD nameLength = ARRAYSIZE(deviceName);
-							hr = pPortableDeviceManager->GetDeviceFriendlyName(pPnPDeviceIDs[i], deviceName, &nameLength);
-							if (SUCCEEDED(hr)) 
-							{
-								DWORD classGUIDSize = sizeof(GUID);
-								GUID deviceClassGUID;
-								pPortableDeviceManager->GetDeviceProperty(pPnPDeviceIDs[i], WPD_DEVICE_INTERFACE_GUID, (BYTE*)&deviceClassGUID, &classGUIDSize);
-								PathItem pi;
-								pi.dwData = nType;
-								pi.nIconIndex = GetFileImageIndex(pPnPDeviceIDs[i], INVALID_FILE_ATTRIBUTES);
-								strDrive = (TCHAR)(c + i);
-								strDrive += _T(":");
-								nType = GetDriveType(strDrive);
-								nImage = GetDriveImageIndex(nType);
-								pi.str0 = deviceName;
-								pi.str1 = pPnPDeviceIDs[i];
-								m_aPathItem.Add(pi);
-							}
-						}
-					}
-					// Clean up
-					for (DWORD i = 0; i < dwNumDevices; i++) CoTaskMemFree(pPnPDeviceIDs[i]);
-					delete[] pPnPDeviceIDs;
-				}
-			}
-			pPortableDeviceManager->Release();
-		}*/
+		delete[] szPath;
 	}
 	else if (PathIsUNCServerW(strFolder))
 	{
 		m_strFolder = strFolder;
-		m_nType = LIST_TYPE_UNCSERVER;
+		m_nListType = LIST_TYPE_UNCSERVER;
 		//if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 		PSHARE_INFO_0 pBuffer, pTemp;
 		NET_API_STATUS res;
@@ -905,7 +829,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 					if (strTemp != "IPC$")
 					{
 						strFullPath = PathBackSlash(strFolder) + strTemp;
-						m_aPathItem.Add(PathItem(0, GetDriveImageIndex(DRIVE_REMOTE), GetPIDLfromPath(strFullPath), strTemp, strFullPath));
+						m_aPathItem.Add(PathItem(0, GetDriveImageIndex(DRIVE_REMOTE), strTemp, strFullPath));
 					}
 					pTemp++;
 				}
@@ -916,21 +840,19 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 	}
 	else
 	{
-		m_nType = LIST_TYPE_FOLDER;
+		m_nListType = LIST_TYPE_FOLDER;
 		CString strFind = strFolder;
 		if (strFind.Find(L'*') == -1 && strFind.Find(L'?') == -1)
 		{
 			m_strFolder = strFolder;
 			strFind = PathBackSlash(strFolder) + _T("*");
 			m_strFilterInclude = L"*";
-			m_strFilterExclude = L"";
 		}
 		else
 		{
 			strFind = strFolder;
 			m_strFolder = Get_Folder(strFolder, TRUE);
 			m_strFilterInclude = Get_Name(strFolder);
-			m_strFilterExclude = L"";
 		}
 		//////////////////////////////////////////
 		WIN32_FIND_DATA fd;
@@ -983,8 +905,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 					int nIconIndex = GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes);
 					strType = GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType);
 					strMemo = GetPathMemo(fullpath, dwItemData, m_bCheckOpen);
-					//m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, NULL, fd.cFileName, strDate, strSize, strType, strMemo));
-					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, NULL, fd.cFileName, strDate, strSize, strType, strMemo));
+					m_aPathItem.Add(PathItem(fd.dwFileAttributes, nIconIndex, fd.cFileName, strDate, strSize, strType, strMemo));
 				}
 				b = FindNextFileW(hFind, &fd);
 			}
@@ -998,7 +919,7 @@ void CFileListCtrl::LoadFolder(CString strFolder, BOOL bUpdatePathHistory)
 void CFileListCtrl::DisplayPathItems()
 {
 	DeleteAllItems();
-	if (m_nType == LIST_TYPE_INVALID) return;
+	if (m_nListType == LIST_TYPE_INVALID) return;
 	//새로운 폴더가 기존 폴더의 상위 폴더인지 체크
 	CString strSelectedFolder; //새로운 폴더가 기존 폴더의 상위 폴더라면 여기에 기본으로 선택할 기존 폴더 저장
 	if (m_strPrevFolder.GetLength() > m_strFolder.GetLength()) //예) c:\test\temp => c:\test
@@ -1023,7 +944,7 @@ void CFileListCtrl::DisplayPathItems()
 	//경로 에디트 박스 갱신 //UpdateFromCurrentList()
 	if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
 	//필터 초기화
-	InitColumns(m_nType);
+	InitColumns(m_nListType);
 	int nCount = (int)m_aPathItem.GetSize();
 	int nItem = -1;
 	BOOL bSelect = strSelectedFolder.IsEmpty() ? FALSE : TRUE ;
@@ -1050,170 +971,6 @@ void CFileListCtrl::DisplayPathItems()
 	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
 }
 
-/*
-void CFileListCtrl::DisplayFolder(CString strFolder, BOOL bUpdatePathHistory)
-{
-	//m_bLoading = TRUE;
-	//clock_t startTime, endTime;
-	// startTime = clock();
-	DeleteAllItems();
-	COLORREF clrBk = GetBkColor();
-	COLORREF clrText = GetTextColor();
-	COLORREF clrBk2 = GetDimColor(clrBk);
-	COLORREF clrText2 = GetDimColor(clrText);
-	SetBkColor(clrBk2);
-	SetTextColor(clrText2);
-	RedrawWindow();
-	if (bUpdatePathHistory) AddPathHistory(strFolder);
-	//새로운 폴더가 기존 폴더의 상위 폴더인지 체크
-	CString strSelectedFolder; //새로운 폴더가 기존 폴더의 상위 폴더라면 여기에 기본으로 선택할 기존 폴더 저장
-	if (m_strPrevFolder.GetLength() > m_strFolder.GetLength()) //예) c:\test\temp => c:\test
-	{
-		if (m_strPrevFolder.MakeLower().Find(m_strFolder.MakeLower()) != -1) //새로운 폴더 경로가 기존 폴더에 포함
-		{	//기본 선택할 항목 찾기 
-			strSelectedFolder = m_strPrevFolder;
-			CString strParent = GetParentFolder(m_strPrevFolder);
-			//여러 단계 상위 폴더로 바로 이동하는 경우에도 찾을 수 있도록 탐색
-			while (strParent.IsEmpty() == FALSE)
-			{
-				if (strParent.CompareNoCase(m_strFolder) == 0)
-				{
-					strSelectedFolder = Get_Name(strSelectedFolder);
-					break; 
-				}
-				strSelectedFolder = strParent; 
-				strParent = GetParentFolder(strParent);
-			}
-		}
-	}
-	//필터 초기화
-	m_strFilterInclude = L"";
-	m_strFilterExclude = L"";
-	if (strFolder.IsEmpty()) 
-	{
-		//strFolder가 빈 값 = 루트이므로 모든 드라이브와 특수 폴더(다운로드 등) 표시
-		m_strFolder = strFolder;
-		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
-		//드라이브 
-		InitColumns(LIST_TYPE_DRIVE);
-		DWORD drives = GetLogicalDrives();
-		DWORD flag = 1;
-		int nItem = 0, nImage = 0;
-		UINT nType = 0;
-		TCHAR c = _T('A');
-		CString strDrive;
-	 	ULARGE_INTEGER space_free, space_total;
-		for (int i = 0; i < 32; i++)
-		{
-			if (drives & flag)
-			{
-				strDrive = (TCHAR)(c + i);
-				strDrive += _T(":");
-				nType = GetDriveType(strDrive);
-				nImage = GetDriveImageIndex(nType);
-				//nItem = InsertItem(GetItemCount(), strDrive, nImage);
-				//SetItemText(nItem, COL_ALIAS, GetPathName(strDrive));
-				// LIST_TYPE_DRIVE 인 경우에는 첫번째 컬럼에 이름 / 두번째 컬럼에 경로
-				nItem = InsertItem(GetItemCount(), GetPathName(strDrive), nImage);
-				SetItemText(nItem, COL_DRIVEPATH, strDrive);
-				if (GetDiskFreeSpaceEx(strDrive, NULL, &space_total, &space_free))
-				{
-					SetItemText(nItem, COL_FREESPACE, GetDriveSizeString(space_free));
-					SetItemText(nItem, COL_TOTALSPACE, GetDriveSizeString(space_total));
-				}
-				//SetItemData(nItem, ITEM_TYPE_DRIVE);
-				if (strSelectedFolder.CompareNoCase(strDrive) == 0)
-				{
-					SetItemState(nItem, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-				}
-
-			}
-			flag = flag * 2;
-		}
-		//특수폴더 표시
-		KNOWNFOLDERID folder_ids[] = { 
-			FOLDERID_Desktop, FOLDERID_Downloads, FOLDERID_Documents, 
-			FOLDERID_Pictures, FOLDERID_Music, FOLDERID_Videos};
-		int nCount = sizeof(folder_ids) / sizeof (KNOWNFOLDERID);
-		for (int i=0; i<nCount; i++)
-		{ 
-			TCHAR* path = NULL;
-			SHGetKnownFolderPath(folder_ids[i], 0, NULL, &path); //바탕화면 경로 가져오기.
-			nItem = InsertItem(GetItemCount(), GetPathName(path), GetFileImageIndex(path, GetFileAttributes(path)));
-			SetItemText(nItem, COL_DRIVEPATH, path);
-			CoTaskMemFree(path);
-		}
-	}
-	else if (PathIsUNCServerW(strFolder))
-	{
-		m_strFolder = strFolder;
-		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
-		
-		InitColumns(LIST_TYPE_UNCSERVER);
-		PSHARE_INFO_0 pBuffer, pTemp;
-		NET_API_STATUS res;
-		DWORD er = 0, tr = 0, resume = 0, i;
-		LPTSTR lpszServer = strFolder.GetBuffer();
-		int nItem = 0;
-		do
-		{
-			res = NetShareEnum(lpszServer, 0, (LPBYTE*)&pBuffer, MAX_PREFERRED_LENGTH, &er, &tr, &resume);
-			if (res == ERROR_SUCCESS || res == ERROR_MORE_DATA)
-			{
-				pTemp = pBuffer;
-				for (i = 1; i <= er; i++)
-				{
-					CString strTemp = pTemp->shi0_netname;
-					if (strTemp != "IPC$")
-					{
-						nItem = InsertItem(GetItemCount(), strTemp, SI_NETWORKDRIVE);
-						// SetItemData(nItem, ITEM_TYPE_UNC);
-					}
-					pTemp++;
-				}
-				NetApiBufferFree(pBuffer);
-			}
-		} while (res == ERROR_MORE_DATA);
-		strFolder.ReleaseBuffer();
-	}
-	else
-	{
-		InitColumns(LIST_TYPE_FOLDER);
-		CString strFind = strFolder;
-		if (strFind.Find(L'*') == -1 && strFind.Find(L'?') == -1)
-		{
-			m_strFolder = strFolder;
-			strFind = PathBackSlash(strFolder) + _T("*");
-			m_strFilterInclude = L"*";
-			m_strFilterExclude = L"";
-		}
-		else
-		{
-			strFind = strFolder;
-			m_strFolder = Get_Folder(strFolder, TRUE);
-			m_strFilterInclude = Get_Name(strFolder);
-			m_strFilterExclude = L"";
-		}
-		//로딩 시작 전에 경로 에디트 박스 갱신
-		if (GetParent() != NULL && ::IsWindow(GetParent()->GetSafeHwnd())) GetParent()->PostMessage(WM_COMMAND, CMD_UpdateFromList, (DWORD_PTR)this);
-		if (AddItemByPath(strFind, FALSE, TRUE, strSelectedFolder) == -1)
-		{ // 해당 경로가 존재하지 않는 오류가 발생한 경우
-			InsertItem(0, IDSTR(IDS_INVALIDPATH));
-			m_nType = LIST_TYPE_INVALID;
-		}
-		else
-		{
-			Sort(m_nSortCol, m_bAsc);
-		}
-	}
-	int nSelected = GetNextItem(-1, LVNI_SELECTED);
-	if (nSelected != -1) EnsureVisible(nSelected, FALSE);
-	UpdateMsgBar();
-	SetBkColor(clrBk);
-	SetTextColor(clrText);
-	RedrawWindow();
-	//m_bLoading = FALSE;
-}*/
 
 void CFileListCtrl::OnSize(UINT nType, int cx, int cy)
 {
@@ -1241,7 +998,7 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 	{
 		if (pMsg->wParam == VK_F5)
 		{
-			DisplayFolder_Start(m_strFolder);
+			DisplayFolderByPath(m_strFolder);
 			return TRUE;
 		}
 		if (pMsg->wParam == VK_RETURN)
@@ -1288,11 +1045,11 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 		WORD w = HIWORD(pMsg->wParam);
 		if (w == XBUTTON2) //Back
 		{
-			BrowsePathHistory(TRUE);
+			BrowseHistory(TRUE);
 		}
 		else if (w == XBUTTON1) //Forward
 		{
-			BrowsePathHistory(FALSE);
+			BrowseHistory(FALSE);
 		}
 		return TRUE;
 	}
@@ -1301,7 +1058,7 @@ BOOL CFileListCtrl::PreTranslateMessage(MSG* pMsg)
 
 void CFileListCtrl::ProcessDropFiles(HDROP hDropInfo, BOOL bMove)
 {
-	if (m_nType != LIST_TYPE_FOLDER) return;
+	if (m_nListType != LIST_TYPE_FOLDER) return;
 	TCHAR* pszFilePath = new TCHAR[MY_MAX_PATH]; pszFilePath[0] = _T('\0');
 	size_t bufsize = sizeof(TCHAR) * MY_MAX_PATH;
 	if (bufsize > 0) ZeroMemory(pszFilePath, bufsize);
@@ -1384,30 +1141,31 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 	HANDLE hFind;
 	hFind = FindFirstFileExW(strPath, FindExInfoBasic, &fd, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
 	if (hFind == INVALID_HANDLE_VALUE) return;
+
+	BOOL bIsDir = IsDir(nItem);
+	//이름
+	SetItemText(nItem, COL_NAME, Get_Name(strPath));
 	//시각
 	COleDateTime tTemp = COleDateTime(fd.ftLastWriteTime);
-	CString strTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+	CString strDateTime = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+	SetItemText(nItem, COL_DATE, strDateTime);
 	//크기
-	BOOL bIsDir = IsDir(nItem);
 	if (bIsDir == FALSE)
 	{
 		ULARGE_INTEGER filesize;
 		filesize.HighPart = fd.nFileSizeHigh;
 		filesize.LowPart = fd.nFileSizeLow;
-		CString strSize = GetFileSizeString(filesize.QuadPart, 0);
-		SetItemText(nItem, COL_SIZE, strSize);
-		if (bUpdateIcon) //시간이 걸릴수 있고 확장자가 바뀌지 않은 경우 필요가 없으므로 옵션 처리
-		{
-			//종류
-			CString strType = GetPathTypeFromMap(strPath, bIsDir, m_bUseFileType);
-			SetItemText(nItem, COL_TYPE, strType);
-			//아이콘
-			int nImage = GetFileImageIndexFromMap(strPath, fd.dwFileAttributes);
-			SetItem(nItem, COL_NAME, LVIF_IMAGE, NULL, nImage, 0, 0, 0);
-		}
+		SetItemText(nItem, COL_SIZE, GetFileSizeString(filesize.QuadPart, 0));
 	}
-	SetItemText(nItem, COL_NAME, Get_Name(strPath));
-	SetItemText(nItem, COL_DATE, strTime);
+	//타입과 아이콘
+	if (bUpdateIcon) // 시간이 걸릴수 있고 확장자가 바뀌지 않은 경우 필요가 없으므로 옵션 처리
+	{
+		//종류
+		SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(strPath, bIsDir, m_bUseFileType));
+		//아이콘
+		SetItem(nItem, COL_NAME, LVIF_IMAGE, NULL, GetFileImageIndexFromMap(strPath, fd.dwFileAttributes), 0, 0, 0);
+	}
+	//메모
 	SetItemText(nItem, COL_MEMO, GetPathMemo(strPath, fd.dwFileAttributes, m_bCheckOpen));
 	FindClose(hFind);
 }
@@ -1415,7 +1173,7 @@ void CFileListCtrl::UpdateItem(int nItem, CString strPath, BOOL bUpdateIcon)
 
 void CFileListCtrl::UpdateItemByPath(CString strOldPath, CString strNewPath, BOOL bRelativePath, BOOL bForceUpdate)
 {
-	if (m_nType != LIST_TYPE_FOLDER) return;
+	if (m_nListType != LIST_TYPE_FOLDER) return;
 	BOOL bSame = FALSE;
 	if (strOldPath.Compare(strNewPath) == 0) //대소문자도 구분하여 같을때
 	{
@@ -1484,8 +1242,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 		return -1;
 	}
 	int nCount = 0;
-	CString strSize, strDate, strType;
-	DWORD dwItemData = 0;
+	PathItem pi;
 	int nItem = -1;
 	size_t nLen = 0;
 	ULARGE_INTEGER filesize;
@@ -1501,7 +1258,6 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 		{
 			break;
 		}
-		dwItemData = fd.dwFileAttributes;
 		nLen = _tcsclen(fd.cFileName);
 		if ( (nLen == 1 && fd.cFileName[0] == _T('.')) 
 			|| (nLen == 2 && fd.cFileName[0] == _T('.') && fd.cFileName[1] == _T('.')))
@@ -1514,19 +1270,22 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 		}
 		if (bIsDot == FALSE)
 		{
+			pi.pidl = NULL;
+			pi.dwData = fd.dwFileAttributes; //Attribute
+			pi.str0 = fd.cFileName; //Name
 			tTemp = COleDateTime(fd.ftLastWriteTime);
-			strDate = tTemp.Format(_T("%Y-%m-%d %H:%M:%S"));
+			pi.str1 = tTemp.Format(_T("%Y-%m-%d %H:%M:%S")); //DateTime
 			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			{
 				bIsDir = TRUE;
-				strSize.Empty();
+				pi.str2.Empty(); //Size
 			}
 			else
 			{
 				bIsDir = FALSE;
 				filesize.HighPart = fd.nFileSizeHigh;
 				filesize.LowPart = fd.nFileSizeLow;
-				strSize = GetFileSizeString(filesize.QuadPart, 0);
+				pi.str2 = GetFileSizeString(filesize.QuadPart, 0); //Size
 			}
 			fullpath = PathBackSlash(strDir) + fd.cFileName;
 			BOOL bExist = FALSE;
@@ -1542,7 +1301,7 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 					}
 				}
 			}
-			if (bExist == FALSE)
+			if (bExist == FALSE) //새로운 아이템
 			{
 				nItem = InsertItem(GetItemCount(), fd.cFileName, GetFileImageIndexFromMap(fullpath, fd.dwFileAttributes));
 				nCount++;
@@ -1557,11 +1316,13 @@ int CFileListCtrl::AddItemByPath(CString strPath, BOOL bCheckExist, BOOL bAllowB
 						bSelect = FALSE; //한번만
 					}
 				}
-				SetItemData(nItem, dwItemData);
-				SetItemText(nItem, COL_DATE, strDate);
-				SetItemText(nItem, COL_SIZE, strSize);
-				SetItemText(nItem, COL_TYPE, GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType));
-				SetItemText(nItem, COL_MEMO, GetPathMemo(fullpath, dwItemData, m_bCheckOpen));
+				pi.str3 = GetPathTypeFromMap(fullpath, bIsDir, m_bUseFileType); //Type
+				pi.str4 = GetPathMemo(fullpath, fd.dwFileAttributes, m_bCheckOpen); //Memo
+				SetItemData(nItem, fd.dwFileAttributes);
+				SetItemText(nItem, COL_DATE, pi.str1);
+				SetItemText(nItem, COL_SIZE, pi.str2);
+				SetItemText(nItem, COL_TYPE, pi.str3);
+				SetItemText(nItem, COL_MEMO, pi.str4);
 			}
 		}
 		b = FindNextFileW(hFind, &fd);
@@ -2004,22 +1765,21 @@ void CFileListCtrl::OnDestroy()
 
 
 
-void CFileListCtrl::BrowsePathHistory(BOOL bPrevious)
+void CFileListCtrl::BrowseHistory(BOOL bPrevious)
 {
 	if (m_posPathHistory == NULL || m_aPathHistory.GetSize() < 2) return;
-	m_strFilterExclude.Empty();
 	m_strFilterInclude.Empty();
 	if (bPrevious == TRUE && m_posPathHistory != m_aPathHistory.GetHeadPosition())
 	{
 		m_aPathHistory.GetPrev(m_posPathHistory);
-		CString strFolder =m_aPathHistory.GetAt(m_posPathHistory);
-		DisplayFolder_Start(strFolder, FALSE);
+		CString strFolder = m_aPathHistory.GetAt(m_posPathHistory);
+		DisplayFolderByPath(strFolder, FALSE);
 	}
 	else if (bPrevious == FALSE && m_posPathHistory != m_aPathHistory.GetTailPosition())
 	{
 		m_aPathHistory.GetNext(m_posPathHistory);
 		CString strFolder = m_aPathHistory.GetAt(m_posPathHistory);
-		DisplayFolder_Start(strFolder, FALSE);
+		DisplayFolderByPath(strFolder, FALSE);
 	}
 }
 
@@ -2172,7 +1932,7 @@ void CFileListCtrl::OnLvnItemchanged(NMHDR* pNMHDR, LRESULT* pResult)
 BOOL CFileListCtrl::IsWatchable() //모니터링 가능한 일반적인 폴더인 경우 TRUE 반환
 {
 	if (::IsWindow(GetSafeHwnd()) == FALSE) return FALSE;
-	if (m_nType != LIST_TYPE_FOLDER) return FALSE;
+	if (m_nListType != LIST_TYPE_FOLDER) return FALSE;
 	if (m_strFolder.IsEmpty()) return FALSE;
 	return TRUE;
 }
@@ -2187,8 +1947,8 @@ BOOL CFileListCtrl::OnCommand(WPARAM wParam, LPARAM lParam)
 	case IDM_FILE_PASTE:	case IDM_PASTE_FILE:		ClipBoardImport();		break; //툴바 또는 메뉴
 	case IDM_CONVERT_NFD:	ConvertNFDNames();		break;
 	case IDM_CHECK_LOCKED: UpdateMemo();		break;
-	case IDM_OPEN_PREV:		BrowsePathHistory(TRUE); break;
-	case IDM_OPEN_NEXT:		BrowsePathHistory(FALSE); break;
+	case IDM_OPEN_PREV:		BrowseHistory(TRUE); break;
+	case IDM_OPEN_NEXT:		BrowseHistory(FALSE); break;
 	case IDM_PLAY_ITEM:		OpenSelectedItem(); break;
 	case IDM_OPEN_PARENT:	OpenParentFolder(); break;
 	case IDM_DISPLAY_PATH:	DisplayPathItems(); break;
@@ -2206,7 +1966,7 @@ CString CFileListCtrl::GetBarString()
 {
 	if (::IsWindow(GetSafeHwnd()) == FALSE) return _T("");
 	CString strReturn, strInfo;
-	if (m_nType == LIST_TYPE_FOLDER)
+	if (m_nListType == LIST_TYPE_FOLDER)
 	{
 		int nSelected = GetSelectedCount();
 		int nItem = GetNextItem(-1, LVNI_SELECTED);

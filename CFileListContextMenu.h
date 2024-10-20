@@ -14,7 +14,7 @@ public:
 	static LRESULT CALLBACK HookWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	void InvokeCommand(LPCONTEXTMENU pContextMenu, UINT idCommand);
 	UINT GetPIDLSize(LPCITEMIDLIST pidl);
-	LPITEMIDLIST CopyPIDL(LPCITEMIDLIST pidl, int cb = -1);
+	//LPITEMIDLIST CopyPIDL(LPCITEMIDLIST pidl, int cb = -1);
 	void SetParent(CWnd* pWnd);
 
 private:

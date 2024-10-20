@@ -40,7 +40,7 @@ public:
 	void UpdateTabByPathEdit();
 	void SetTabTitle(int nTab, CString strTitle);
 	void SetSelected(BOOL bSelected);
-	void AddFileListTab(CString strFolder);
+	void AddFileListTabByPath(CString strFolder);
 	void CloseFileListTab(int nTab);
 	void Clear();
 	void SetCtrlColor(COLORREF clrBk, COLORREF clrText, BOOL bSetBk, BOOL bSetText);

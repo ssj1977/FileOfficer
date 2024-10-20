@@ -14,7 +14,7 @@ struct PathItem
 	CString str4; //COL_MEMO
 	DWORD dwData;
 	int nIconIndex;
-	LPITEMIDLIST pidl; //Absolute PIDL
+	LPITEMIDLIST pidl;
 
 	PathItem()
 	{
@@ -22,11 +22,7 @@ struct PathItem
 		nIconIndex = 0;
 		pidl = NULL;
 	};
-	~PathItem()
-	{
-		if (pidl) CoTaskMemFree(pidl);
-	};
-	PathItem(DWORD _dwData, int _nIconIndex, LPITEMIDLIST _pidl, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"", CString _str4=L"")
+	PathItem(DWORD _dwData, int _nIconIndex, CString _str0 = L"", CString _str1 = L"", CString _str2 = L"", CString _str3 = L"", CString _str4=L"")
 	{
 		this->dwData = _dwData;
 		this->nIconIndex = _nIconIndex;
@@ -36,8 +32,11 @@ struct PathItem
 		this->str3 = _str3;
 		this->str4 = _str4;
 		this->pidl = NULL;
-		if (_pidl) this->pidl = ILClone(_pidl); //메모리 내용을 복사하고 포인터 새로 할당
 	};
+	~PathItem()
+	{
+		if (pidl) CoTaskMemFree(pidl);
+	}
 	PathItem(const PathItem& pti)
 	{
 		this->dwData = pti.dwData;
@@ -48,7 +47,7 @@ struct PathItem
 		this->str3 = pti.str3;
 		this->str4 = pti.str4;
 		this->pidl = NULL;
-		if (pti.pidl) this->pidl = ILClone(pti.pidl); //메모리 내용을 복사하고 포인터 새로 할당
+		if (pti.pidl) this->pidl = ILClone(pti.pidl);
 	}
 	PathItem& operator= (const PathItem& pti) //CArray의 CArray를 만들때는 항상 복사 생성자를 오버로딩 해야 함
 	{
@@ -60,7 +59,7 @@ struct PathItem
 		this->str3 = pti.str3;
 		this->str4 = pti.str4;
 		this->pidl = NULL;
-		if (pti.pidl) this->pidl = ILClone(pti.pidl); //메모리 내용을 복사하고 포인터 새로 할당
+		if (pti.pidl) this->pidl = ILClone(pti.pidl);
 		return *this;
 	};
 };
@@ -93,27 +92,25 @@ public:
 	CString m_strFolder;
 	CString m_strPrevFolder; //폴더간 이동시 하위 폴더에서 상위폴더로 이동하는 경우 자동으로 해당 하위폴더를 목록 중에서 선택하기 위해 이용
 	CString m_strFilterInclude;
-	CString m_strFilterExclude;
 
 	void* m_pColorRuleArray;
-	void BrowsePathHistory(BOOL bPrevious);
-	void AddPathHistory(CString strPath);
 	int GetNameColumnIndex();
 	inline BOOL IsItemExist(int nItem) { return PathFileExists(GetItemFullPath(nItem)); };
 	
-
 	//경로 히스토리 관련
+	BOOL m_bUpdateHistory;
+	void BrowseHistory(BOOL bPrevious);
 	CList<CString> m_aPathHistory;
 	POSITION m_posPathHistory;
-	BOOL m_bUpdatePathHistory;
+	void AddPathHistory(CString strPath);
 	inline BOOL IsFirstPath() { return m_posPathHistory == m_aPathHistory.GetHeadPosition(); };
 	inline BOOL IsLastPath() { return m_posPathHistory == m_aPathHistory.GetTailPosition(); };
 	inline BOOL IsRootPath() { return m_strFolder.IsEmpty(); };	
-	
+
 	//상태 확인
 	BOOL m_bAsc;
 	int m_nSortCol;
-	int m_nType;
+	int m_nListType;
 	int CMD_UpdateSortInfo;
 	int CMD_UpdateFromList;
 	int CMD_UpdateBar;
@@ -133,13 +130,12 @@ public:
 	//static BOOL IsLoading(CFileListCtrl* pList);
 	//static void DeleteLoadingStatus(CFileListCtrl* pList);
 	//HANDLE m_hLoadFinished; //디렉토리 로딩이 끝나거나 중단될때 발생하는 이벤트 핸들
-	//void DisplayFolder(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	void RefreshList();
-	void DisplayFolder_Start(CString strFolder, BOOL bUpdatePathHistory = TRUE);
 	BOOL m_bLoading; //로딩 중인지 확인용
-	void LoadFolder(CString strFolder, BOOL bUpdatePathHistory);
+	void DisplayFolderByPath(CString strFolder, BOOL bUpdateHistory = TRUE);
+	void LoadFolder(CString strFolder, BOOL bUpdateHistory);
 	void DisplayPathItems();
-	PathItemArray m_aPathItem; //처음 추가할때는 배열의 형태로 추가, 각 아이템에 대한 포인터를 리스트컨트롤의 Data에 포함시켜서 연동
+	PathItemArray m_aPathItem; //처음 추가할때는 배열의 형태로 추가, 추가할때의 배열의 인덱스를 아이템데이터에 할당
 
 	// 변경사항 모니터링용 쓰레드 처리
 	BOOL IsWatchable();

@@ -113,7 +113,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 			while (nItem != -1)
 			{
 				strPath = pList->GetItemFullPath(nItem);
-				if (PathIsDirectory(strPath)) AddFileListTab(strPath);
+				if (PathIsDirectory(strPath)) AddFileListTabByPath(strPath);
 				nItem = pList->GetNextItem(nItem, LVNI_SELECTED);
 			}
 		}
@@ -130,7 +130,7 @@ BOOL CDlgTabView::OnCommand(WPARAM wParam, LPARAM lParam)
 		break; 
 	case IDM_UPDATE_SORTINFO: UpdateSortInfo((CWnd*)lParam); break;
 	case IDM_REFRESH_LIST: UpdateTabByPathEdit(); break;
-	case IDM_TAB_ADD: case IDM_ADD_LIST: AddFileListTab(APP()->m_strPath_Default); break;
+	case IDM_TAB_ADD: case IDM_ADD_LIST: AddFileListTabByPath(APP()->m_strPath_Default); break;
 	case IDM_TAB_CLOSE:	case IDM_CLOSE_LIST: CloseFileListTab(m_nCurrentTab); break;
 	case IDM_CONFIG: ConfigViewOption(); break;
 	case IDM_TOGGLE_FIND: ToggleFindMode(); break;
@@ -267,7 +267,7 @@ BOOL CDlgTabView::OnInitDialog()
 	// Init Tabs
 	if (m_aTabInfo.GetSize() == 0)
 	{
-		PathTabInfo tabInfo(L"", 0, TRUE);
+		PathTabInfo tabInfo(L"", NULL, 0, TRUE);
 		m_aTabInfo.Add(tabInfo);
 	}
 	CString strTitle;
@@ -281,9 +281,9 @@ BOOL CDlgTabView::OnInitDialog()
 	return TRUE;
 }
 
-void CDlgTabView::AddFileListTab(CString strPath)
+void CDlgTabView::AddFileListTabByPath(CString strPath)
 {
-	PathTabInfo tabInfo(strPath, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
+	PathTabInfo tabInfo(strPath, NULL, APP()->m_nSortCol_Default, APP()->m_bSortAscend_Default);
 	m_aTabInfo.Add(tabInfo);
 	int nTab = m_tabPath.InsertItem((int)m_aTabInfo.GetSize(), CFileListCtrl::GetPathName(strPath), 1);
 	SetCurrentTab(nTab);
@@ -343,7 +343,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 	PathTabInfo& pti = m_aTabInfo[nTab];
 	CFileListCtrl* pList = (CFileListCtrl*)pti.pWnd;
 	CRect rc = CRect(0, 0, 40, 30);
-	BOOL bUpdateUI = TRUE; // DisplayFolder_Start 가 호출되는 경우 중복처리 방지용
+	BOOL bUpdateUI = TRUE; // DisplayFolderByPath 가 호출되는 경우 중복처리 방지용
 	if (pList == NULL)
 	{
 		pList = new CFileListCtrl;
@@ -373,7 +373,7 @@ void CDlgTabView::SetCurrentTab(int nTab)
 		pList->m_bUseFileIcon = APP()->m_bUseFileIcon;
 		pList->m_bCheckOpen = APP()->m_bCheckOpen;
 		pList->SetIconType(GetIconType());
-		pList->DisplayFolder_Start(pti.strPath);
+		pList->DisplayFolderByPath(pti.strPath);
 		bUpdateUI = FALSE;
 	}
 	CFileListCtrl* pListOld = (CFileListCtrl*)CurrentList();
@@ -516,13 +516,12 @@ void CDlgTabView::UpdateTabByPathEdit()
 	CFileListCtrl* pList = (CFileListCtrl*)CurrentList();
 	if (strFilter.IsEmpty() == FALSE)
 	{
-		pList->DisplayFolder_Start(PathBackSlash(strPath) + strFilter);
+		pList->DisplayFolderByPath(PathBackSlash(strPath) + strFilter);
 	}
 	else
 	{
 		pList->m_strFilterInclude.Empty();
-		pList->m_strFilterExclude.Empty();
-		pList->DisplayFolder_Start(strPath);
+		pList->DisplayFolderByPath(strPath);
 	}
 }
 
