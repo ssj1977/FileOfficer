@@ -359,7 +359,7 @@ void CFileListCtrl::OpenSelectedItem()
 			{
 				SHELLEXECUTEINFO sei;
 				memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
-				sei.fMask = SEE_MASK_IDLIST;
+				sei.fMask = SEE_MASK_IDLIST | SEE_MASK_ASYNCOK;
 				sei.cbSize = sizeof(SHELLEXECUTEINFO);
 				sei.lpVerb = _T("open");
 				sei.lpFile = NULL;
@@ -396,7 +396,7 @@ void CFileListCtrl::OpenSelectedItem()
 							{
 								SHELLEXECUTEINFO sei;
 								memset(&sei, 0, sizeof(SHELLEXECUTEINFO));
-								sei.fMask = SEE_MASK_IDLIST;
+								sei.fMask = SEE_MASK_IDLIST | SEE_MASK_ASYNCOK;
 								sei.cbSize = sizeof(SHELLEXECUTEINFO);
 								sei.lpVerb = _T("explore");
 								sei.lpFile = NULL;
