@@ -8,7 +8,7 @@ public:
 	void SetPathArray(CString strFolder, CStringArray& aPath);
 	void FreePIDLArray(LPITEMIDLIST* aPIDL);
 	CMenu* GetMenu();
-	BOOL GetContextMenu(void** ppContextMenu);
+	BOOL GetContextMenu(void** ppContextMenu, CWnd* pWnd);
 	UINT ShowContextMenu(CWnd* pWnd, CPoint pt);
 	void RunShellMenuCommand(CWnd* pWnd, UINT idCommand);
 	static LRESULT CALLBACK HookWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);

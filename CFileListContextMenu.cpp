@@ -57,7 +57,7 @@ CMenu* CFileListContextMenu::GetMenu()
 	return m_pMenu;
 }
 
-BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu)
+BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu, CWnd* pWnd)
 {
 	if (m_psfFolder == NULL) return FALSE;
 	*ppContextMenu = NULL;
@@ -70,7 +70,8 @@ BOOL CFileListContextMenu::GetContextMenu(void** ppContextMenu)
 	{
 		DEFCONTEXTMENU dcm =
 		{
-			(HWND)m_pMenu->m_hMenu, //hWnd,
+			//(HWND)m_pMenu->m_hMenu, //hWnd, //이렇게 하면 디펜더 아이콘이 커지는 오류가 있어 아래와 같이 수정
+			pWnd->m_hWnd,
 			NULL, // contextMenuCB
 			NULL, // pidlFolder,
 			m_psfFolder, //IShellFolder 
@@ -102,8 +103,8 @@ UINT CFileListContextMenu::ShowContextMenu(CWnd* pWnd, CPoint pt)
 		m_pMenu->CreatePopupMenu();
 	}
 	//시스템 메뉴
-	if (!GetContextMenu((void**)&pContextMenu)) return 0;
-
+	if (!GetContextMenu((void**)&pContextMenu, pWnd)) return 0;
+	
 	// lets fill the our popupmenu  
 	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXTENDEDVERBS); //CMF_NORMAL | CMF_EXPLORE);
 	// subclass window to handle menurelated messages in CShellContextMenu 
@@ -249,7 +250,7 @@ void CFileListContextMenu::RunShellMenuCommand(CWnd* pWnd, UINT idCommand)
 		m_pMenu->CreatePopupMenu();
 	}
 	//시스템 메뉴
-	if (!GetContextMenu((void**)&pContextMenu)) return;
+	if (!GetContextMenu((void**)&pContextMenu, pWnd)) return;
 	// lets fill the our popupmenu  
 	pContextMenu->QueryContextMenu(m_pMenu->m_hMenu, m_pMenu->GetMenuItemCount(), MIN_ID, MAX_ID, CMF_NORMAL | CMF_EXTENDEDVERBS); //CMF_NORMAL | CMF_EXPLORE);
 	// subclass window to handle menurelated messages in CShellContextMenu 
